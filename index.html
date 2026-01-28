@@ -567,25 +567,25 @@
                 <nav>
                     <ul class="nav-menu">
                         <li class="nav-item">
-                            <a class="nav-link active" onclick="switchView('dashboard')">
+                            <a class="nav-link active" onclick="switchView(event,'dashboard')">
                                 <i data-lucide="layout-dashboard"></i>
                                 Tableau de bord
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" onclick="switchView('tasks')">
+                            <a class="nav-link" onclick="switchView(event,'tasks')">
                                 <i data-lucide="check-square"></i>
                                 Tâches
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" onclick="switchView('calendar')">
+                            <a class="nav-link" onclick="switchView(event,'calendar')">
                                 <i data-lucide="calendar"></i>
                                 Planning
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" onclick="switchView('team')">
+                            <a class="nav-link" onclick="switchView(event,'team')">
                                 <i data-lucide="users"></i>
                                 Équipe
                             </a>
@@ -644,8 +644,8 @@
                                 </button>
                             </div>
                             <div class="view-selector">
-                                <button class="view-btn active" onclick="setCalendarView('month')">Mois</button>
-                                <button class="view-btn" onclick="setCalendarView('week')">Semaine</button>
+                                <button class="view-btn active" onclick="setCalendarView(event,'month')">Mois</button>
+                                <button class="view-btn" onclick="setCalendarView(event,'week')">Semaine</button>
                             </div>
                         </div>
                     </div>
@@ -798,11 +798,16 @@
 
     <script>
         // Supabase configuration
-        const SUPABASE_URL = 'https://yeusqubxgxchigssobma.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldXNxdWJ4Z3hjaGlnc3NvYm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MDU2NTksImV4cCI6MjA4NTE4MTY1OX0.sb_publishable_FkwKSPbHO3CPHdRvt35img__s3HSY5R';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ⚠️ IMPORTANT:
+// - Use ONLY your "anon/public" key or the new "publishable" key here.
+// - Never put a "secret" key in the browser.
+const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY';
 
-        // Data
+// Create a single client instance (avoid naming collision with the global `supabase` object from the CDN)
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Data
         let tasks = [];
         let members = [];
         let teams = [];
@@ -823,7 +828,7 @@
         // Setup real-time subscriptions
         function setupRealtimeSubscriptions() {
             // Subscribe to teams changes
-            supabase
+            supabaseClient
                 .channel('teams-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => {
                     loadData();
@@ -831,7 +836,7 @@
                 .subscribe();
 
             // Subscribe to members changes
-            supabase
+            supabaseClient
                 .channel('members-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
                     loadData();
@@ -839,7 +844,7 @@
                 .subscribe();
 
             // Subscribe to tasks changes
-            supabase
+            supabaseClient
                 .channel('tasks-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
                     loadData();
@@ -851,7 +856,7 @@
         async function loadData() {
             try {
                 // Load teams
-                const { data: teamsData, error: teamsError } = await supabase
+                const { data: teamsData, error: teamsError } = await supabaseClient
                     .from('teams')
                     .select('*')
                     .order('created_at', { ascending: true });
@@ -860,7 +865,7 @@
                 teams = teamsData || [];
 
                 // Load members
-                const { data: membersData, error: membersError } = await supabase
+                const { data: membersData, error: membersError } = await supabaseClient
                     .from('members')
                     .select('*')
                     .order('created_at', { ascending: true });
@@ -869,7 +874,7 @@
                 members = membersData || [];
 
                 // Load tasks
-                const { data: tasksData, error: tasksError } = await supabase
+                const { data: tasksData, error: tasksError } = await supabaseClient
                     .from('tasks')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -905,7 +910,7 @@
                     { id: Date.now() + 2, name: 'Équipe Marketing', color: '#FF9800', description: 'Marketing & Communication' }
                 ];
                 
-                const { error: teamsError } = await supabase.from('teams').insert(teamsToInsert);
+                const { error: teamsError } = await supabaseClient.from('teams').insert(teamsToInsert);
                 if (teamsError) throw teamsError;
 
                 // Insert members
@@ -917,7 +922,7 @@
                     { id: Date.now() + 14, name: 'Julie Moreau', role: 'Responsable Marketing', email: 'julie@example.com', team_id: teamsToInsert[2].id }
                 ];
 
-                const { error: membersError } = await supabase.from('members').insert(membersToInsert);
+                const { error: membersError } = await supabaseClient.from('members').insert(membersToInsert);
                 if (membersError) throw membersError;
 
                 // Insert tasks
@@ -961,7 +966,7 @@
                     }
                 ];
 
-                const { error: tasksError } = await supabase.from('tasks').insert(tasksToInsert);
+                const { error: tasksError } = await supabaseClient.from('tasks').insert(tasksToInsert);
                 if (tasksError) throw tasksError;
 
                 // Reload data
@@ -973,12 +978,12 @@
         }
 
         // View switching
-        function switchView(viewName) {
+        function switchView(e, viewName) {
             document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
             document.getElementById(viewName + '-view').classList.add('active');
 
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            event.target.closest('.nav-link').classList.add('active');
+            e.target.closest('.nav-link').classList.add('active');
 
             if (viewName === 'calendar') {
                 renderCalendar();
@@ -1031,7 +1036,7 @@
         async function deleteTask(taskId) {
             if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) return;
             
-            const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+            const { error } = await supabaseClient.from('tasks').delete().eq('id', taskId);
             
             if (error) {
                 console.error('Error deleting task:', error);
@@ -1158,10 +1163,10 @@
             document.getElementById('calendar-container').innerHTML = weekHtml;
         }
 
-        function setCalendarView(view) {
+        function setCalendarView(e, view) {
             calendarView = view;
             document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            e.target.classList.add('active');
             renderCalendar();
         }
 
@@ -1264,7 +1269,7 @@
         async function deleteTeam(teamId) {
             if (!confirm('Êtes-vous sûr de vouloir supprimer cette équipe ? Les membres seront aussi supprimés.')) return;
             
-            const { error } = await supabase.from('teams').delete().eq('id', teamId);
+            const { error } = await supabaseClient.from('teams').delete().eq('id', teamId);
             
             if (error) {
                 console.error('Error deleting team:', error);
@@ -1278,12 +1283,6 @@
             currentTeamIdForMember = teamId;
             openModal('member');
         }
-
-        // Modals
-        function openModal(type) {
-            document.getElementById(type + '-modal').classList.add('active');
-        }
-
         function closeModal(type) {
             document.getElementById(type + '-modal').classList.remove('active');
         }
@@ -1302,7 +1301,7 @@
                 deadline: document.getElementById('task-deadline').value
             };
 
-            const { error } = await supabase.from('tasks').insert([newTask]);
+            const { error } = await supabaseClient.from('tasks').insert([newTask]);
             
             if (error) {
                 console.error('Error saving task:', error);
@@ -1332,7 +1331,7 @@
                 team_id: teamId
             };
 
-            const { error } = await supabase.from('members').insert([newMember]);
+            const { error } = await supabaseClient.from('members').insert([newMember]);
             
             if (error) {
                 console.error('Error saving member:', error);
@@ -1357,7 +1356,7 @@
                 color: selectedColor
             };
 
-            const { error } = await supabase.from('teams').insert([newTeam]);
+            const { error } = await supabaseClient.from('teams').insert([newTeam]);
             
             if (error) {
                 console.error('Error saving team:', error);
@@ -1372,7 +1371,7 @@
         async function deleteMember(memberId) {
             if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return;
             
-            const { error } = await supabase.from('members').delete().eq('id', memberId);
+            const { error } = await supabaseClient.from('members').delete().eq('id', memberId);
             
             if (error) {
                 console.error('Error deleting member:', error);
