@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Planner - Gestion d'Équipe Web</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #E85A28;
+            --secondary: #004E89;
+            --accent: #F7B801;
+            --success: #06D6A0;
+            --danger: #EF476F;
+            --dark: #1A1A2E;
+            --gray-100: #F8F9FA;
+            --gray-200: #E9ECEF;
+            --gray-300: #DEE2E6;
+            --gray-400: #CED4DA;
+            --gray-500: #ADB5BD;
+            --gray-700: #495057;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 1.5rem;
+            font-family: 'Syne', sans-serif;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'DM Sans', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255,107,53,0.4);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            height: fit-content;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            border-radius: 10px;
+            color: var(--gray-700);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: var(--gray-100);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .content-area {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            min-height: 600px;
+        }
+
+        .view-content {
+            display: none;
+        }
+
+        .view-content.active {
+            display: block;
+        }
+
+        /* Calendar Styles */
+        .calendar-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #f8f9fa;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .calendar-header-cell {
+            text-align: center;
+            font-weight: 600;
+            padding: 1rem;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            border-right: 1px solid var(--gray-200);
+        }
+
+        .calendar-header-cell:last-child {
+            border-right: none;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day {
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0.75rem;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.2s ease;
+            cursor: pointer;
+        }
+
+        .calendar-day:nth-child(7n) {
+            border-right: none;
+        }
+
+        .calendar-day:hover {
+            background: #f8f9fa;
+        }
+
+        .calendar-day.other-month {
+            background: white;
+        }
+
+        .calendar-day.other-month .calendar-day-number {
+            color: #CBD5E0;
+        }
+
+        .calendar-day.today {
+            background: #e3f2ff;
+        }
+
+        .calendar-day.today .calendar-day-number {
+            background: #2196F3;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day-number {
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .calendar-task-item {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-task-item.priority-high {
+            background: var(--danger);
+        }
+
+        .calendar-task-item.priority-medium {
+            background: var(--accent);
+            color: var(--dark);
+        }
+
+        .calendar-task-item.priority-low {
+            background: var(--success);
+        }
+
+        .calendar-task-item.priority-urgent {
+            background: #C53030;
+        }
+
+        .view-selector {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .view-btn {
+            padding: 0.5rem 1.25rem;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-right: 1px solid var(--gray-300);
+        }
+
+        .view-btn:last-child {
+            border-right: none;
+        }
+
+        .view-btn.active {
+            background: #2196F3;
+            color: white;
+        }
+
+        .view-btn:hover:not(.active) {
+            background: var(--gray-100);
+        }
+
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .calendar-today-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-300);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-today-btn:hover {
+            background: var(--gray-100);
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gray-100) 0%, white 100%);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 2px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: 'Syne', sans-serif;
+        }
+
+        /* Task Styles */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .task-card {
+            background: var(--gray-100);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--gray-400);
+            transition: all 0.3s ease;
+        }
+
+        .task-card.priority-high {
+            border-left-color: var(--danger);
+        }
+
+        .task-card.priority-medium {
+            border-left-color: var(--accent);
+        }
+
+        .task-card.priority-low {
+            border-left-color: var(--success);
+        }
+
+        .task-card.priority-urgent {
+            border-left-color: #C53030;
+        }
+
+        .task-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+        }
+
+        .task-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-todo {
+            background: var(--gray-300);
+        }
+
+        .badge-in-progress {
+            background: #E3F2FD;
+            color: var(--secondary);
+        }
+
+        .badge-done {
+            background: #D1F4E0;
+            color: var(--success);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid var(--gray-300);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Team */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .team-card {
+            background: var(--gray-100);
+            padding: 1.5rem;
+            border-radius: 16px;
+            text-align: center;
+            border: 2px solid var(--gray-200);
+        }
+
+        .team-avatar-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 1.8rem;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">TP</div>
+                <h1>Team Planner</h1>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" onclick="openModal('task')">
+                    <i data-lucide="plus"></i>
+                    Nouvelle tâche
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <nav>
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a class="nav-link active" onclick="switchView('dashboard')">
+                                <i data-lucide="layout-dashboard"></i>
+                                Tableau de bord
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchView('tasks')">
+                                <i data-lucide="check-square"></i>
+                                Tâches
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchView('calendar')">
+                                <i data-lucide="calendar"></i>
+                                Planning
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchView('team')">
+                                <i data-lucide="users"></i>
+                                Équipe
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <main class="content-area">
+                <!-- Dashboard View -->
+                <div id="dashboard-view" class="view-content active">
+                    <h2 style="font-family: 'Syne', sans-serif; margin-bottom: 1.5rem;">Tableau de bord</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total tâches</div>
+                            <div class="stat-value" id="total-tasks">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">En cours</div>
+                            <div class="stat-value" id="in-progress-tasks">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Terminées</div>
+                            <div class="stat-value" id="done-tasks">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Membres</div>
+                            <div class="stat-value" id="team-count">0</div>
+                        </div>
+                    </div>
+                    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Tâches récentes</h3>
+                    <div id="recent-tasks-list" class="task-list"></div>
+                </div>
+
+                <!-- Tasks View -->
+                <div id="tasks-view" class="view-content">
+                    <h2 style="font-family: 'Syne', sans-serif; margin-bottom: 1.5rem;">Toutes les tâches</h2>
+                    <div id="all-tasks-list" class="task-list"></div>
+                </div>
+
+                <!-- Calendar View -->
+                <div id="calendar-view" class="view-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div>
+                            <h2 style="font-family: 'Syne', sans-serif; margin: 0;">Calendrier</h2>
+                            <p id="calendar-subtitle" style="color: var(--gray-600); margin: 0.5rem 0 0 0;">Janvier 2026</p>
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div class="calendar-nav">
+                                <button class="btn btn-secondary" onclick="previousPeriod()" style="padding: 0.5rem 0.75rem;">
+                                    <i data-lucide="chevron-left"></i>
+                                </button>
+                                <button class="calendar-today-btn" onclick="goToToday()">Aujourd'hui</button>
+                                <button class="btn btn-secondary" onclick="nextPeriod()" style="padding: 0.5rem 0.75rem;">
+                                    <i data-lucide="chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="view-selector">
+                                <button class="view-btn active" onclick="setCalendarView('month')">Mois</button>
+                                <button class="view-btn" onclick="setCalendarView('week')">Semaine</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="calendar-container"></div>
+                </div>
+
+                <!-- Team View -->
+                <div id="team-view" class="view-content">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <h2 style="font-family: 'Syne', sans-serif;">Équipes</h2>
+                        <button class="btn btn-primary" onclick="openModal('team')">
+                            <i data-lucide="users"></i>
+                            Nouvelle équipe
+                        </button>
+                    </div>
+                    <div id="team-grid"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouvelle tâche</h3>
+                <button class="close-btn" onclick="closeModal('task')">&times;</button>
+            </div>
+            <form onsubmit="saveTask(event)">
+                <div class="form-group">
+                    <label class="form-label">Titre</label>
+                    <input type="text" class="form-input" id="task-title" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="task-description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assignée à</label>
+                    <select class="form-select" id="task-assignee">
+                        <option value="">Non assignée</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priorité</label>
+                    <select class="form-select" id="task-priority">
+                        <option value="low">Basse</option>
+                        <option value="medium" selected>Moyenne</option>
+                        <option value="high">Haute</option>
+                        <option value="urgent">Urgente</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Statut</label>
+                    <select class="form-select" id="task-status">
+                        <option value="todo" selected>À faire</option>
+                        <option value="in-progress">En cours</option>
+                        <option value="done">Terminée</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date d'échéance</label>
+                    <input type="date" class="form-input" id="task-deadline">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Team Modal -->
+    <div id="team-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouvelle équipe</h3>
+                <button class="close-btn" onclick="closeModal('team')">&times;</button>
+            </div>
+            <form onsubmit="saveTeam(event)">
+                <div class="form-group">
+                    <label class="form-label">Nom de l'équipe</label>
+                    <input type="text" class="form-input" id="team-name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="team-description" style="min-height: 80px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Couleur</label>
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem;">
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="team-color" value="#2196F3" checked style="display: none;">
+                            <div style="width: 100%; aspect-ratio: 1; background: #2196F3; border-radius: 8px; border: 3px solid transparent;" onmouseover="this.style.borderColor='#1976D2'" onmouseout="this.style.borderColor='transparent'" onclick="this.style.borderColor='#1976D2'; document.querySelectorAll('[name=team-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = r.checked ? '#1976D2' : 'transparent')"></div>
+                        </label>
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="team-color" value="#9C27B0" style="display: none;">
+                            <div style="width: 100%; aspect-ratio: 1; background: #9C27B0; border-radius: 8px; border: 3px solid transparent;" onmouseover="this.style.borderColor='#7B1FA2'" onmouseout="this.style.borderColor='transparent'" onclick="this.style.borderColor='#7B1FA2'; document.querySelectorAll('[name=team-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = r.checked ? '#7B1FA2' : 'transparent')"></div>
+                        </label>
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="team-color" value="#FF9800" style="display: none;">
+                            <div style="width: 100%; aspect-ratio: 1; background: #FF9800; border-radius: 8px; border: 3px solid transparent;" onmouseover="this.style.borderColor='#F57C00'" onmouseout="this.style.borderColor='transparent'" onclick="this.style.borderColor='#F57C00'; document.querySelectorAll('[name=team-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = r.checked ? '#F57C00' : 'transparent')"></div>
+                        </label>
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="team-color" value="#4CAF50" style="display: none;">
+                            <div style="width: 100%; aspect-ratio: 1; background: #4CAF50; border-radius: 8px; border: 3px solid transparent;" onmouseover="this.style.borderColor='#388E3C'" onmouseout="this.style.borderColor='transparent'" onclick="this.style.borderColor='#388E3C'; document.querySelectorAll('[name=team-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = r.checked ? '#388E3C' : 'transparent')"></div>
+                        </label>
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="team-color" value="#F44336" style="display: none;">
+                            <div style="width: 100%; aspect-ratio: 1; background: #F44336; border-radius: 8px; border: 3px solid transparent;" onmouseover="this.style.borderColor='#D32F2F'" onmouseout="this.style.borderColor='transparent'" onclick="this.style.borderColor='#D32F2F'; document.querySelectorAll('[name=team-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = r.checked ? '#D32F2F' : 'transparent')"></div>
+                        </label>
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="team-color" value="#607D8B" style="display: none;">
+                            <div style="width: 100%; aspect-ratio: 1; background: #607D8B; border-radius: 8px; border: 3px solid transparent;" onmouseover="this.style.borderColor='#455A64'" onmouseout="this.style.borderColor='transparent'" onclick="this.style.borderColor='#455A64'; document.querySelectorAll('[name=team-color]').forEach(r => r.parentElement.querySelector('div').style.borderColor = r.checked ? '#455A64' : 'transparent')"></div>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Créer l'équipe</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Member Modal -->
+    <div id="member-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouveau membre</h3>
+                <button class="close-btn" onclick="closeModal('member')">&times;</button>
+            </div>
+            <form onsubmit="saveMember(event)">
+                <div class="form-group" id="member-team-select-group">
+                    <label class="form-label">Équipe</label>
+                    <select class="form-select" id="member-team" required>
+                        <option value="">Sélectionner une équipe</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nom</label>
+                    <input type="text" class="form-input" id="member-name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rôle</label>
+                    <input type="text" class="form-input" id="member-role" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="member-email">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Ajouter</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://yeusqubxgxchigssobma.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldXNxdWJ4Z3hjaGlnc3NvYm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MDU2NTksImV4cCI6MjA4NTE4MTY1OX0.sb_publishable_FkwKSPbHO3CPHdRvt35img__s3HSY5R';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Data
+        let tasks = [];
+        let members = [];
+        let teams = [];
+        let currentDate = new Date();
+        let calendarView = 'month';
+
+        // Initialize
+        async function init() {
+            await loadData();
+            setupRealtimeSubscriptions();
+            renderDashboard();
+            renderAllTasks();
+            renderTeams();
+            renderCalendar();
+            lucide.createIcons();
+        }
+
+        // Setup real-time subscriptions
+        function setupRealtimeSubscriptions() {
+            // Subscribe to teams changes
+            supabase
+                .channel('teams-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => {
+                    loadData();
+                })
+                .subscribe();
+
+            // Subscribe to members changes
+            supabase
+                .channel('members-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
+                    loadData();
+                })
+                .subscribe();
+
+            // Subscribe to tasks changes
+            supabase
+                .channel('tasks-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+                    loadData();
+                })
+                .subscribe();
+        }
+
+        // Load data from Supabase
+        async function loadData() {
+            try {
+                // Load teams
+                const { data: teamsData, error: teamsError } = await supabase
+                    .from('teams')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+                
+                if (teamsError) throw teamsError;
+                teams = teamsData || [];
+
+                // Load members
+                const { data: membersData, error: membersError } = await supabase
+                    .from('members')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+                
+                if (membersError) throw membersError;
+                members = membersData || [];
+
+                // Load tasks
+                const { data: tasksData, error: tasksError } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (tasksError) throw tasksError;
+                tasks = tasksData || [];
+
+                // If no data exists, add sample data
+                if (teams.length === 0 && members.length === 0 && tasks.length === 0) {
+                    await addSampleData();
+                } else {
+                    updateAssigneeDropdown();
+                    updateTeamSelect();
+                    renderDashboard();
+                    renderAllTasks();
+                    renderTeams();
+                    renderCalendar();
+                    lucide.createIcons();
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Erreur lors du chargement des données: ' + error.message);
+            }
+        }
+
+        // Sample data
+        async function addSampleData() {
+            try {
+                // Insert teams
+                const teamsToInsert = [
+                    { id: Date.now(), name: 'Équipe Développement', color: '#2196F3', description: 'Développeurs front & back' },
+                    { id: Date.now() + 1, name: 'Équipe Design', color: '#9C27B0', description: 'Designers UI/UX' },
+                    { id: Date.now() + 2, name: 'Équipe Marketing', color: '#FF9800', description: 'Marketing & Communication' }
+                ];
+                
+                const { error: teamsError } = await supabase.from('teams').insert(teamsToInsert);
+                if (teamsError) throw teamsError;
+
+                // Insert members
+                const membersToInsert = [
+                    { id: Date.now() + 10, name: 'Sophie Martin', role: 'Chef de Projet', email: 'sophie@example.com', team_id: teamsToInsert[0].id },
+                    { id: Date.now() + 11, name: 'Lucas Bernard', role: 'Développeur Front-End', email: 'lucas@example.com', team_id: teamsToInsert[0].id },
+                    { id: Date.now() + 12, name: 'Emma Dubois', role: 'Designer UI/UX', email: 'emma@example.com', team_id: teamsToInsert[1].id },
+                    { id: Date.now() + 13, name: 'Thomas Petit', role: 'Développeur Back-End', email: 'thomas@example.com', team_id: teamsToInsert[0].id },
+                    { id: Date.now() + 14, name: 'Julie Moreau', role: 'Responsable Marketing', email: 'julie@example.com', team_id: teamsToInsert[2].id }
+                ];
+
+                const { error: membersError } = await supabase.from('members').insert(membersToInsert);
+                if (membersError) throw membersError;
+
+                // Insert tasks
+                const today = new Date();
+                const tasksToInsert = [
+                    {
+                        id: Date.now() + 20,
+                        title: 'Refonte page accueil',
+                        description: 'Moderniser le design',
+                        assignee: 'Emma Dubois',
+                        priority: 'high',
+                        status: 'in-progress',
+                        deadline: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 5).toISOString().split('T')[0]
+                    },
+                    {
+                        id: Date.now() + 21,
+                        title: 'API REST',
+                        description: 'Créer les endpoints',
+                        assignee: 'Lucas Bernard',
+                        priority: 'medium',
+                        status: 'todo',
+                        deadline: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 10).toISOString().split('T')[0]
+                    },
+                    {
+                        id: Date.now() + 22,
+                        title: 'Bugs critiques',
+                        description: 'Correction urgente',
+                        assignee: 'Thomas Petit',
+                        priority: 'urgent',
+                        status: 'in-progress',
+                        deadline: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2).toISOString().split('T')[0]
+                    },
+                    {
+                        id: Date.now() + 23,
+                        title: 'Campagne réseaux sociaux',
+                        description: 'Lancement nouvelle campagne',
+                        assignee: 'Julie Moreau',
+                        priority: 'medium',
+                        status: 'todo',
+                        deadline: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7).toISOString().split('T')[0]
+                    }
+                ];
+
+                const { error: tasksError } = await supabase.from('tasks').insert(tasksToInsert);
+                if (tasksError) throw tasksError;
+
+                // Reload data
+                await loadData();
+            } catch (error) {
+                console.error('Error adding sample data:', error);
+                alert('Erreur lors de l\'ajout des données: ' + error.message);
+            }
+        }
+
+        // View switching
+        function switchView(viewName) {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewName + '-view').classList.add('active');
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            event.target.closest('.nav-link').classList.add('active');
+
+            if (viewName === 'calendar') {
+                renderCalendar();
+            } else if (viewName === 'dashboard') {
+                renderDashboard();
+            } else if (viewName === 'tasks') {
+                renderAllTasks();
+            } else if (viewName === 'team') {
+                renderTeams();
+            }
+
+            lucide.createIcons();
+        }
+
+        // Dashboard
+        function renderDashboard() {
+            document.getElementById('total-tasks').textContent = tasks.length;
+            document.getElementById('in-progress-tasks').textContent = tasks.filter(t => t.status === 'in-progress').length;
+            document.getElementById('done-tasks').textContent = tasks.filter(t => t.status === 'done').length;
+            document.getElementById('team-count').textContent = members.length;
+
+            const recentHtml = tasks.slice(0, 5).map(renderTaskCard).join('');
+            document.getElementById('recent-tasks-list').innerHTML = recentHtml || '<p style="color: var(--gray-500);">Aucune tâche</p>';
+        }
+
+        // Tasks
+        function renderAllTasks() {
+            const tasksHtml = tasks.map(renderTaskCard).join('');
+            document.getElementById('all-tasks-list').innerHTML = tasksHtml || '<p style="color: var(--gray-500);">Aucune tâche</p>';
+        }
+
+        function renderTaskCard(task) {
+            const statusLabels = { 'todo': 'À faire', 'in-progress': 'En cours', 'done': 'Terminée' };
+            return `
+                <div class="task-card priority-${task.priority}" style="position: relative;">
+                    <button onclick="deleteTask(${task.id})" style="position: absolute; top: 1rem; right: 1rem; background: var(--danger); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                        &times;
+                    </button>
+                    <div class="task-title">${task.title}</div>
+                    <p style="color: var(--gray-600); margin: 0.5rem 0;">${task.description || ''}</p>
+                    <div class="task-meta">
+                        <span class="task-badge badge-${task.status}">${statusLabels[task.status]}</span>
+                        ${task.assignee ? `<span>👤 ${task.assignee}</span>` : ''}
+                        ${task.deadline ? `<span>📅 ${new Date(task.deadline).toLocaleDateString('fr-FR')}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function deleteTask(taskId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) return;
+            
+            const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+            
+            if (error) {
+                console.error('Error deleting task:', error);
+                alert('Erreur lors de la suppression: ' + error.message);
+            }
+        }
+
+        // Calendar
+        function renderCalendar() {
+            if (calendarView === 'month') {
+                renderMonthView();
+            } else {
+                renderWeekView();
+            }
+            lucide.createIcons();
+        }
+
+        function renderMonthView() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            
+            document.getElementById('calendar-subtitle').textContent = `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1);
+            const startDate = new Date(firstDay);
+            const dayOfWeek = firstDay.getDay();
+            const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            startDate.setDate(firstDay.getDate() - diff);
+            
+            const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let headerHtml = dayNames.map(day => `<div class="calendar-header-cell">${day}</div>`).join('');
+            
+            let gridHtml = '';
+            for (let i = 0; i < 42; i++) {
+                const currentDay = new Date(startDate);
+                currentDay.setDate(startDate.getDate() + i);
+                
+                const isToday = currentDay.getTime() === today.getTime();
+                const isCurrentMonth = currentDay.getMonth() === month;
+                
+                const dayTasks = tasks.filter(task => {
+                    if (!task.deadline) return false;
+                    const taskDate = new Date(task.deadline);
+                    taskDate.setHours(0, 0, 0, 0);
+                    return taskDate.getTime() === currentDay.getTime();
+                });
+                
+                let dayClass = 'calendar-day';
+                if (isToday) dayClass += ' today';
+                if (!isCurrentMonth) dayClass += ' other-month';
+                
+                let tasksHtml = '';
+                if (isCurrentMonth && dayTasks.length > 0) {
+                    tasksHtml = dayTasks.slice(0, 2).map(t => 
+                        `<div class="calendar-task-item priority-${t.priority}">${t.title}</div>`
+                    ).join('');
+                }
+                
+                gridHtml += `
+                    <div class="${dayClass}">
+                        <div class="calendar-day-number">${currentDay.getDate()}</div>
+                        ${tasksHtml}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('calendar-container').innerHTML = `
+                <div class="calendar-container">
+                    <div class="calendar-header">${headerHtml}</div>
+                    <div class="calendar-grid">${gridHtml}</div>
+                </div>
+            `;
+        }
+
+        function renderWeekView() {
+            const startOfWeek = new Date(currentDate);
+            const dayOfWeek = currentDate.getDay();
+            const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            startOfWeek.setDate(currentDate.getDate() - diff);
+            
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            
+            const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+            document.getElementById('calendar-subtitle').textContent = 
+                `${startOfWeek.getDate()} ${monthNames[startOfWeek.getMonth()]} - ${endOfWeek.getDate()} ${monthNames[endOfWeek.getMonth()]} ${endOfWeek.getFullYear()}`;
+            
+            const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let weekHtml = '<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;">';
+            
+            for (let i = 0; i < 7; i++) {
+                const currentDay = new Date(startOfWeek);
+                currentDay.setDate(startOfWeek.getDate() + i);
+                const isToday = currentDay.getTime() === today.getTime();
+                
+                const dayTasks = tasks.filter(task => {
+                    if (!task.deadline) return false;
+                    const taskDate = new Date(task.deadline);
+                    taskDate.setHours(0, 0, 0, 0);
+                    return taskDate.getTime() === currentDay.getTime();
+                });
+                
+                weekHtml += `
+                    <div style="background: ${isToday ? '#e3f2ff' : 'white'}; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1rem; min-height: 300px;">
+                        <div style="font-weight: 700; margin-bottom: 0.5rem; ${isToday ? 'color: #2196F3;' : ''}">${dayNames[i]}</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem;">${currentDay.getDate()}</div>
+                        ${dayTasks.map(t => `
+                            <div class="calendar-task-item priority-${t.priority}" style="margin-bottom: 0.5rem; white-space: normal;">
+                                ${t.title}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            weekHtml += '</div>';
+            document.getElementById('calendar-container').innerHTML = weekHtml;
+        }
+
+        function setCalendarView(view) {
+            calendarView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderCalendar();
+        }
+
+        function previousPeriod() {
+            if (calendarView === 'month') {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            } else {
+                currentDate.setDate(currentDate.getDate() - 7);
+            }
+            renderCalendar();
+        }
+
+        function nextPeriod() {
+            if (calendarView === 'month') {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            } else {
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+            renderCalendar();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            renderCalendar();
+        }
+
+        // Team
+        function renderTeams() {
+            if (teams.length === 0) {
+                document.getElementById('team-grid').innerHTML = '<p style="color: var(--gray-500);">Aucune équipe. Créez votre première équipe !</p>';
+                return;
+            }
+
+            const teamsHtml = teams.map(team => {
+                const teamMembers = members.filter(m => m.team_id === team.id);
+                const teamTasks = tasks.filter(t => teamMembers.some(m => m.name === t.assignee));
+                
+                return `
+                    <div style="background: white; border: 2px solid ${team.color}; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <div style="width: 12px; height: 12px; border-radius: 50%; background: ${team.color};"></div>
+                                    <h3 style="margin: 0; font-family: 'Syne', sans-serif; font-size: 1.3rem;">${team.name}</h3>
+                                </div>
+                                <p style="color: var(--gray-600); margin: 0; font-size: 0.9rem;">${team.description}</p>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="addMemberToTeam(${team.id})" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                                    <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
+                                    Membre
+                                </button>
+                                <button onclick="deleteTeam(${team.id})" style="background: var(--danger); color: white; border: none; border-radius: 8px; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem; background: var(--gray-100); border-radius: 8px;">
+                            <div style="text-align: center; flex: 1;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: ${team.color};">${teamMembers.length}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-600);">Membres</div>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: ${team.color};">${teamTasks.length}</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-600);">Tâches</div>
+                            </div>
+                        </div>
+                        
+                        ${teamMembers.length > 0 ? `
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                                ${teamMembers.map(m => {
+                                    const memberTasks = tasks.filter(t => t.assignee === m.name);
+                                    return `
+                                        <div style="background: var(--gray-100); border-radius: 12px; padding: 1rem; position: relative;">
+                                            <button onclick="deleteMember(${m.id})" style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--danger); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+                                                &times;
+                                            </button>
+                                            <div style="width: 48px; height: 48px; border-radius: 50%; background: ${team.color}; margin: 0 auto 0.5rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;">
+                                                ${m.name.charAt(0)}
+                                            </div>
+                                            <div style="font-weight: 700; text-align: center; margin-bottom: 0.25rem;">${m.name}</div>
+                                            <div style="font-size: 0.8rem; color: var(--gray-600); text-align: center; margin-bottom: 0.5rem;">${m.role}</div>
+                                            <div style="text-align: center; font-size: 0.85rem; color: ${team.color}; font-weight: 600;">${memberTasks.length} tâche(s)</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        ` : `
+                            <p style="text-align: center; color: var(--gray-500); padding: 1rem; font-style: italic;">Aucun membre dans cette équipe</p>
+                        `}
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('team-grid').innerHTML = teamsHtml;
+            lucide.createIcons();
+        }
+
+        async function deleteTeam(teamId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette équipe ? Les membres seront aussi supprimés.')) return;
+            
+            const { error } = await supabase.from('teams').delete().eq('id', teamId);
+            
+            if (error) {
+                console.error('Error deleting team:', error);
+                alert('Erreur lors de la suppression: ' + error.message);
+            }
+        }
+
+        let currentTeamIdForMember = null;
+
+        function addMemberToTeam(teamId) {
+            currentTeamIdForMember = teamId;
+            openModal('member');
+        }
+
+        // Modals
+        function openModal(type) {
+            document.getElementById(type + '-modal').classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + '-modal').classList.remove('active');
+        }
+
+        // Forms
+        async function saveTask(e) {
+            e.preventDefault();
+            
+            const newTask = {
+                id: Date.now(),
+                title: document.getElementById('task-title').value,
+                description: document.getElementById('task-description').value,
+                assignee: document.getElementById('task-assignee').value,
+                priority: document.getElementById('task-priority').value,
+                status: document.getElementById('task-status').value,
+                deadline: document.getElementById('task-deadline').value
+            };
+
+            const { error } = await supabase.from('tasks').insert([newTask]);
+            
+            if (error) {
+                console.error('Error saving task:', error);
+                alert('Erreur lors de la sauvegarde: ' + error.message);
+                return;
+            }
+
+            closeModal('task');
+            e.target.reset();
+        }
+
+        async function saveMember(e) {
+            e.preventDefault();
+            
+            const teamId = currentTeamIdForMember || parseInt(document.getElementById('member-team').value);
+            
+            if (!teamId) {
+                alert('Veuillez sélectionner une équipe');
+                return;
+            }
+            
+            const newMember = {
+                id: Date.now(),
+                name: document.getElementById('member-name').value,
+                role: document.getElementById('member-role').value,
+                email: document.getElementById('member-email').value,
+                team_id: teamId
+            };
+
+            const { error } = await supabase.from('members').insert([newMember]);
+            
+            if (error) {
+                console.error('Error saving member:', error);
+                alert('Erreur lors de la sauvegarde: ' + error.message);
+                return;
+            }
+
+            closeModal('member');
+            e.target.reset();
+            currentTeamIdForMember = null;
+        }
+
+        async function saveTeam(e) {
+            e.preventDefault();
+            
+            const selectedColor = document.querySelector('input[name="team-color"]:checked').value;
+            
+            const newTeam = {
+                id: Date.now(),
+                name: document.getElementById('team-name').value,
+                description: document.getElementById('team-description').value,
+                color: selectedColor
+            };
+
+            const { error } = await supabase.from('teams').insert([newTeam]);
+            
+            if (error) {
+                console.error('Error saving team:', error);
+                alert('Erreur lors de la sauvegarde: ' + error.message);
+                return;
+            }
+
+            closeModal('team');
+            e.target.reset();
+        }
+
+        async function deleteMember(memberId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return;
+            
+            const { error } = await supabase.from('members').delete().eq('id', memberId);
+            
+            if (error) {
+                console.error('Error deleting member:', error);
+                alert('Erreur lors de la suppression: ' + error.message);
+            }
+        }
+
+        function updateTeamSelect() {
+            const select = document.getElementById('member-team');
+            if (select) {
+                select.innerHTML = '<option value="">Sélectionner une équipe</option>' + 
+                    teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            }
+        }
+
+        // Modals
+        function openModal(type) {
+            if (type === 'member') {
+                updateTeamSelect();
+                const teamSelectGroup = document.getElementById('member-team-select-group');
+                if (currentTeamIdForMember) {
+                    teamSelectGroup.style.display = 'none';
+                } else {
+                    teamSelectGroup.style.display = 'block';
+                }
+            }
+            document.getElementById(type + '-modal').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + '-modal').classList.remove('active');
+        }
+
+        function updateAssigneeDropdown() {
+            const select = document.getElementById('task-assignee');
+            select.innerHTML = '<option value="">Non assignée</option>' + 
+                members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+        }
+
+        // Start app
+        init();
+    </script>
+</body>
+</html>
