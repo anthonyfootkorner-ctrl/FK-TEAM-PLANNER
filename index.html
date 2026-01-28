@@ -5,114 +5,318 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FK Team Planner</title>
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Bootstrap -->
+  <!-- Bootstrap (pas jsdelivr) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
 
   <!-- Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Supabase JS v2 -->
+  <!-- Supabase JS v2 (pas jsdelivr) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
+    /* RESET & BASE */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     :root {
-      --black: #0A0A0A;
+      --sidebar-bg: #1a1d29;
+      --sidebar-hover: #252836;
       --orange: #FF6B35;
-      --orange-light: #FF8C61;
       --orange-dark: #E85528;
       --white: #FFFFFF;
-      --gray-50: #FAFAFA;
-      --gray-100: #F5F5F5;
-      --gray-200: #E5E5E5;
-      --gray-300: #D4D4D4;
-      --gray-400: #A3A3A3;
-      --gray-500: #737373;
-      --gray-600: #525252;
-      --gray-700: #404040;
-      --gray-800: #262626;
-      --gray-900: #171717;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --text-primary: #111827;
+      --text-secondary: #6B7280;
     }
 
-    body { 
-      background: var(--black) !important;
-      color: var(--white) !important;
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
-    }
-    
-    h1, h2, h3, h4, h5, h6, strong, .fw-bold, .fw-semibold {
-      font-family: 'Montserrat', sans-serif !important;
-      font-weight: 800 !important;
-      letter-spacing: -0.02em !important;
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      background: #f0f2f5 !important;
+      color: var(--text-primary) !important;
+      overflow: hidden !important;
     }
 
-    .card { 
-      border: 1px solid var(--gray-800) !important;
-      border-radius: 16px !important;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
-      background: var(--gray-900) !important;
-      color: var(--white) !important;
-      transition: all 0.3s ease !important;
-    }
-    
-    .card:hover {
-      border-color: var(--gray-700) !important;
-      transform: translateY(-2px);
+    /* LAYOUT FLEX */
+    body > .container {
+      display: flex !important;
+      height: 100vh !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
     }
 
-    .btn {
-      border-radius: 10px !important;
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px;
+      background: var(--sidebar-bg);
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+      z-index: 1000;
+      padding: 1.5rem 0;
+    }
+
+    .sidebar-logo {
+      padding: 0 1.5rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 1rem;
+    }
+
+    .logo-content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: white;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .logo-subtitle {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      display: block;
+      margin-top: 0.125rem;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 0.75rem;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      color: var(--gray-400);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 0.25rem;
+    }
+
+    .nav-item:hover {
+      background: var(--sidebar-hover);
+      color: white;
+    }
+
+    .nav-item.active {
+      background: var(--orange);
+      color: white;
+    }
+
+    .nav-section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 1.5rem 1rem 0.75rem;
+    }
+
+    /* MAIN CONTENT */
+    .main-wrapper {
+      margin-left: 240px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* TOP BAR */
+    .top-bar {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 2rem;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .page-subtitle {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin: 0.25rem 0 0 0;
+    }
+
+    /* CONTENT AREA */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      background: #f0f2f5;
+    }
+
+    /* CARDS */
+    .card {
+      background: white !important;
+      border: 1px solid var(--gray-200) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+
+    /* CALENDAR */
+    .calendar-header-custom {
+      background: white;
+      padding: 1.5rem 2rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .cal-grid {
+      background: white !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+      display: grid !important;
+      grid-template-columns: repeat(7, 1fr) !important;
+      gap: 0 !important;
+    }
+
+    .cal-head {
+      background: var(--gray-50) !important;
+      color: var(--gray-500) !important;
+      padding: 1rem !important;
+      text-align: center !important;
       font-weight: 600 !important;
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
-      transition: all 0.3s ease !important;
+      font-size: 0.875rem !important;
+      border-bottom: 1px solid var(--gray-200) !important;
+    }
+
+    .cal-cell {
+      background: white !important;
+      border-right: 1px solid var(--gray-100) !important;
+      border-bottom: 1px solid var(--gray-100) !important;
+      padding: 12px !important;
+      min-height: 120px !important;
+      transition: background 0.2s ease !important;
+      border-radius: 0 !important;
+    }
+
+    .cal-cell:nth-child(7n) {
+      border-right: none !important;
+    }
+
+    .cal-cell:hover {
+      background: var(--gray-50) !important;
+    }
+
+    .cal-day {
+      font-weight: 600 !important;
+      color: var(--text-primary) !important;
+      font-size: 0.95rem !important;
+    }
+
+    .task-pill {
+      background: var(--orange) !important;
+      color: white !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      font-size: 0.75rem !important;
+      font-weight: 500 !important;
+      display: block !important;
+      margin-top: 6px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .task-pill small {
+      color: rgba(255,255,255,0.9) !important;
+    }
+
+    /* BUTTONS */
+    .btn {
+      border-radius: 8px !important;
+      font-weight: 500 !important;
+      transition: all 0.2s ease !important;
     }
 
     .btn-primary {
       background: var(--orange) !important;
       border: none !important;
-      box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3) !important;
-      color: var(--white) !important;
+      color: white !important;
     }
 
     .btn-primary:hover {
       background: var(--orange-dark) !important;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4) !important;
+    }
+
+    .btn-outline-secondary,
+    .btn-secondary {
+      background: white !important;
+      border: 1px solid var(--gray-300) !important;
+      color: var(--gray-700) !important;
+    }
+
+    .btn-outline-secondary:hover,
+    .btn-secondary:hover {
+      background: var(--gray-50) !important;
+      border-color: var(--gray-400) !important;
     }
 
     .btn-outline-primary {
       background: transparent !important;
-      color: var(--orange) !important;
       border: 2px solid var(--orange) !important;
+      color: var(--orange) !important;
     }
 
     .btn-outline-primary:hover {
       background: var(--orange) !important;
-      color: var(--white) !important;
-    }
-
-    .btn-secondary,
-    .btn-outline-secondary {
-      background: var(--gray-800) !important;
-      color: var(--white) !important;
-      border: 1px solid var(--gray-700) !important;
-    }
-
-    .btn-secondary:hover,
-    .btn-outline-secondary:hover {
-      background: var(--gray-700) !important;
-      border-color: var(--gray-600) !important;
-      color: var(--white) !important;
+      color: white !important;
     }
 
     .btn-danger {
       background: #DC2626 !important;
       border: none !important;
-      color: var(--white) !important;
+      color: white !important;
     }
 
     .btn-danger:hover {
@@ -125,32 +329,26 @@
     }
 
     .btn-link:hover {
-      color: var(--orange-light) !important;
       text-decoration: underline !important;
     }
 
+    /* FORMS */
     .form-control,
     .form-select {
-      background: var(--gray-800) !important;
-      border: 1px solid var(--gray-700) !important;
-      color: var(--white) !important;
-      border-radius: 10px !important;
+      background: white !important;
+      border: 1px solid var(--gray-300) !important;
+      color: var(--text-primary) !important;
+      border-radius: 8px !important;
     }
 
     .form-control:focus,
     .form-select:focus {
-      background: var(--gray-800) !important;
       border-color: var(--orange) !important;
-      color: var(--white) !important;
       box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1) !important;
     }
 
-    .form-control::placeholder {
-      color: var(--gray-500) !important;
-    }
-
     .form-label {
-      color: var(--gray-300) !important;
+      color: var(--gray-700) !important;
       font-weight: 600 !important;
       font-size: 0.875rem !important;
     }
@@ -159,49 +357,34 @@
       color: var(--gray-500) !important;
     }
 
+    /* BADGES */
     .badge {
       border-radius: 999px !important;
-      font-weight: 600 !important;
-      padding: 0.5rem 1rem !important;
+      font-size: 0.8rem !important;
+      padding: 0.35rem 0.75rem !important;
     }
 
     .badge-soft {
-      background: rgba(255, 107, 53, 0.15) !important;
+      background: rgba(255, 107, 53, 0.1) !important;
       color: var(--orange) !important;
-      border: 1px solid rgba(255, 107, 53, 0.3) !important;
     }
 
     .text-bg-light {
-      background: var(--gray-800) !important;
-      color: var(--white) !important;
-      border: 1px solid var(--gray-700) !important;
+      background: var(--gray-100) !important;
+      color: var(--gray-700) !important;
     }
 
     .text-bg-warning {
       background: rgba(251, 191, 36, 0.2) !important;
-      color: #FCD34D !important;
-      border: 1px solid rgba(251, 191, 36, 0.4) !important;
+      color: #D97706 !important;
     }
 
     .text-bg-success {
       background: rgba(34, 197, 94, 0.2) !important;
-      color: #86EFAC !important;
-      border: 1px solid rgba(34, 197, 94, 0.4) !important;
+      color: #059669 !important;
     }
 
-    .border {
-      border-color: var(--gray-800) !important;
-    }
-
-    .bg-white {
-      background: var(--gray-900) !important;
-      border: 1px solid var(--gray-800) !important;
-    }
-
-    .rounded-3 {
-      border-radius: 12px !important;
-    }
-
+    /* ALERTS */
     .alert {
       border-radius: 10px !important;
       border: 1px solid !important;
@@ -209,102 +392,64 @@
 
     .alert-danger {
       background: rgba(220, 38, 38, 0.1) !important;
-      color: #FCA5A5 !important;
+      color: #DC2626 !important;
       border-color: rgba(220, 38, 38, 0.3) !important;
     }
 
     .alert-success {
       background: rgba(34, 197, 94, 0.1) !important;
-      color: #86EFAC !important;
+      color: #059669 !important;
       border-color: rgba(34, 197, 94, 0.3) !important;
     }
 
     .alert-info {
       background: rgba(59, 130, 246, 0.1) !important;
-      color: #93C5FD !important;
+      color: #2563EB !important;
       border-color: rgba(59, 130, 246, 0.3) !important;
     }
 
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 1px;
-      background: var(--gray-800);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .cal-cell {
-      background: var(--gray-900) !important;
-      border-radius: 0 !important;
-      padding: 10px !important;
-      min-height: 110px !important;
-      border: none !important;
-      transition: all 0.2s ease;
-    }
-
-    .cal-cell:hover {
-      background: var(--gray-800) !important;
-    }
-
-    .cal-head {
-      font-size: 0.75rem !important;
-      color: var(--gray-400) !important;
-      font-weight: 700 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.1em !important;
-      background: var(--gray-900) !important;
-      padding: 1rem !important;
-      text-align: center !important;
-    }
-
-    .cal-day {
-      font-weight: 700 !important;
-      color: var(--white) !important;
-    }
-
-    .task-pill {
-      display: block !important;
-      font-size: 0.75rem !important;
-      padding: 4px 8px !important;
-      border-radius: 6px !important;
-      margin-top: 6px !important;
-      background: var(--orange) !important;
-      color: var(--white) !important;
-      font-weight: 600 !important;
-    }
-
-    .task-pill small {
-      color: rgba(255,255,255,0.8) !important;
-    }
-
-    .muted,
-    .text-secondary,
-    .small.muted {
-      color: var(--gray-500) !important;
-    }
-
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-      color: var(--gray-400) !important;
-    }
-
+    /* MODAL */
     .modal-content {
-      background: var(--gray-900) !important;
-      border: 1px solid var(--gray-800) !important;
-      color: var(--white) !important;
+      background: white !important;
+      border: 1px solid var(--gray-200) !important;
+      color: var(--text-primary) !important;
+      border-radius: 12px !important;
     }
 
     .modal-header {
-      border-bottom-color: var(--gray-800) !important;
+      border-bottom-color: var(--gray-200) !important;
     }
 
     .modal-footer {
-      border-top-color: var(--gray-800) !important;
+      border-top-color: var(--gray-200) !important;
     }
 
     .btn-close {
-      filter: invert(1) brightness(1.5);
+      filter: none;
+    }
+
+    /* TEXT */
+    .muted,
+    .text-secondary {
+      color: var(--text-secondary) !important;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, 'Courier New', monospace !important;
+      color: var(--gray-500) !important;
+    }
+
+    /* UTILITIES */
+    .border {
+      border-color: var(--gray-200) !important;
+    }
+
+    .bg-white {
+      background: white !important;
+    }
+
+    .rounded-3 {
+      border-radius: 10px !important;
     }
 
     .pointer {
@@ -315,31 +460,34 @@
       display: none !important;
     }
 
+    /* SCROLLBAR */
     ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-      background: var(--gray-900);
+      background: var(--gray-100);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: var(--gray-700);
-      border-radius: 5px;
+      background: var(--gray-300);
+      border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--gray-600);
+      background: var(--gray-400);
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .animate-in {
-      animation: fadeIn 0.6s ease-out;
+    /* RESPONSIVE */
+    @media (max-width: 968px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      
+      .main-wrapper {
+        margin-left: 0;
+      }
     }
   </style>
 </head>
@@ -347,20 +495,70 @@
 <body>
   <div class="container py-4">
 
-    <!-- Top bar -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
-      <div class="d-flex align-items-center gap-2">
-        <div class="rounded-3 px-3 py-2 bg-white border">
-          <strong>FK Team Planner</strong>
+    <!-- SIDEBAR NOIRE À GAUCHE -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-content">
+          <div class="logo-icon">FK</div>
+          <div>
+            <div class="logo-text">Task Team Manager</div>
+            <span class="logo-subtitle">Gestion d'équipe</span>
+          </div>
         </div>
-        <span class="badge text-bg-light border" id="roleBadge">non connecté</span>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <span class="text-secondary small" id="userEmail"></span>
-        <button class="btn btn-outline-secondary btn-sm hidden" id="btnLogout">Se déconnecter</button>
-      </div>
-    </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item" onclick="showDashboard(event)">
+          <i data-lucide="layout-dashboard" style="width:20px;height:20px;"></i>
+          Dashboard
+        </a>
+        <a href="#" class="nav-item active" onclick="showCalendar(event)">
+          <i data-lucide="calendar" style="width:20px;height:20px;"></i>
+          Calendrier
+        </a>
+        <a href="#" class="nav-item" onclick="showTasks(event)">
+          <i data-lucide="check-square" style="width:20px;height:20px;"></i>
+          Tâches
+        </a>
+        <a href="#" class="nav-item" onclick="showTeams(event)">
+          <i data-lucide="users" style="width:20px;height:20px;"></i>
+          Équipes
+        </a>
+
+        <div class="nav-section-title">VUES RAPIDES</div>
+        <a href="#" class="nav-item" onclick="quickFilter('mine', event)">
+          <i data-lucide="user" style="width:20px;height:20px;"></i>
+          Mes tâches
+        </a>
+        <a href="#" class="nav-item" onclick="quickFilter('late', event)">
+          <i data-lucide="alert-circle" style="width:20px;height:20px;"></i>
+          En retard
+        </a>
+        <a href="#" class="nav-item" onclick="quickFilter('week', event)">
+          <i data-lucide="calendar-days" style="width:20px;height:20px;"></i>
+          Cette semaine
+        </a>
+      </nav>
+    </aside>
+
+    <!-- CONTENU PRINCIPAL DÉCALÉ -->
+    <div class="main-wrapper">
+
+      <!-- TOP BAR BLANC -->
+      <header class="top-bar">
+        <div>
+          <h1 class="page-title" id="pageTitle">Calendrier</h1>
+          <p class="page-subtitle" id="pageSubtitle">Janvier 2026</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge text-bg-light border" id="roleBadge">non connecté</span>
+          <span class="text-secondary small" id="userEmail"></span>
+          <button class="btn btn-outline-secondary btn-sm hidden" id="btnLogout">Se déconnecter</button>
+        </div>
+      </header>
+
+      <!-- ZONE DE CONTENU SCROLLABLE -->
+      <main class="content-area"  id="mainContentArea"">
 
     <!-- AUTH -->
     <div id="authView" class="row g-3">
@@ -380,10 +578,6 @@
             </div>
             <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
           </form>
-
-          <div class="mt-3 text-center">
-            <button class="btn btn-link" id="btnForgotPassword">Mot de passe oublié ?</button>
-          </div>
 
           <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
           <div class="alert alert-success mt-3 hidden" id="loginOk"></div>
@@ -415,31 +609,6 @@
 
           <div class="alert alert-danger mt-3 hidden" id="regError"></div>
           <div class="alert alert-success mt-3 hidden" id="regOk"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Mot de passe oublié -->
-    <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Réinitialiser le mot de passe</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p class="muted mb-3">Entre ton email, tu recevras un lien de réinitialisation.</p>
-            <div class="mb-3">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-control" id="forgotEmail" placeholder="ton@email.com" required>
-            </div>
-            <div class="alert alert-danger hidden" id="forgotError"></div>
-            <div class="alert alert-success hidden" id="forgotOk"></div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-            <button type="button" class="btn btn-primary" id="btnSendReset">Envoyer</button>
-          </div>
         </div>
       </div>
     </div>
@@ -965,28 +1134,16 @@
         const div = document.createElement("div");
         div.className = "d-flex align-items-center justify-content-between border rounded-3 px-3 py-2 bg-white";
 
-        const canManage = globalRole === "admin" || globalRole === "manager";
-
         div.innerHTML = `
-          <div class="flex-grow-1">
+          <div>
             <div class="fw-semibold">${escapeHtml(name)}</div>
-            <div class="muted small">${escapeHtml(email)}</div>
+            <div class="muted">${escapeHtml(email)}</div>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge text-bg-light border">${escapeHtml(r.role)}</span>
-            ${canManage && r.user_id !== user.id ? `
-              <button class="btn btn-danger btn-sm" onclick="removeMember('${selectedTeamId}', '${r.user_id}')" title="Retirer ce membre">
-                <i data-lucide="user-minus" style="width:14px;height:14px;"></i>
-              </button>
-            ` : ''}
-          </div>
+          <span class="badge text-bg-light border">${escapeHtml(r.role)}</span>
         `;
 
         membersList.appendChild(div);
       }
-
-      // Refresh icons after rendering
-      setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 100);
     }
 
     function renderAssigneeOptions() {
@@ -1039,7 +1196,7 @@
 
         div.innerHTML = `
           <div class="d-flex align-items-start justify-content-between gap-2">
-            <div class="flex-grow-1">
+            <div>
               <div class="fw-semibold">${escapeHtml(t.title)}</div>
               <div class="muted small">${escapeHtml(t.description || "")}</div>
               <div class="small mt-1">
@@ -1048,13 +1205,8 @@
                 <span class="badge text-bg-light border">${escapeHtml(range)}</span>
               </div>
             </div>
-            <div class="text-end d-flex flex-column align-items-end gap-2">
+            <div class="text-end">
               ${t.completed ? `<span class="badge text-bg-success">done</span>` : `<span class="badge text-bg-warning">todo</span>`}
-              ${canWriteForTask(t) ? `
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${t.id}')" title="Supprimer la tâche">
-                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
-                </button>
-              ` : ''}
               <div class="small muted mt-1">${escapeHtml(t.id.slice(0,8))}</div>
             </div>
           </div>
@@ -1458,100 +1610,6 @@
       info("—");
     }
 
-    // =========================
-    // FORGOT PASSWORD
-    // =========================
-    const btnForgotPassword = document.getElementById('btnForgotPassword');
-    const forgotPasswordModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
-    const btnSendReset = document.getElementById('btnSendReset');
-    const forgotEmail = document.getElementById('forgotEmail');
-    const forgotError = document.getElementById('forgotError');
-    const forgotOk = document.getElementById('forgotOk');
-
-    btnForgotPassword.addEventListener('click', () => {
-      hide(forgotError);
-      hide(forgotOk);
-      forgotEmail.value = '';
-      forgotPasswordModal.show();
-    });
-
-    btnSendReset.addEventListener('click', async () => {
-      hide(forgotError);
-      hide(forgotOk);
-      
-      const email = forgotEmail.value.trim();
-      if (!email) {
-        forgotError.textContent = 'Email requis';
-        show(forgotError);
-        return;
-      }
-      
-      try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin
-        });
-        
-        if (error) throw error;
-        
-        forgotOk.textContent = '✅ Email envoyé ! Vérifie ta boîte mail.';
-        show(forgotOk);
-        
-        setTimeout(() => {
-          forgotPasswordModal.hide();
-        }, 2500);
-      } catch (error) {
-        forgotError.textContent = error.message;
-        show(forgotError);
-      }
-    });
-
-    // =========================
-    // DELETE & EDIT FUNCTIONS
-    // =========================
-
-    async function deleteTask(taskId) {
-      if (!confirm('Supprimer cette tâche définitivement ?')) return;
-      
-      try {
-        const { error } = await supabaseClient
-          .from('tasks')
-          .delete()
-          .eq('id', taskId);
-        
-        if (error) throw error;
-        
-        await refreshAll();
-        alert('✅ Tâche supprimée');
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('❌ Erreur: ' + error.message);
-      }
-    }
-
-    async function removeMember(teamId, userId) {
-      if (!confirm('Retirer ce membre de l\'équipe ?')) return;
-      
-      try {
-        const { error } = await supabaseClient
-          .from('team_memberships')
-          .delete()
-          .eq('team_id', teamId)
-          .eq('user_id', userId);
-        
-        if (error) throw error;
-        
-        await refreshAll();
-        alert('✅ Membre retiré');
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('❌ Erreur: ' + error.message);
-      }
-    }
-
-    // Make functions global so onclick can access them
-    window.deleteTask = deleteTask;
-    window.removeMember = removeMember;
-
     (async () => {
       // init session
       const { data } = await supabaseClient.auth.getSession();
@@ -1572,6 +1630,65 @@
 
       if (window.lucide) lucide.createIcons();
     })();
+
+    // =========================
+    // NAVIGATION SIDEBAR
+    // =========================
+    function showDashboard(e) {
+      if(e) e.preventDefault();
+      updateNavActive(e);
+      document.getElementById('pageTitle').textContent = 'Dashboard';
+      // Add your dashboard view logic here
+    }
+
+    function showCalendar(e) {
+      if(e) e.preventDefault();
+      updateNavActive(e);
+      document.getElementById('pageTitle').textContent = 'Calendrier';
+      const month = calDate.getMonth();
+      const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+      document.getElementById('pageSubtitle').textContent = `${months[month]} ${calDate.getFullYear()}`;
+    }
+
+    function showTasks(e) {
+      if(e) e.preventDefault();
+      updateNavActive(e);
+      document.getElementById('pageTitle').textContent = 'Tâches';
+      document.getElementById('pageSubtitle').textContent = 'Toutes les tâches';
+    }
+
+    function showTeams(e) {
+      if(e) e.preventDefault();
+      updateNavActive(e);
+      document.getElementById('pageTitle').textContent = 'Équipes';
+      document.getElementById('pageSubtitle').textContent = 'Gestion des équipes';
+    }
+
+    function quickFilter(type, e) {
+      if(e) e.preventDefault();
+      updateNavActive(e);
+      const titles = {
+        'mine': 'Mes tâches',
+        'late': 'En retard',
+        'week': 'Cette semaine'
+      };
+      document.getElementById('pageTitle').textContent = titles[type] || type;
+      // Add filter logic here
+    }
+
+    function updateNavActive(e) {
+      if(!e || !e.target) return;
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      e.target.closest('.nav-item').classList.add('active');
+      if (window.lucide) lucide.createIcons();
+    }
   </script>
+
+  </main>
+  </div>
+  </div>
+
 </body>
 </html>
