@@ -616,8 +616,251 @@
     <!-- APP -->
     <div id="appView" class="hidden">
 
-      <!-- Controls -->
-      <div class="row g-3 mb-3">
+      <!-- DASHBOARD VIEW -->
+      <div id="dashboardView" class="hidden">
+        <div class="row g-3">
+          <!-- Stats cards -->
+          <div class="col-12 col-lg-3">
+            <div class="card p-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;">
+                  <i data-lucide="clipboard-list" style="width:24px;height:24px;color:#3B82F6;"></i>
+                </div>
+                <div>
+                  <div class="small text-secondary">Total tâches</div>
+                  <div class="fs-3 fw-bold" id="totalTasks">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-3">
+            <div class="card p-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;">
+                  <i data-lucide="check-circle" style="width:24px;height:24px;color:#22C55E;"></i>
+                </div>
+                <div>
+                  <div class="small text-secondary">Terminées</div>
+                  <div class="fs-3 fw-bold" id="doneTasks">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-3">
+            <div class="card p-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(251,191,36,0.1);display:flex;align-items:center;justify-content:center;">
+                  <i data-lucide="clock" style="width:24px;height:24px;color:#FBBF24;"></i>
+                </div>
+                <div>
+                  <div class="small text-secondary">En cours</div>
+                  <div class="fs-3 fw-bold" id="inProgressTasks">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-3">
+            <div class="card p-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;">
+                  <i data-lucide="alert-triangle" style="width:24px;height:24px;color:#EF4444;"></i>
+                </div>
+                <div>
+                  <div class="small text-secondary">En retard</div>
+                  <div class="fs-3 fw-bold text-danger" id="lateTasks">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-3">
+          <div class="col-12 col-lg-6">
+            <div class="card p-3">
+              <h5 class="mb-3">Répartition par statut</h5>
+              <div id="statusBreakdown"></div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="card p-3">
+              <h5 class="mb-3">Répartition par priorité</h5>
+              <div id="priorityBreakdown"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-3">
+          <div class="col-12">
+            <div class="card p-3">
+              <h5 class="mb-3">Charge par membre</h5>
+              <div id="memberWorkload"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALENDAR VIEW -->
+      <div id="calendarView" class="hidden">
+        <!-- Calendar controls -->
+        <div class="calendar-header-custom">
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="calPrev">
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <div class="fw-semibold" style="min-width:140px;text-align:center;" id="calTitle"></div>
+            <button class="btn btn-outline-secondary btn-sm" id="calNext">
+              <i data-lucide="chevron-right"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd'hui</button>
+          </div>
+          <div>
+            <!-- View switcher could go here -->
+          </div>
+        </div>
+
+        <!-- Calendar grid -->
+        <div class="cal-grid" id="calGrid">
+          <div class="cal-head">Lun</div>
+          <div class="cal-head">Mar</div>
+          <div class="cal-head">Mer</div>
+          <div class="cal-head">Jeu</div>
+          <div class="cal-head">Ven</div>
+          <div class="cal-head">Sam</div>
+          <div class="cal-head">Dim</div>
+        </div>
+      </div>
+
+      <!-- TASKS VIEW -->
+      <div id="tasksView" class="hidden">
+        <div class="row g-3">
+          <div class="col-12 col-lg-8">
+            <div class="card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Liste des tâches</h5>
+                <div class="d-flex gap-2">
+                  <select class="form-select form-select-sm" id="taskFilterMode" style="width:auto;">
+                    <option value="all">Toutes les tâches</option>
+                    <option value="team">Équipe sélectionnée</option>
+                  </select>
+                  <select class="form-select form-select-sm" id="taskSort" style="width:auto;">
+                    <option value="start_asc">Plus anciennes</option>
+                    <option value="start_desc">Plus récentes</option>
+                  </select>
+                </div>
+              </div>
+              <div id="tasksListView"></div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-4">
+            <div class="card p-3">
+              <h5 class="mb-3">Créer une tâche</h5>
+              <form id="taskForm">
+                <div class="mb-2">
+                  <label class="form-label">Titre</label>
+                  <input class="form-control" id="taskTitle" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Description</label>
+                  <textarea class="form-control" id="taskDescription" rows="2"></textarea>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Catégorie</label>
+                  <select class="form-select" id="taskCategory">
+                    <option>Design</option>
+                    <option>Dev</option>
+                    <option>Marketing</option>
+                    <option>Réunion</option>
+                    <option>Autre</option>
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Début</label>
+                  <input type="date" class="form-control" id="taskStart" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Fin</label>
+                  <input type="date" class="form-control" id="taskEnd" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Assigné à</label>
+                  <select class="form-select" id="taskAssignee">
+                    <option value="">Non assigné</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Créer</button>
+                <div class="alert alert-danger mt-2 hidden" id="taskError"></div>
+                <div class="alert alert-success mt-2 hidden" id="taskOk"></div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEAMS VIEW -->
+      <div id="teamsView" class="hidden">
+        <div class="row g-3 mb-3">
+          <div class="col-12">
+            <div class="card p-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="mb-1">Équipes</h5>
+                  <p class="text-secondary small mb-0">Gérez vos équipes et leurs membres</p>
+                </div>
+                <button class="btn btn-primary btn-sm hidden" id="btnCreateTeam">
+                  <i data-lucide="plus" class="me-1"></i>Nouvelle équipe
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-lg-4">
+            <div class="card p-3">
+              <label class="form-label mb-2">Équipe sélectionnée</label>
+              <select class="form-select mb-3" id="teamSelect"></select>
+              <button class="btn btn-outline-secondary btn-sm w-100" id="btnRefresh">
+                <i data-lucide="refresh-cw" class="me-1"></i>Rafraîchir
+              </button>
+              <div id="writeStatus" class="badge mt-2"></div>
+            </div>
+
+            <div class="card p-3 mt-3">
+              <h6 class="mb-2">Membres (<span id="teamMembersCount">0</span>)</h6>
+              <div id="membersList"></div>
+
+              <hr class="my-3" />
+              
+              <h6 class="mb-2">Ajouter un membre</h6>
+              <form id="addMemberForm" class="hidden">
+                <input class="form-control form-control-sm mb-2" type="email" id="addMemberEmail" placeholder="email@exemple.com" required />
+                <select class="form-select form-select-sm mb-2" id="addMemberRole">
+                  <option value="member">Membre</option>
+                  <option value="viewer">Lecteur</option>
+                </select>
+                <button class="btn btn-primary btn-sm w-100" type="submit">Ajouter</button>
+                <div class="alert alert-danger mt-2 hidden" id="addMemberError"></div>
+                <div class="alert alert-success mt-2 hidden" id="addMemberOk"></div>
+              </form>
+              <div class="alert alert-info mt-2 hidden" id="addMemberHint">
+                Seuls les managers et admins peuvent ajouter des membres.
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-8">
+            <div class="card p-3">
+              <h5 class="mb-3">Tâches de l'équipe (<span id="tasksCount">0</span>)</h5>
+              <div id="tasksListInTeams"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modals restent en dehors -->
         <div class="col-12 col-lg-4">
           <div class="card p-3">
             <label class="form-label mb-1">Équipe (pour créer/filtrer)</label>
@@ -1164,26 +1407,30 @@
     }
 
     function renderTasksList() {
-      tasksList.innerHTML = "";
+      // Determine which container to use
+      const container = document.getElementById('tasksListView') || document.getElementById('tasksList');
+      if (!container) return;
+      
+      container.innerHTML = "";
 
       let rows = [...tasks];
 
       // filter mode
-      if (taskFilterMode.value === "team" && selectedTeamId) {
+      if (taskFilterMode && taskFilterMode.value === "team" && selectedTeamId) {
         rows = rows.filter(t => t.team_id === selectedTeamId);
       }
 
       // sort
-      if (taskSort.value === "start_desc") {
+      if (taskSort && taskSort.value === "start_desc") {
         rows.sort((a,b) => (b.start_date || "").localeCompare(a.start_date || ""));
       } else {
         rows.sort((a,b) => (a.start_date || "").localeCompare(b.start_date || ""));
       }
 
-      setText(tasksCount, String(rows.length));
+      if (tasksCount) setText(tasksCount, String(rows.length));
 
       if (!rows.length) {
-        tasksList.innerHTML = `<div class="muted">Aucune tâche.</div>`;
+        container.innerHTML = `<div class="muted">Aucune tâche.</div>`;
         return;
       }
 
@@ -1192,11 +1439,11 @@
         const range = `${fmtDate(t.start_date)} → ${fmtDate(t.end_date)}`;
 
         const div = document.createElement("div");
-        div.className = "border rounded-3 px-3 py-2 bg-white";
+        div.className = "border rounded-3 px-3 py-2 bg-white mb-2";
 
         div.innerHTML = `
           <div class="d-flex align-items-start justify-content-between gap-2">
-            <div>
+            <div class="flex-grow-1">
               <div class="fw-semibold">${escapeHtml(t.title)}</div>
               <div class="muted small">${escapeHtml(t.description || "")}</div>
               <div class="small mt-1">
@@ -1205,8 +1452,13 @@
                 <span class="badge text-bg-light border">${escapeHtml(range)}</span>
               </div>
             </div>
-            <div class="text-end">
+            <div class="text-end d-flex flex-column align-items-end gap-2">
               ${t.completed ? `<span class="badge text-bg-success">done</span>` : `<span class="badge text-bg-warning">todo</span>`}
+              ${canWriteForTask(t) ? `
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('${t.id}')" title="Supprimer">
+                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                </button>
+              ` : ''}
               <div class="small muted mt-1">${escapeHtml(t.id.slice(0,8))}</div>
             </div>
           </div>
@@ -1216,13 +1468,18 @@
         if (canWriteForTask(t)) {
           div.classList.add("pointer");
           div.title = "Cliquer pour toggle completed";
-          div.addEventListener("click", async () => {
+          div.addEventListener("click", async (e) => {
+            // Don't toggle if clicking the delete button
+            if (e.target.closest('button')) return;
             await toggleTaskCompleted(t);
           });
         }
 
-        tasksList.appendChild(div);
+        container.appendChild(div);
       }
+      
+      // Refresh icons
+      setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 100);
     }
 
     function canWriteForTask(task) {
@@ -1596,6 +1853,9 @@
       if (!taskStart.value) taskStart.value = today;
       if (!taskEnd.value) taskEnd.value = today;
 
+      // Initialize views - show calendar by default
+      initializeViews();
+
       // icons
       if (window.lucide) lucide.createIcons();
     }
@@ -1632,48 +1892,158 @@
     })();
 
     // =========================
+    // DELETE & EDIT TASKS
+    // =========================
+    async function deleteTask(taskId) {
+      if (!confirm('Supprimer cette tâche définitivement ?')) return;
+      
+      try {
+        const { error } = await supabaseClient
+          .from('tasks')
+          .delete()
+          .eq('id', taskId);
+        
+        if (error) throw error;
+        
+        await refreshAll();
+        alert('✅ Tâche supprimée');
+      } catch (error) {
+        console.error('Erreur:', error);
+        alert('❌ Erreur: ' + error.message);
+      }
+    }
+
+    async function removeMember(teamId, userId) {
+      if (!confirm('Retirer ce membre de l\'équipe ?')) return;
+      
+      try {
+        const { error } = await supabaseClient
+          .from('team_memberships')
+          .delete()
+          .eq('team_id', teamId)
+          .eq('user_id', userId);
+        
+        if (error) throw error;
+        
+        await refreshAll();
+        alert('✅ Membre retiré');
+      } catch (error) {
+        console.error('Erreur:', error);
+        alert('❌ Erreur: ' + error.message);
+      }
+    }
+
+    // Make functions global
+    window.deleteTask = deleteTask;
+    window.removeMember = removeMember;
+
+    // =========================
     // NAVIGATION SIDEBAR
     // =========================
     function showDashboard(e) {
       if(e) e.preventDefault();
       updateNavActive(e);
-      document.getElementById('pageTitle').textContent = 'Dashboard';
-      // Add your dashboard view logic here
+      
+      // Hide all views
+      document.getElementById('dashboardView').classList.remove('hidden');
+      document.getElementById('calendarView').classList.add('hidden');
+      document.getElementById('tasksView').classList.add('hidden');
+      document.getElementById('teamsView').classList.add('hidden');
+      
+      // Update header
+      document.getElementById('pageTitle').textContent = 'Tableau de bord';
+      document.getElementById('pageSubtitle').textContent = 'Vue d\'ensemble de toutes les équipes';
+      
+      // Refresh dashboard stats
+      refreshDashboardStats();
+      
+      if (window.lucide) lucide.createIcons();
     }
 
     function showCalendar(e) {
       if(e) e.preventDefault();
       updateNavActive(e);
+      
+      // Hide all views
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('calendarView').classList.remove('hidden');
+      document.getElementById('tasksView').classList.add('hidden');
+      document.getElementById('teamsView').classList.add('hidden');
+      
+      // Update header
       document.getElementById('pageTitle').textContent = 'Calendrier';
       const month = calDate.getMonth();
       const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
       document.getElementById('pageSubtitle').textContent = `${months[month]} ${calDate.getFullYear()}`;
+      
+      // Render calendar
+      renderCalendar();
+      
+      if (window.lucide) lucide.createIcons();
     }
 
     function showTasks(e) {
       if(e) e.preventDefault();
       updateNavActive(e);
+      
+      // Hide all views
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('calendarView').classList.add('hidden');
+      document.getElementById('tasksView').classList.remove('hidden');
+      document.getElementById('teamsView').classList.add('hidden');
+      
+      // Update header
       document.getElementById('pageTitle').textContent = 'Tâches';
-      document.getElementById('pageSubtitle').textContent = 'Toutes les tâches';
+      document.getElementById('pageSubtitle').textContent = 'Gestion des tâches';
+      
+      // Render tasks
+      renderTasksList();
+      
+      if (window.lucide) lucide.createIcons();
     }
 
     function showTeams(e) {
       if(e) e.preventDefault();
       updateNavActive(e);
+      
+      // Hide all views
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('calendarView').classList.add('hidden');
+      document.getElementById('tasksView').classList.add('hidden');
+      document.getElementById('teamsView').classList.remove('hidden');
+      
+      // Update header
       document.getElementById('pageTitle').textContent = 'Équipes';
-      document.getElementById('pageSubtitle').textContent = 'Gestion des équipes';
+      document.getElementById('pageSubtitle').textContent = 'Gestion des équipes et membres';
+      
+      // Render teams
+      renderMembersList();
+      
+      if (window.lucide) lucide.createIcons();
     }
 
     function quickFilter(type, e) {
       if(e) e.preventDefault();
       updateNavActive(e);
+      
+      // Show tasks view with filter
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('calendarView').classList.add('hidden');
+      document.getElementById('tasksView').classList.remove('hidden');
+      document.getElementById('teamsView').classList.add('hidden');
+      
       const titles = {
         'mine': 'Mes tâches',
         'late': 'En retard',
         'week': 'Cette semaine'
       };
       document.getElementById('pageTitle').textContent = titles[type] || type;
-      // Add filter logic here
+      document.getElementById('pageSubtitle').textContent = 'Vue filtrée';
+      
+      // Apply filter (you can customize this)
+      renderTasksList();
+      
+      if (window.lucide) lucide.createIcons();
     }
 
     function updateNavActive(e) {
@@ -1682,7 +2052,26 @@
         item.classList.remove('active');
       });
       e.target.closest('.nav-item').classList.add('active');
-      if (window.lucide) lucide.createIcons();
+    }
+
+    function refreshDashboardStats() {
+      // Update dashboard statistics
+      document.getElementById('totalTasks').textContent = tasks.length;
+      document.getElementById('doneTasks').textContent = tasks.filter(t => t.completed).length;
+      document.getElementById('inProgressTasks').textContent = tasks.filter(t => !t.completed && new Date(t.end_date) >= new Date()).length;
+      
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      document.getElementById('lateTasks').textContent = tasks.filter(t => !t.completed && new Date(t.end_date) < today).length;
+      
+      // You can add more dashboard rendering here (charts, etc.)
+    }
+
+    // Initialize with calendar view on load
+    function initializeViews() {
+      // Show calendar by default when logged in
+      document.getElementById('calendarView').classList.remove('hidden');
+      renderCalendar();
     }
   </script>
 
