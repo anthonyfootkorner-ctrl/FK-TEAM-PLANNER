@@ -2210,39 +2210,73 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
       updateNavActive(e);
       
       // Hide all views
-      document.getElementById('dashboardView').classList.remove('hidden');
-      document.getElementById('calendarView').classList.add('hidden');
-      document.getElementById('tasksView').classList.add('hidden');
-      document.getElementById('teamsView').classList.add('hidden');
+      const dashboardView = document.getElementById('dashboardView');
+      const calendarView = document.getElementById('calendarView');
+      const tasksView = document.getElementById('tasksView');
+      const teamsView = document.getElementById('teamsView');
+      
+      if (dashboardView) dashboardView.classList.remove('hidden');
+      if (calendarView) calendarView.classList.add('hidden');
+      if (tasksView) tasksView.classList.add('hidden');
+      if (teamsView) teamsView.classList.add('hidden');
       
       // Update header
-      document.getElementById('pageTitle').textContent = 'Tableau de bord';
-      document.getElementById('pageSubtitle').textContent = 'Vue d\'ensemble de toutes les équipes';
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      
+      if (pageTitle) pageTitle.textContent = 'Tableau de bord';
+      if (pageSubtitle) pageSubtitle.textContent = 'Vue d\'ensemble de toutes les équipes';
       
       // Refresh dashboard stats
-      refreshDashboardStats();
+      if (typeof refreshDashboardStats === 'function') {
+        refreshDashboardStats();
+      }
       
       if (window.lucide) lucide.createIcons();
     }
 
     function showCalendar(e) {
+      console.log('showCalendar called');
       if(e) e.preventDefault();
       updateNavActive(e);
       
       // Hide all views
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('calendarView').classList.remove('hidden');
-      document.getElementById('tasksView').classList.add('hidden');
-      document.getElementById('teamsView').classList.add('hidden');
+      const dashboardView = document.getElementById('dashboardView');
+      const calendarView = document.getElementById('calendarView');
+      const tasksView = document.getElementById('tasksView');
+      const teamsView = document.getElementById('teamsView');
+      
+      console.log('Views found:', {
+        dashboardView: !!dashboardView,
+        calendarView: !!calendarView,
+        tasksView: !!tasksView,
+        teamsView: !!teamsView
+      });
+      
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (calendarView) calendarView.classList.remove('hidden');
+      if (tasksView) tasksView.classList.add('hidden');
+      if (teamsView) teamsView.classList.add('hidden');
       
       // Update header
-      document.getElementById('pageTitle').textContent = 'Calendrier';
-      const month = calDate.getMonth();
-      const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-      document.getElementById('pageSubtitle').textContent = `${months[month]} ${calDate.getFullYear()}`;
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      
+      if (pageTitle) pageTitle.textContent = 'Calendrier';
+      
+      if (pageSubtitle && typeof calDate !== 'undefined') {
+        const month = calDate.getMonth();
+        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+        pageSubtitle.textContent = `${months[month]} ${calDate.getFullYear()}`;
+      }
       
       // Render calendar
-      renderCalendar();
+      if (typeof renderCalendar === 'function') {
+        console.log('Rendering calendar');
+        renderCalendar();
+      } else {
+        console.error('renderCalendar function not found');
+      }
       
       if (window.lucide) lucide.createIcons();
     }
@@ -2252,17 +2286,27 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
       updateNavActive(e);
       
       // Hide all views
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('calendarView').classList.add('hidden');
-      document.getElementById('tasksView').classList.remove('hidden');
-      document.getElementById('teamsView').classList.add('hidden');
+      const dashboardView = document.getElementById('dashboardView');
+      const calendarView = document.getElementById('calendarView');
+      const tasksView = document.getElementById('tasksView');
+      const teamsView = document.getElementById('teamsView');
+      
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (calendarView) calendarView.classList.add('hidden');
+      if (tasksView) tasksView.classList.remove('hidden');
+      if (teamsView) teamsView.classList.add('hidden');
       
       // Update header
-      document.getElementById('pageTitle').textContent = 'Tâches';
-      document.getElementById('pageSubtitle').textContent = 'Gestion des tâches';
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      
+      if (pageTitle) pageTitle.textContent = 'Tâches';
+      if (pageSubtitle) pageSubtitle.textContent = 'Gestion des tâches';
       
       // Render tasks
-      renderTasksList();
+      if (typeof renderTasksList === 'function') {
+        renderTasksList();
+      }
       
       if (window.lucide) lucide.createIcons();
     }
@@ -2272,17 +2316,27 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
       updateNavActive(e);
       
       // Hide all views
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('calendarView').classList.add('hidden');
-      document.getElementById('tasksView').classList.add('hidden');
-      document.getElementById('teamsView').classList.remove('hidden');
+      const dashboardView = document.getElementById('dashboardView');
+      const calendarView = document.getElementById('calendarView');
+      const tasksView = document.getElementById('tasksView');
+      const teamsView = document.getElementById('teamsView');
+      
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (calendarView) calendarView.classList.add('hidden');
+      if (tasksView) tasksView.classList.add('hidden');
+      if (teamsView) teamsView.classList.remove('hidden');
       
       // Update header
-      document.getElementById('pageTitle').textContent = 'Équipes';
-      document.getElementById('pageSubtitle').textContent = 'Gestion des équipes et membres';
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      
+      if (pageTitle) pageTitle.textContent = 'Équipes';
+      if (pageSubtitle) pageSubtitle.textContent = 'Gestion des équipes et membres';
       
       // Render teams
-      renderMembersList();
+      if (typeof renderMembersList === 'function') {
+        renderMembersList();
+      }
       
       if (window.lucide) lucide.createIcons();
     }
@@ -2343,9 +2397,33 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
 
     // Initialize with calendar view on load
     function initializeViews() {
+      // Hide all views first
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('calendarView').classList.add('hidden');
+      document.getElementById('tasksView').classList.add('hidden');
+      document.getElementById('teamsView').classList.add('hidden');
+      
       // Show calendar by default when logged in
       document.getElementById('calendarView').classList.remove('hidden');
+      
+      // Update header
+      document.getElementById('pageTitle').textContent = 'Calendrier';
+      const month = new Date().getMonth();
+      const year = new Date().getFullYear();
+      const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+      document.getElementById('pageSubtitle').textContent = `${months[month]} ${year}`;
+      
+      // Set calendar nav item as active
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector('.nav-item[onclick*="showCalendar"]').classList.add('active');
+      
+      // Render calendar
       renderCalendar();
+      
+      // Refresh icons
+      if (window.lucide) lucide.createIcons();
     }
   </script>
 
