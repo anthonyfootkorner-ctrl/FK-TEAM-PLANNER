@@ -558,7 +558,7 @@
       </header>
 
       <!-- ZONE DE CONTENU SCROLLABLE -->
-      <main class="content-area"  id="mainContentArea"">
+      <main class="content-area" id="mainContentArea">
 
     <!-- AUTH -->
     <div id="authView" class="row g-3">
@@ -738,6 +738,15 @@
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">Liste des tâches</h5>
                 <div class="d-flex gap-2">
+                  <button class="btn btn-outline-secondary btn-sm" onclick="downloadTasksTemplate()">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i>
+                    Modèle
+                  </button>
+                  <button class="btn btn-primary btn-sm" onclick="document.getElementById('importTasksFile').click()">
+                    <i data-lucide="upload" style="width:14px;height:14px;"></i>
+                    Importer
+                  </button>
+                  <input type="file" id="importTasksFile" accept=".csv,.xlsx,.xls" style="display:none;" onchange="importTasks(event)">
                   <select class="form-select form-select-sm" id="taskFilterMode" style="width:auto;">
                     <option value="all">Toutes les tâches</option>
                     <option value="team">Équipe sélectionnée</option>
@@ -807,9 +816,24 @@
                   <h5 class="mb-1">Équipes</h5>
                   <p class="text-secondary small mb-0">Gérez vos équipes et leurs membres</p>
                 </div>
-                <button class="btn btn-primary btn-sm hidden" id="btnCreateTeam">
-                  <i data-lucide="plus" class="me-1"></i>Nouvelle équipe
-                </button>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-secondary btn-sm" onclick="downloadTeamsTemplate()">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i>
+                    Modèle Équipes
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="downloadMembersTemplate()">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i>
+                    Modèle Membres
+                  </button>
+                  <button class="btn btn-primary btn-sm" onclick="document.getElementById('importTeamsFile').click()">
+                    <i data-lucide="upload" style="width:14px;height:14px;"></i>
+                    Importer
+                  </button>
+                  <input type="file" id="importTeamsFile" accept=".csv,.xlsx,.xls" style="display:none;" onchange="importTeamsOrMembers(event)">
+                  <button class="btn btn-primary btn-sm hidden" id="btnCreateTeam">
+                    <i data-lucide="plus" class="me-1"></i>Nouvelle équipe
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1892,6 +1916,251 @@
     })();
 
     // =========================
+    // IMPORT / EXPORT FUNCTIONS
+    // =========================
+    
+    // Download CSV template for tasks
+    function downloadTasksTemplate() {
+      const csv = `titre,description,categorie,date_debut,date_fin,equipe,priorite
+Exemple tâche 1,Description de la tâche,Dev,2026-02-01,2026-02-15,Développement,haute
+Exemple tâche 2,Autre description,Design,2026-02-05,2026-02-10,Design,moyenne`;
+      
+      downloadCSV(csv, 'modele_taches.csv');
+    }
+    
+    // Download CSV template for teams
+    function downloadTeamsTemplate() {
+      const csv = `nom,description
+Développement,Équipe de développement
+Design,Équipe de design
+Marketing,Équipe marketing`;
+      
+      downloadCSV(csv, 'modele_equipes.csv');
+    }
+    
+    // Download CSV template for members
+    function downloadMembersTemplate() {
+      const csv = `email,nom_complet,equipe,role
+john@exemple.com,John Doe,Développement,member
+jane@exemple.com,Jane Smith,Design,member
+bob@exemple.com,Bob Martin,Marketing,viewer`;
+      
+      downloadCSV(csv, 'modele_membres.csv');
+    }
+    
+    // Helper to download CSV
+    function downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    
+    // Import tasks from CSV/Excel
+    async function importTasks(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          alert('❌ Fichier vide ou invalide');
+          return;
+        }
+        
+        // Skip header
+        const dataLines = lines.slice(1);
+        let imported = 0;
+        let errors = 0;
+        
+        for (const line of dataLines) {
+          const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          
+          if (values.length < 5) {
+            errors++;
+            continue;
+          }
+          
+          const [titre, description, categorie, date_debut, date_fin, equipe_nom, priorite] = values;
+          
+          // Find team by name
+          let team_id = selectedTeamId;
+          if (equipe_nom) {
+            const team = teams.find(t => t.name.toLowerCase() === equipe_nom.toLowerCase());
+            if (team) team_id = team.id;
+          }
+          
+          if (!team_id) {
+            errors++;
+            continue;
+          }
+          
+          try {
+            const { error } = await supabaseClient
+              .from('tasks')
+              .insert([{
+                title: titre,
+                description: description || '',
+                category: categorie || 'Autre',
+                start_date: date_debut,
+                end_date: date_fin,
+                team_id: team_id,
+                created_by: user.id,
+                completed: false
+              }]);
+            
+            if (error) throw error;
+            imported++;
+          } catch (e) {
+            console.error('Erreur import tâche:', e);
+            errors++;
+          }
+        }
+        
+        await refreshAll();
+        alert(`✅ Import terminé!\n${imported} tâche(s) importée(s)\n${errors} erreur(s)`);
+        event.target.value = ''; // Reset input
+        
+      } catch (error) {
+        console.error('Erreur:', error);
+        alert('❌ Erreur lors de l\'import: ' + error.message);
+      }
+    }
+    
+    // Import teams or members from CSV/Excel
+    async function importTeamsOrMembers(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          alert('❌ Fichier vide ou invalide');
+          return;
+        }
+        
+        const header = lines[0].toLowerCase();
+        
+        // Detect if it's teams or members
+        if (header.includes('email')) {
+          await importMembers(lines);
+        } else {
+          await importTeams(lines);
+        }
+        
+        event.target.value = ''; // Reset input
+        
+      } catch (error) {
+        console.error('Erreur:', error);
+        alert('❌ Erreur lors de l\'import: ' + error.message);
+      }
+    }
+    
+    async function importTeams(lines) {
+      const dataLines = lines.slice(1);
+      let imported = 0;
+      let errors = 0;
+      
+      for (const line of dataLines) {
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        
+        if (values.length < 1) {
+          errors++;
+          continue;
+        }
+        
+        const [nom, description] = values;
+        
+        try {
+          const { error } = await supabaseClient
+            .from('teams')
+            .insert([{
+              name: nom,
+              description: description || '',
+              created_by: user.id
+            }]);
+          
+          if (error) throw error;
+          imported++;
+        } catch (e) {
+          console.error('Erreur import équipe:', e);
+          errors++;
+        }
+      }
+      
+      await refreshAll();
+      alert(`✅ Import terminé!\n${imported} équipe(s) importée(s)\n${errors} erreur(s)`);
+    }
+    
+    async function importMembers(lines) {
+      const dataLines = lines.slice(1);
+      let imported = 0;
+      let errors = 0;
+      
+      for (const line of dataLines) {
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        
+        if (values.length < 3) {
+          errors++;
+          continue;
+        }
+        
+        const [email, nom_complet, equipe_nom, role] = values;
+        
+        // Find team by name
+        const team = teams.find(t => t.name.toLowerCase() === equipe_nom.toLowerCase());
+        if (!team) {
+          errors++;
+          continue;
+        }
+        
+        // Find user by email in profiles
+        try {
+          const { data: profiles, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('user_id')
+            .eq('email', email)
+            .single();
+          
+          if (profileError || !profiles) {
+            errors++;
+            continue;
+          }
+          
+          const { error } = await supabaseClient
+            .from('team_memberships')
+            .insert([{
+              team_id: team.id,
+              user_id: profiles.user_id,
+              role: role || 'member'
+            }]);
+          
+          if (error) throw error;
+          imported++;
+        } catch (e) {
+          console.error('Erreur import membre:', e);
+          errors++;
+        }
+      }
+      
+      await refreshAll();
+      alert(`✅ Import terminé!\n${imported} membre(s) importé(s)\n${errors} erreur(s)`);
+    }
+    
+    // Make functions global
+    window.downloadTasksTemplate = downloadTasksTemplate;
+    window.downloadTeamsTemplate = downloadTeamsTemplate;
+    window.downloadMembersTemplate = downloadMembersTemplate;
+    window.importTasks = importTasks;
+    window.importTeamsOrMembers = importTeamsOrMembers;
+
+    // =========================
     // DELETE & EDIT TASKS
     // =========================
     async function deleteTask(taskId) {
@@ -1932,10 +2201,6 @@
         alert('❌ Erreur: ' + error.message);
       }
     }
-
-    // Make functions global
-    window.deleteTask = deleteTask;
-    window.removeMember = removeMember;
 
     // =========================
     // NAVIGATION SIDEBAR
@@ -2053,6 +2318,15 @@
       });
       e.target.closest('.nav-item').classList.add('active');
     }
+
+    // Make functions global - AFTER declarations
+    window.deleteTask = deleteTask;
+    window.removeMember = removeMember;
+    window.showDashboard = showDashboard;
+    window.showCalendar = showCalendar;
+    window.showTasks = showTasks;
+    window.showTeams = showTeams;
+    window.quickFilter = quickFilter;
 
     function refreshDashboardStats() {
       // Update dashboard statistics
