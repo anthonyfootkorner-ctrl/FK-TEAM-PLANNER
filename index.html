@@ -569,11 +569,11 @@
 
           <form id="loginForm" class="vstack gap-2">
             <div>
-              <label class="form-label">Email</label>
+              <label class="form-label" for="loginEmail">Email</label>
               <input class="form-control" type="email" id="loginEmail" required />
             </div>
             <div>
-              <label class="form-label">Mot de passe</label>
+              <label class="form-label" for="loginPassword">Mot de passe</label>
               <input class="form-control" type="password" id="loginPassword" required />
             </div>
             <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
@@ -591,15 +591,15 @@
 
           <form id="registerForm" class="vstack gap-2">
             <div>
-              <label class="form-label">Nom complet (optionnel)</label>
+              <label class="form-label" for="regName">Nom complet (optionnel)</label>
               <input class="form-control" type="text" id="regName" placeholder="Anthony POIGNARD" />
             </div>
             <div>
-              <label class="form-label">Email</label>
+              <label class="form-label" for="regEmail">Email</label>
               <input class="form-control" type="email" id="regEmail" required />
             </div>
             <div>
-              <label class="form-label">Mot de passe</label>
+              <label class="form-label" for="regPassword">Mot de passe</label>
               <input class="form-control" type="password" id="regPassword" required minlength="6" />
               <div class="form-text">Min 6 caractères.</div>
             </div>
@@ -766,15 +766,15 @@
               <h5 class="mb-3">Créer une tâche</h5>
               <form id="taskForm">
                 <div class="mb-2">
-                  <label class="form-label">Titre</label>
+                  <label class="form-label" for="taskTitle">Titre</label>
                   <input class="form-control" id="taskTitle" required />
                 </div>
                 <div class="mb-2">
-                  <label class="form-label">Description</label>
+                  <label class="form-label" for="taskDescription">Description</label>
                   <textarea class="form-control" id="taskDescription" rows="2"></textarea>
                 </div>
                 <div class="mb-2">
-                  <label class="form-label">Catégorie</label>
+                  <label class="form-label" for="taskCategory">Catégorie</label>
                   <select class="form-select" id="taskCategory">
                     <option>Design</option>
                     <option>Dev</option>
@@ -784,15 +784,15 @@
                   </select>
                 </div>
                 <div class="mb-2">
-                  <label class="form-label">Début</label>
+                  <label class="form-label" for="taskStart">Début</label>
                   <input type="date" class="form-control" id="taskStart" required />
                 </div>
                 <div class="mb-2">
-                  <label class="form-label">Fin</label>
+                  <label class="form-label" for="taskEnd">Fin</label>
                   <input type="date" class="form-control" id="taskEnd" required />
                 </div>
                 <div class="mb-2">
-                  <label class="form-label">Assigné à</label>
+                  <label class="form-label" for="taskAssignee">Assigné à</label>
                   <select class="form-select" id="taskAssignee">
                     <option value="">Non assigné</option>
                   </select>
@@ -1878,7 +1878,10 @@
       if (!taskEnd.value) taskEnd.value = today;
 
       // Initialize views - show calendar by default
-      initializeViews();
+      // Use setTimeout to ensure DOM is ready
+      setTimeout(() => {
+        initializeViews();
+      }, 100);
 
       // icons
       if (window.lucide) lucide.createIcons();
@@ -2397,33 +2400,67 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
 
     // Initialize with calendar view on load
     function initializeViews() {
+      console.log('initializeViews called');
+      
       // Hide all views first
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('calendarView').classList.add('hidden');
-      document.getElementById('tasksView').classList.add('hidden');
-      document.getElementById('teamsView').classList.add('hidden');
+      const dashboardView = document.getElementById('dashboardView');
+      const calendarView = document.getElementById('calendarView');
+      const tasksView = document.getElementById('tasksView');
+      const teamsView = document.getElementById('teamsView');
+      
+      console.log('Views elements:', {
+        dashboardView: !!dashboardView,
+        calendarView: !!calendarView,
+        tasksView: !!tasksView,
+        teamsView: !!teamsView
+      });
+      
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (calendarView) calendarView.classList.add('hidden');
+      if (tasksView) tasksView.classList.add('hidden');
+      if (teamsView) teamsView.classList.add('hidden');
       
       // Show calendar by default when logged in
-      document.getElementById('calendarView').classList.remove('hidden');
+      if (calendarView) {
+        calendarView.classList.remove('hidden');
+        console.log('Calendar view shown');
+      }
       
       // Update header
-      document.getElementById('pageTitle').textContent = 'Calendrier';
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      
+      if (pageTitle) pageTitle.textContent = 'Calendrier';
+      
       const month = new Date().getMonth();
       const year = new Date().getFullYear();
       const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-      document.getElementById('pageSubtitle').textContent = `${months[month]} ${year}`;
+      if (pageSubtitle) pageSubtitle.textContent = `${months[month]} ${year}`;
       
       // Set calendar nav item as active
-      document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-      });
-      document.querySelector('.nav-item[onclick*="showCalendar"]').classList.add('active');
+      const calendarNavItem = document.querySelector('.nav-item[onclick*="showCalendar"]');
+      if (calendarNavItem) {
+        document.querySelectorAll('.nav-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        calendarNavItem.classList.add('active');
+      }
       
       // Render calendar
-      renderCalendar();
+      if (typeof renderCalendar === 'function') {
+        console.log('Rendering calendar');
+        renderCalendar();
+      } else {
+        console.error('renderCalendar function not found');
+      }
       
       // Refresh icons
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide) {
+        lucide.createIcons();
+        console.log('Icons refreshed');
+      }
+      
+      console.log('initializeViews completed');
     }
   </script>
 
