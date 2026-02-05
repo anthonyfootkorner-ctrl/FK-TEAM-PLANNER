@@ -2209,6 +2209,7 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
     // NAVIGATION SIDEBAR
     // =========================
     function showDashboard(e) {
+      console.log('showDashboard called', e);
       if(e) e.preventDefault();
       updateNavActive(e);
       
@@ -2285,6 +2286,7 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
     }
 
     function showTasks(e) {
+      console.log('showTasks called', e);
       if(e) e.preventDefault();
       updateNavActive(e);
       
@@ -2315,6 +2317,7 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
     }
 
     function showTeams(e) {
+      console.log('showTeams called', e);
       if(e) e.preventDefault();
       updateNavActive(e);
       
@@ -2345,35 +2348,50 @@ bob@exemple.com,Bob Martin,Marketing,viewer`;
     }
 
     function quickFilter(type, e) {
+      console.log('quickFilter called', type, e);
       if(e) e.preventDefault();
       updateNavActive(e);
       
       // Show tasks view with filter
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('calendarView').classList.add('hidden');
-      document.getElementById('tasksView').classList.remove('hidden');
-      document.getElementById('teamsView').classList.add('hidden');
+      const dashboardView = document.getElementById('dashboardView');
+      const calendarView = document.getElementById('calendarView');
+      const tasksView = document.getElementById('tasksView');
+      const teamsView = document.getElementById('teamsView');
+      
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (calendarView) calendarView.classList.add('hidden');
+      if (tasksView) tasksView.classList.remove('hidden');
+      if (teamsView) teamsView.classList.add('hidden');
       
       const titles = {
         'mine': 'Mes tâches',
         'late': 'En retard',
         'week': 'Cette semaine'
       };
-      document.getElementById('pageTitle').textContent = titles[type] || type;
-      document.getElementById('pageSubtitle').textContent = 'Vue filtrée';
+      
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      
+      if (pageTitle) pageTitle.textContent = titles[type] || type;
+      if (pageSubtitle) pageSubtitle.textContent = 'Vue filtrée';
       
       // Apply filter (you can customize this)
-      renderTasksList();
+      if (typeof renderTasksList === 'function') {
+        renderTasksList();
+      }
       
       if (window.lucide) lucide.createIcons();
     }
 
     function updateNavActive(e) {
       if(!e || !e.target) return;
+      const navItem = e.target.closest('.nav-item');
+      if (!navItem) return;
+      
       document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
       });
-      e.target.closest('.nav-item').classList.add('active');
+      navItem.classList.add('active');
     }
 
     // Make functions global - AFTER declarations
