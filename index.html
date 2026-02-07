@@ -741,6 +741,45 @@
       font-size: 0.875rem !important;
     }
 
+    /* COLOR PALETTE */
+    .color-palette {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .color-option {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .color-option.selected {
+      border-color: var(--text-primary);
+      box-shadow: 0 0 0 2px white, 0 0 0 4px var(--text-primary);
+    }
+
+    .color-option.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
     /* BADGES */
     .badge {
       border-radius: 999px !important;
@@ -1312,13 +1351,19 @@
               </div>
 
               <div class="col-md-6 mb-3">
-                <label class="form-label" for="taskModalCouleur">Couleur</label>
-                <div class="d-flex gap-2 align-items-center">
-                  <input type="color" class="form-control form-control-color" id="taskModalCouleur" value="#FF6B35" title="Choisir une couleur">
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetTaskColor()" title="Réinitialiser">
-                    <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
-                  </button>
+                <label class="form-label">Couleur</label>
+                <div class="color-palette" id="taskModalCouleurPalette">
+                  <div class="color-option" data-color="#FF6B35" style="background:#FF6B35;" title="Orange"></div>
+                  <div class="color-option" data-color="#3B82F6" style="background:#3B82F6;" title="Bleu"></div>
+                  <div class="color-option" data-color="#10B981" style="background:#10B981;" title="Vert"></div>
+                  <div class="color-option" data-color="#F59E0B" style="background:#F59E0B;" title="Jaune"></div>
+                  <div class="color-option" data-color="#EF4444" style="background:#EF4444;" title="Rouge"></div>
+                  <div class="color-option" data-color="#8B5CF6" style="background:#8B5CF6;" title="Violet"></div>
+                  <div class="color-option" data-color="#EC4899" style="background:#EC4899;" title="Rose"></div>
+                  <div class="color-option" data-color="#14B8A6" style="background:#14B8A6;" title="Turquoise"></div>
+                  <div class="color-option" data-color="#6B7280" style="background:#6B7280;" title="Gris"></div>
                 </div>
+                <input type="hidden" id="taskModalCouleur" value="#FF6B35">
               </div>
             </div>
 
@@ -1562,10 +1607,40 @@
       if (taskModalEl) {
         taskModal = new bootstrap.Modal(taskModalEl);
       }
+
+      // Color palette click handlers
+      setupColorPalette();
     });
 
+    function setupColorPalette() {
+      const palette = document.getElementById('taskModalCouleurPalette');
+      if (!palette) return;
+
+      palette.addEventListener('click', (e) => {
+        const colorOption = e.target.closest('.color-option');
+        if (!colorOption) return;
+
+        const color = colorOption.getAttribute('data-color');
+        selectColor(color);
+      });
+    }
+
+    function selectColor(color) {
+      // Update hidden input
+      const hiddenInput = document.getElementById('taskModalCouleur');
+      if (hiddenInput) hiddenInput.value = color;
+
+      // Update visual selection
+      document.querySelectorAll('.color-option').forEach(option => {
+        option.classList.remove('selected');
+      });
+
+      const selectedOption = document.querySelector(`.color-option[data-color="${color}"]`);
+      if (selectedOption) selectedOption.classList.add('selected');
+    }
+
     function resetTaskColor() {
-      document.getElementById('taskModalCouleur').value = '#FF6B35';
+      selectColor('#FF6B35');
     }
 
     function showCreateTaskModal(defaultDate = null) {
@@ -1577,7 +1652,7 @@
       document.getElementById('taskModalDescription').value = '';
       document.getElementById('taskModalCategorie').value = 'Autre';
       document.getElementById('taskModalPriorite').value = 'moyenne';
-      document.getElementById('taskModalCouleur').value = '#FF6B35';
+      selectColor('#FF6B35');
       document.getElementById('taskModalCompleted').checked = false;
       
       const today = defaultDate || ymd(new Date());
@@ -1611,7 +1686,7 @@
       document.getElementById('taskModalDescription').value = task.description || '';
       document.getElementById('taskModalCategorie').value = task.category || 'Autre';
       document.getElementById('taskModalPriorite').value = task.priority || 'moyenne';
-      document.getElementById('taskModalCouleur').value = task.color || '#FF6B35';
+      selectColor(task.color || '#FF6B35');
       document.getElementById('taskModalDateDebut').value = task.start_date || '';
       document.getElementById('taskModalDateFin').value = task.end_date || '';
       document.getElementById('taskModalCompleted').checked = task.completed || false;
