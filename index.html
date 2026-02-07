@@ -465,6 +465,145 @@
       }
     }
 
+    /* CALENDAR LIST VIEW (Mobile) */
+    #calendarListView {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .cal-list-day {
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .cal-list-day:last-child {
+      border-bottom: none;
+    }
+
+    .cal-list-day-header {
+      background: var(--gray-50);
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .cal-list-day-header:hover {
+      background: var(--gray-100);
+    }
+
+    .cal-list-day-header.today {
+      background: rgba(255, 107, 53, 0.1);
+      color: var(--orange);
+    }
+
+    .cal-list-day-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      width: 48px;
+      text-align: center;
+    }
+
+    .cal-list-day-name {
+      flex: 1;
+      padding-left: 0.75rem;
+    }
+
+    .cal-list-tasks {
+      padding: 0;
+    }
+
+    .cal-list-task {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .cal-list-task:hover {
+      background: var(--gray-50);
+    }
+
+    .cal-list-task:last-child {
+      border-bottom: none;
+    }
+
+    .cal-list-task-color {
+      width: 4px;
+      height: 100%;
+      min-height: 40px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .cal-list-task-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cal-list-task-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+      word-wrap: break-word;
+    }
+
+    .cal-list-task-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .cal-list-task-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--gray-100);
+      color: var(--text-secondary);
+    }
+
+    .cal-list-empty {
+      padding: 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .cal-list-add-btn {
+      padding: 0.5rem;
+      background: transparent;
+      border: none;
+      color: var(--orange);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .cal-list-add-btn:hover {
+      background: rgba(255, 107, 53, 0.1);
+      border-radius: 4px;
+    }
+
+    /* Hide list view on desktop */
+    @media (min-width: 992px) {
+      #calendarListView {
+        display: none !important;
+      }
+      
+      #calViewToggle {
+        display: none !important;
+      }
+    }
+
     /* TASK CARD */
     .task-card {
       border: 1px solid var(--gray-200);
@@ -990,16 +1129,29 @@
                 </button>
                 <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd'hui</button>
               </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm d-lg-none" id="calViewToggle" title="Changer de vue">
+                  <i data-lucide="list" id="calViewIcon"></i>
+                </button>
+              </div>
             </div>
 
-            <div class="cal-grid" id="calGrid">
-              <div class="cal-head">Lun</div>
-              <div class="cal-head">Mar</div>
-              <div class="cal-head">Mer</div>
-              <div class="cal-head">Jeu</div>
-              <div class="cal-head">Ven</div>
-              <div class="cal-head">Sam</div>
-              <div class="cal-head">Dim</div>
+            <!-- Vue grille (desktop et tablette) -->
+            <div id="calendarGridView">
+              <div class="cal-grid" id="calGrid">
+                <div class="cal-head">Lun</div>
+                <div class="cal-head">Mar</div>
+                <div class="cal-head">Mer</div>
+                <div class="cal-head">Jeu</div>
+                <div class="cal-head">Ven</div>
+                <div class="cal-head">Sam</div>
+                <div class="cal-head">Dim</div>
+              </div>
+            </div>
+
+            <!-- Vue liste (mobile) -->
+            <div id="calendarListView" class="hidden">
+              <div id="calListContent"></div>
             </div>
           </div>
 
@@ -1310,6 +1462,38 @@
     });
 
     // =========================
+    // CALENDAR VIEW TOGGLE (Mobile)
+    // =========================
+    let calendarViewMode = 'grid'; // 'grid' or 'list'
+
+    function toggleCalendarView() {
+      const gridView = document.getElementById('calendarGridView');
+      const listView = document.getElementById('calendarListView');
+      const viewIcon = document.getElementById('calViewIcon');
+
+      if (calendarViewMode === 'grid') {
+        calendarViewMode = 'list';
+        hide(gridView);
+        show(listView);
+        viewIcon.setAttribute('data-lucide', 'calendar');
+        renderCalendarList();
+      } else {
+        calendarViewMode = 'grid';
+        show(gridView);
+        hide(listView);
+        viewIcon.setAttribute('data-lucide', 'list');
+      }
+
+      // Refresh icons
+      if (window.lucide) lucide.createIcons();
+    }
+
+    const calViewToggle = document.getElementById('calViewToggle');
+    if (calViewToggle) {
+      calViewToggle.addEventListener('click', toggleCalendarView);
+    }
+
+    // =========================
     // LOGO UPLOAD
     // =========================
     function handleLogoUpload(event) {
@@ -1568,7 +1752,13 @@
 
       // Render view content
       if (viewName === 'dashboardView') renderDashboard();
-      else if (viewName === 'calendarView') renderCalendar();
+      else if (viewName === 'calendarView') {
+        renderCalendar();
+        // Auto switch to list view on mobile
+        if (window.innerWidth < 992 && calendarViewMode === 'grid') {
+          toggleCalendarView();
+        }
+      }
       else if (viewName === 'tasksView') renderTasksList();
       else if (viewName === 'teamsView') renderTeamsGrid();
       else if (viewName === 'eventsView') renderEventsList();
@@ -1803,6 +1993,97 @@
     }
 
     // =========================
+    // CALENDAR LIST VIEW
+    // =========================
+    function renderCalendarList() {
+      const container = document.getElementById('calListContent');
+      if (!container) return;
+
+      container.innerHTML = "";
+
+      const year = calDate.getFullYear();
+      const month = calDate.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+
+      const today = ymd(new Date());
+      const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+      for (let day = 1; day <= lastDay; day++) {
+        const dt = new Date(year, month, day);
+        const dStr = ymd(dt);
+        const dayName = dayNames[dt.getDay()];
+
+        // Get tasks for this day
+        const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date));
+        const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dStr, e.start_date, e.end_date));
+
+        const allItems = [...dayTasks, ...dayEvents];
+
+        // Skip days with no tasks/events (optional - comment out to show all days)
+        // if (!allItems.length) continue;
+
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'cal-list-day';
+
+        const isToday = dStr === today;
+
+        dayDiv.innerHTML = `
+          <div class="cal-list-day-header ${isToday ? 'today' : ''}">
+            <div class="d-flex align-items-center">
+              <div class="cal-list-day-number">${day}</div>
+              <div class="cal-list-day-name">
+                <div>${dayName}</div>
+                ${isToday ? '<div class="small" style="font-weight:400;font-size:0.75rem;">Aujourd\'hui</div>' : ''}
+              </div>
+            </div>
+            <button class="cal-list-add-btn" onclick="showCreateTaskModal('${dStr}')" title="Ajouter une tâche">
+              <i data-lucide="plus" style="width:20px;height:20px;"></i>
+            </button>
+          </div>
+          <div class="cal-list-tasks" id="tasks-${dStr}"></div>
+        `;
+
+        container.appendChild(dayDiv);
+
+        const tasksContainer = document.getElementById(`tasks-${dStr}`);
+
+        if (!allItems.length) {
+          tasksContainer.innerHTML = '<div class="cal-list-empty">Aucune tâche</div>';
+        } else {
+          for (const item of allItems) {
+            const isEvent = !item.team_id; // Events don't have team_id
+            const color = isEvent ? '#9333EA' : (item.color || '#FF6B35');
+            const teamName = isEvent ? '' : ((item.teams && item.teams.name) ? item.teams.name : '');
+
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'cal-list-task';
+            if (!isEvent) {
+              taskDiv.onclick = () => showEditTaskModal(item.id);
+            }
+
+            taskDiv.innerHTML = `
+              <div class="cal-list-task-color" style="background:${color};"></div>
+              <div class="cal-list-task-content">
+                <div class="cal-list-task-title">${escapeHtml(item.title || item.name)}</div>
+                <div class="cal-list-task-meta">
+                  ${teamName ? `<span class="cal-list-task-badge">${escapeHtml(teamName)}</span>` : ''}
+                  ${item.category ? `<span class="cal-list-task-badge">${escapeHtml(item.category)}</span>` : ''}
+                  ${item.type ? `<span class="cal-list-task-badge">${escapeHtml(item.type)}</span>` : ''}
+                  ${item.completed ? '<span class="cal-list-task-badge" style="background:#22C55E;color:white;">✓ Terminée</span>' : ''}
+                </div>
+              </div>
+            `;
+
+            tasksContainer.appendChild(taskDiv);
+          }
+        }
+      }
+
+      // Refresh icons
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // =========================
     // CALENDAR
     // =========================
     const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -1886,16 +2167,19 @@
     document.getElementById('calPrev')?.addEventListener('click', () => {
       calDate.setMonth(calDate.getMonth() - 1);
       renderCalendar();
+      if (calendarViewMode === 'list') renderCalendarList();
     });
 
     document.getElementById('calNext')?.addEventListener('click', () => {
       calDate.setMonth(calDate.getMonth() + 1);
       renderCalendar();
+      if (calendarViewMode === 'list') renderCalendarList();
     });
 
     document.getElementById('calToday')?.addEventListener('click', () => {
       calDate = new Date();
       renderCalendar();
+      if (calendarViewMode === 'list') renderCalendarList();
     });
 
     // =========================
