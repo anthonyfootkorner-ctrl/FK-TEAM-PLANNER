@@ -69,6 +69,29 @@
       box-shadow: 2px 0 12px rgba(0,0,0,0.1);
       z-index: 1000;
       padding: 1.5rem 0;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar.mobile-hidden {
+      transform: translateX(-100%);
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.show {
+      display: block;
+      opacity: 1;
     }
 
     .sidebar-logo {
@@ -184,32 +207,60 @@
     .top-bar {
       background: white;
       border-bottom: 1px solid var(--gray-200);
-      padding: 0 2rem;
-      height: 70px;
+      padding: 0.75rem 1rem;
+      height: auto;
+      min-height: 70px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 992px) {
+      .top-bar {
+        padding: 0 2rem;
+        height: 70px;
+      }
     }
 
     .page-title {
-      font-size: 1.75rem;
+      font-size: 1.25rem;
       font-weight: 700;
       color: var(--text-primary);
       margin: 0;
     }
 
+    @media (min-width: 768px) {
+      .page-title {
+        font-size: 1.75rem;
+      }
+    }
+
     .page-subtitle {
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       color: var(--text-secondary);
       margin: 0.25rem 0 0 0;
+    }
+
+    @media (min-width: 768px) {
+      .page-subtitle {
+        font-size: 0.875rem;
+      }
     }
 
     /* CONTENT AREA */
     .content-area {
       flex: 1;
       overflow-y: auto;
-      padding: 2rem;
+      padding: 1rem;
       background: #f0f2f5;
+    }
+
+    @media (min-width: 768px) {
+      .content-area {
+        padding: 2rem;
+      }
     }
 
     /* CARDS */
@@ -225,28 +276,53 @@
       background: white;
       border: 1px solid var(--gray-200);
       border-radius: 12px;
-      padding: 1.5rem;
+      padding: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .stat-card {
+        padding: 1.5rem;
+      }
     }
 
     .stat-icon {
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
+    @media (min-width: 768px) {
+      .stat-icon {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
     .stat-label {
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       color: var(--text-secondary);
       margin-bottom: 0.25rem;
     }
 
+    @media (min-width: 768px) {
+      .stat-label {
+        font-size: 0.875rem;
+      }
+    }
+
     .stat-value {
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: var(--text-primary);
+    }
+
+    @media (min-width: 768px) {
+      .stat-value {
+        font-size: 2rem;
+      }
     }
 
     /* PROGRESS BARS */
@@ -274,13 +350,22 @@
     /* CALENDAR */
     .calendar-header-custom {
       background: white;
-      padding: 1.5rem 2rem;
+      padding: 1rem;
       border-radius: 12px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .calendar-header-custom {
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+      }
     }
 
     .cal-grid {
@@ -296,21 +381,35 @@
     .cal-head {
       background: var(--gray-50) !important;
       color: var(--gray-500) !important;
-      padding: 1rem !important;
+      padding: 0.5rem !important;
       text-align: center !important;
       font-weight: 600 !important;
-      font-size: 0.875rem !important;
+      font-size: 0.7rem !important;
       border-bottom: 1px solid var(--gray-200) !important;
+    }
+
+    @media (min-width: 768px) {
+      .cal-head {
+        padding: 1rem !important;
+        font-size: 0.875rem !important;
+      }
     }
 
     .cal-cell {
       background: white !important;
       border-right: 1px solid var(--gray-100) !important;
       border-bottom: 1px solid var(--gray-100) !important;
-      padding: 12px !important;
-      min-height: 120px !important;
+      padding: 0.5rem !important;
+      min-height: 80px !important;
       transition: background 0.2s ease !important;
       border-radius: 0 !important;
+    }
+
+    @media (min-width: 768px) {
+      .cal-cell {
+        padding: 12px !important;
+        min-height: 120px !important;
+      }
     }
 
     .cal-cell:nth-child(7n) {
@@ -324,25 +423,46 @@
     .cal-day {
       font-weight: 600 !important;
       color: var(--text-primary) !important;
-      font-size: 0.95rem !important;
+      font-size: 0.85rem !important;
+    }
+
+    @media (min-width: 768px) {
+      .cal-day {
+        font-size: 0.95rem !important;
+      }
     }
 
     .task-pill {
       background: var(--orange) !important;
       color: white !important;
-      padding: 4px 8px !important;
+      padding: 3px 6px !important;
       border-radius: 6px !important;
-      font-size: 0.75rem !important;
+      font-size: 0.65rem !important;
       font-weight: 500 !important;
       display: block !important;
-      margin-top: 6px !important;
+      margin-top: 4px !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
     }
 
+    @media (min-width: 768px) {
+      .task-pill {
+        padding: 4px 8px !important;
+        font-size: 0.75rem !important;
+        margin-top: 6px !important;
+      }
+    }
+
     .task-pill small {
       color: rgba(255,255,255,0.9) !important;
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      .task-pill small {
+        display: inline;
+      }
     }
 
     /* TASK CARD */
@@ -566,13 +686,42 @@
     }
 
     /* RESPONSIVE */
-    @media (max-width: 968px) {
+    @media (max-width: 991px) {
       .sidebar {
         transform: translateX(-100%);
+      }
+
+      .sidebar.show {
+        transform: translateX(0);
       }
       
       .main-wrapper {
         margin-left: 0;
+      }
+    }
+
+    @media (min-width: 992px) {
+      .sidebar {
+        transform: translateX(0) !important;
+      }
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 576px) {
+      .btn-group {
+        flex-wrap: wrap;
+      }
+
+      .card {
+        margin-bottom: 1rem;
+      }
+
+      h5, h6 {
+        font-size: 1rem;
+      }
+
+      .task-card {
+        padding: 0.75rem;
       }
     }
   </style>
@@ -635,19 +784,30 @@
       </nav>
     </aside>
 
+    <!-- SIDEBAR OVERLAY (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- MAIN WRAPPER -->
     <div class="main-wrapper">
 
       <!-- TOP BAR -->
       <header class="top-bar">
-        <div>
-          <h1 class="page-title" id="pageTitle">Calendrier</h1>
-          <p class="page-subtitle" id="pageSubtitle">Janvier 2026</p>
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-outline-secondary d-lg-none" id="mobileSidebarToggle" style="padding:0.5rem;">
+            <i data-lucide="menu" style="width:20px;height:20px;"></i>
+          </button>
+          <div>
+            <h1 class="page-title" id="pageTitle">Calendrier</h1>
+            <p class="page-subtitle" id="pageSubtitle">Janvier 2026</p>
+          </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <span class="badge text-bg-light border" id="roleBadge">non connecté</span>
-          <span class="text-secondary small" id="userEmail"></span>
-          <button class="btn btn-outline-secondary btn-sm hidden" id="btnLogout">Se déconnecter</button>
+          <span class="badge text-bg-light border d-none d-md-inline" id="roleBadge">non connecté</span>
+          <span class="text-secondary small d-none d-md-inline" id="userEmail"></span>
+          <button class="btn btn-outline-secondary btn-sm hidden" id="btnLogout">
+            <i data-lucide="log-out" class="d-lg-none" style="width:16px;height:16px;"></i>
+            <span class="d-none d-lg-inline">Se déconnecter</span>
+          </button>
         </div>
       </header>
 
@@ -1112,6 +1272,42 @@
     function isBetween(dateStr, startStr, endStr){
       return dateStr >= startStr && dateStr <= endStr;
     }
+
+    // =========================
+    // MOBILE SIDEBAR
+    // =========================
+    const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function toggleMobileSidebar() {
+      sidebar.classList.toggle('show');
+      sidebarOverlay.classList.toggle('show');
+      document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
+    }
+
+    function closeMobileSidebar() {
+      sidebar.classList.remove('show');
+      sidebarOverlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    if (mobileSidebarToggle) {
+      mobileSidebarToggle.addEventListener('click', toggleMobileSidebar);
+    }
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', closeMobileSidebar);
+    }
+
+    // Close sidebar when clicking on a nav item on mobile
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth < 992) {
+          closeMobileSidebar();
+        }
+      });
+    });
 
     // =========================
     // LOGO UPLOAD
