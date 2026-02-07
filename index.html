@@ -494,6 +494,31 @@
       color: var(--orange) !important;
     }
 
+    /* TABS */
+    .nav-tabs {
+      border-bottom: 2px solid var(--gray-200) !important;
+    }
+
+    .nav-tabs .nav-link {
+      border: none !important;
+      color: var(--text-secondary) !important;
+      font-weight: 500 !important;
+      padding: 0.75rem 1.5rem !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .nav-tabs .nav-link:hover {
+      color: var(--orange) !important;
+      border: none !important;
+    }
+
+    .nav-tabs .nav-link.active {
+      color: var(--orange) !important;
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 2px solid var(--orange) !important;
+    }
+
     /* ALERTS */
     .alert {
       border-radius: 10px !important;
@@ -634,19 +659,53 @@
           <div class="col-12 col-lg-6">
             <div class="card p-4">
               <h4 class="mb-1">Connexion</h4>
-              <p class="text-secondary mb-4">Connecte-toi pour accéder à TaskFlow.</p>
+              <p class="text-secondary mb-4">Connecte-toi pour accéder à FK Team Planner.</p>
 
-              <form id="loginForm" class="vstack gap-2">
-                <div>
-                  <label class="form-label" for="loginEmail">Email</label>
-                  <input class="form-control" type="email" id="loginEmail" required />
+              <!-- Tabs pour choisir entre mot de passe et magic link -->
+              <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-login" type="button" role="tab">
+                    Mot de passe
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="magiclink-tab" data-bs-toggle="tab" data-bs-target="#magiclink-login" type="button" role="tab">
+                    Magic Link
+                  </button>
+                </li>
+              </ul>
+
+              <div class="tab-content">
+                <!-- PASSWORD LOGIN -->
+                <div class="tab-pane fade show active" id="password-login" role="tabpanel">
+                  <form id="loginForm" class="vstack gap-2">
+                    <div>
+                      <label class="form-label" for="loginEmail">Email</label>
+                      <input class="form-control" type="email" id="loginEmail" required />
+                    </div>
+                    <div>
+                      <label class="form-label" for="loginPassword">Mot de passe</label>
+                      <input class="form-control" type="password" id="loginPassword" required />
+                    </div>
+                    <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
+                  </form>
                 </div>
-                <div>
-                  <label class="form-label" for="loginPassword">Mot de passe</label>
-                  <input class="form-control" type="password" id="loginPassword" required />
+
+                <!-- MAGIC LINK LOGIN -->
+                <div class="tab-pane fade" id="magiclink-login" role="tabpanel">
+                  <form id="magicLinkForm" class="vstack gap-2">
+                    <div>
+                      <label class="form-label" for="magicLinkEmail">Email</label>
+                      <input class="form-control" type="email" id="magicLinkEmail" required />
+                      <div class="form-text">Un lien de connexion sera envoyé à cette adresse.</div>
+                    </div>
+                    <button class="btn btn-primary mt-2" type="submit">
+                      <i data-lucide="mail" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></i>
+                      Envoyer le Magic Link
+                    </button>
+                  </form>
                 </div>
-                <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
-              </form>
+              </div>
 
               <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
               <div class="alert alert-success mt-3 hidden" id="loginOk"></div>
@@ -941,13 +1000,23 @@
               </div>
 
               <div class="col-md-6 mb-3">
-                <label class="form-label" for="taskModalPriorite">Priorité</label>
-                <select class="form-select" id="taskModalPriorite">
-                  <option value="basse">Basse</option>
-                  <option value="moyenne" selected>Moyenne</option>
-                  <option value="haute">Haute</option>
-                </select>
+                <label class="form-label" for="taskModalCouleur">Couleur</label>
+                <div class="d-flex gap-2 align-items-center">
+                  <input type="color" class="form-control form-control-color" id="taskModalCouleur" value="#FF6B35" title="Choisir une couleur">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetTaskColor()" title="Réinitialiser">
+                    <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
+                  </button>
+                </div>
               </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="taskModalPriorite">Priorité</label>
+              <select class="form-select" id="taskModalPriorite">
+                <option value="basse">Basse</option>
+                <option value="moyenne" selected>Moyenne</option>
+                <option value="haute">Haute</option>
+              </select>
             </div>
 
             <div class="row">
@@ -1115,6 +1184,10 @@
       }
     });
 
+    function resetTaskColor() {
+      document.getElementById('taskModalCouleur').value = '#FF6B35';
+    }
+
     function showCreateTaskModal(defaultDate = null) {
       currentEditingTaskId = null;
       
@@ -1124,6 +1197,7 @@
       document.getElementById('taskModalDescription').value = '';
       document.getElementById('taskModalCategorie').value = 'Autre';
       document.getElementById('taskModalPriorite').value = 'moyenne';
+      document.getElementById('taskModalCouleur').value = '#FF6B35';
       document.getElementById('taskModalCompleted').checked = false;
       
       const today = defaultDate || ymd(new Date());
@@ -1157,6 +1231,7 @@
       document.getElementById('taskModalDescription').value = task.description || '';
       document.getElementById('taskModalCategorie').value = task.category || 'Autre';
       document.getElementById('taskModalPriorite').value = task.priority || 'moyenne';
+      document.getElementById('taskModalCouleur').value = task.color || '#FF6B35';
       document.getElementById('taskModalDateDebut').value = task.start_date || '';
       document.getElementById('taskModalDateFin').value = task.end_date || '';
       document.getElementById('taskModalCompleted').checked = task.completed || false;
@@ -1182,6 +1257,7 @@
       const description = document.getElementById('taskModalDescription').value.trim();
       const categorie = document.getElementById('taskModalCategorie').value;
       const priorite = document.getElementById('taskModalPriorite').value;
+      const couleur = document.getElementById('taskModalCouleur').value;
       const dateDebut = document.getElementById('taskModalDateDebut').value;
       const dateFin = document.getElementById('taskModalDateFin').value;
       const equipeId = document.getElementById('taskModalEquipe').value;
@@ -1214,6 +1290,7 @@
         description: description || null,
         category: categorie,
         priority: priorite,
+        color: couleur,
         start_date: dateDebut,
         end_date: dateFin,
         team_id: equipeId,
@@ -1336,6 +1413,39 @@
       const ok = document.getElementById("loginOk");
       ok.textContent = "Connecté.";
       show(ok);
+    });
+
+    // Magic Link Form
+    document.getElementById("magicLinkForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hide(document.getElementById("loginError"));
+      hide(document.getElementById("loginOk"));
+
+      const email = document.getElementById("magicLinkEmail").value.trim();
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithOtp({
+          email: email,
+          options: {
+            emailRedirectTo: window.location.origin + window.location.pathname
+          }
+        });
+
+        if (error) throw error;
+
+        const ok = document.getElementById("loginOk");
+        ok.textContent = `✉️ Magic Link envoyé à ${email}. Vérifie ta boîte mail !`;
+        show(ok);
+
+        // Clear form
+        document.getElementById("magicLinkEmail").value = "";
+
+      } catch (error) {
+        const box = document.getElementById("loginError");
+        box.textContent = error.message || "Erreur lors de l'envoi du Magic Link";
+        show(box);
+        console.error(error);
+      }
     });
 
     document.getElementById("registerForm").addEventListener("submit", async (e) => {
@@ -1557,7 +1667,8 @@
 
         for (const t of dayTasks) {
           const teamName = (t.teams && t.teams.name) ? t.teams.name : "";
-          html += `<div class="task-pill mb-1 pointer" onclick="showEditTaskModal('${t.id}')" title="Cliquer pour modifier">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
+          const taskColor = t.color || '#FF6B35';
+          html += `<div class="task-pill mb-1 pointer" onclick="showEditTaskModal('${t.id}')" title="Cliquer pour modifier" style="background:${taskColor} !important;">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
         }
 
         for (const e of dayEvents) {
@@ -1621,14 +1732,19 @@
       for (const t of filtered) {
         const teamName = (t.teams && t.teams.name) ? t.teams.name : "";
         const priorityClass = t.priority || 'basse';
+        const taskColor = t.color || '#FF6B35';
 
         const card = document.createElement('div');
         card.className = `task-card priority-${priorityClass}`;
+        card.style.borderLeftColor = taskColor;
         card.innerHTML = `
           <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
               <div class="d-flex align-items-center gap-2 mb-2">
-                <h6 class="mb-0">${escapeHtml(t.title)}</h6>
+                <div class="d-flex align-items-center gap-2">
+                  <div style="width:16px;height:16px;background:${taskColor};border-radius:4px;"></div>
+                  <h6 class="mb-0">${escapeHtml(t.title)}</h6>
+                </div>
                 ${t.completed ? '<span class="badge bg-success">✓ Terminée</span>' : '<span class="badge bg-warning">À faire</span>'}
               </div>
               <p class="text-secondary small mb-2">${escapeHtml(t.description || '')}</p>
@@ -2038,6 +2154,7 @@
 
     // Make functions global
     window.handleLogoUpload = handleLogoUpload;
+    window.resetTaskColor = resetTaskColor;
     window.deleteTask = deleteTask;
     window.deleteTeam = deleteTeam;
     window.deleteEvent = deleteEvent;
