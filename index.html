@@ -766,6 +766,10 @@
                   <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Tâches</h5>
                     <div class="d-flex gap-2">
+                      <button class="btn btn-primary" onclick="showCreateTaskModal()">
+                        <i data-lucide="plus" style="width:14px;height:14px;"></i>
+                        Nouvelle tâche
+                      </button>
                       <button class="btn btn-outline-secondary btn-sm" onclick="downloadTasksTemplate()">
                         <i data-lucide="download" style="width:14px;height:14px;"></i>
                         Modèle
@@ -874,6 +878,91 @@
     </div>
   </div>
 
+  <!-- MODAL: CREATE/EDIT TASK -->
+  <div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="taskModalTitle">Nouvelle tâche</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="taskModalForm">
+            <input type="hidden" id="taskModalId">
+            
+            <div class="mb-3">
+              <label class="form-label" for="taskModalTitre">Titre *</label>
+              <input type="text" class="form-control" id="taskModalTitre" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="taskModalDescription">Description</label>
+              <textarea class="form-control" id="taskModalDescription" rows="3"></textarea>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="taskModalCategorie">Catégorie</label>
+                <select class="form-select" id="taskModalCategorie">
+                  <option value="Design">Design</option>
+                  <option value="Dev">Dev</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Production">Production</option>
+                  <option value="Logistique">Logistique</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="taskModalPriorite">Priorité</label>
+                <select class="form-select" id="taskModalPriorite">
+                  <option value="basse">Basse</option>
+                  <option value="moyenne" selected>Moyenne</option>
+                  <option value="haute">Haute</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="taskModalDateDebut">Date de début *</label>
+                <input type="date" class="form-control" id="taskModalDateDebut" required>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="taskModalDateFin">Date de fin *</label>
+                <input type="date" class="form-control" id="taskModalDateFin" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="taskModalEquipe">Équipe *</label>
+              <select class="form-select" id="taskModalEquipe" required>
+                <option value="">Sélectionner une équipe</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="taskModalCompleted">
+                <label class="form-check-label" for="taskModalCompleted">
+                  Tâche terminée
+                </label>
+              </div>
+            </div>
+
+            <div class="alert alert-danger hidden" id="taskModalError"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-primary" onclick="saveTaskFromModal()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 
@@ -927,6 +1016,160 @@
     }
     function isBetween(dateStr, startStr, endStr){
       return dateStr >= startStr && dateStr <= endStr;
+    }
+
+    // =========================
+    // TASK MODAL
+    // =========================
+    let taskModal = null;
+    let currentEditingTaskId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const taskModalEl = document.getElementById('taskModal');
+      if (taskModalEl) {
+        taskModal = new bootstrap.Modal(taskModalEl);
+      }
+    });
+
+    function showCreateTaskModal(defaultDate = null) {
+      currentEditingTaskId = null;
+      
+      document.getElementById('taskModalTitle').textContent = 'Nouvelle tâche';
+      document.getElementById('taskModalId').value = '';
+      document.getElementById('taskModalTitre').value = '';
+      document.getElementById('taskModalDescription').value = '';
+      document.getElementById('taskModalCategorie').value = 'Autre';
+      document.getElementById('taskModalPriorite').value = 'moyenne';
+      document.getElementById('taskModalCompleted').checked = false;
+      
+      const today = defaultDate || ymd(new Date());
+      document.getElementById('taskModalDateDebut').value = today;
+      document.getElementById('taskModalDateFin').value = today;
+
+      // Populate teams
+      const teamSelect = document.getElementById('taskModalEquipe');
+      teamSelect.innerHTML = '<option value="">Sélectionner une équipe</option>';
+      teams.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        teamSelect.appendChild(opt);
+      });
+
+      hide(document.getElementById('taskModalError'));
+      
+      if (taskModal) taskModal.show();
+    }
+
+    function showEditTaskModal(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      currentEditingTaskId = taskId;
+      
+      document.getElementById('taskModalTitle').textContent = 'Modifier la tâche';
+      document.getElementById('taskModalId').value = task.id;
+      document.getElementById('taskModalTitre').value = task.title || '';
+      document.getElementById('taskModalDescription').value = task.description || '';
+      document.getElementById('taskModalCategorie').value = task.category || 'Autre';
+      document.getElementById('taskModalPriorite').value = task.priority || 'moyenne';
+      document.getElementById('taskModalDateDebut').value = task.start_date || '';
+      document.getElementById('taskModalDateFin').value = task.end_date || '';
+      document.getElementById('taskModalCompleted').checked = task.completed || false;
+
+      // Populate teams
+      const teamSelect = document.getElementById('taskModalEquipe');
+      teamSelect.innerHTML = '<option value="">Sélectionner une équipe</option>';
+      teams.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        if (t.id === task.team_id) opt.selected = true;
+        teamSelect.appendChild(opt);
+      });
+
+      hide(document.getElementById('taskModalError'));
+      
+      if (taskModal) taskModal.show();
+    }
+
+    async function saveTaskFromModal() {
+      const titre = document.getElementById('taskModalTitre').value.trim();
+      const description = document.getElementById('taskModalDescription').value.trim();
+      const categorie = document.getElementById('taskModalCategorie').value;
+      const priorite = document.getElementById('taskModalPriorite').value;
+      const dateDebut = document.getElementById('taskModalDateDebut').value;
+      const dateFin = document.getElementById('taskModalDateFin').value;
+      const equipeId = document.getElementById('taskModalEquipe').value;
+      const completed = document.getElementById('taskModalCompleted').checked;
+
+      // Validation
+      if (!titre) {
+        const errorEl = document.getElementById('taskModalError');
+        errorEl.textContent = 'Le titre est requis';
+        show(errorEl);
+        return;
+      }
+
+      if (!equipeId) {
+        const errorEl = document.getElementById('taskModalError');
+        errorEl.textContent = 'Veuillez sélectionner une équipe';
+        show(errorEl);
+        return;
+      }
+
+      if (dateFin < dateDebut) {
+        const errorEl = document.getElementById('taskModalError');
+        errorEl.textContent = 'La date de fin doit être >= à la date de début';
+        show(errorEl);
+        return;
+      }
+
+      const taskData = {
+        title: titre,
+        description: description || null,
+        category: categorie,
+        priority: priorite,
+        start_date: dateDebut,
+        end_date: dateFin,
+        team_id: equipeId,
+        completed: completed,
+        created_by: user.id
+      };
+
+      try {
+        if (currentEditingTaskId) {
+          // Update existing task
+          const { error } = await supabaseClient
+            .from('tasks')
+            .update(taskData)
+            .eq('id', currentEditingTaskId);
+
+          if (error) throw error;
+        } else {
+          // Create new task
+          const { error } = await supabaseClient
+            .from('tasks')
+            .insert([taskData]);
+
+          if (error) throw error;
+        }
+
+        // Reload and refresh
+        await loadTasks();
+        renderTasksList();
+        renderCalendar();
+        renderDashboard();
+
+        // Close modal
+        if (taskModal) taskModal.hide();
+
+      } catch (error) {
+        const errorEl = document.getElementById('taskModalError');
+        errorEl.textContent = error.message || 'Erreur lors de la sauvegarde';
+        show(errorEl);
+        console.error(error);
+      }
     }
 
     // =========================
@@ -1223,11 +1466,14 @@
 
         let html = `<div class="d-flex align-items-center justify-content-between mb-2">
           <div class="cal-day">${day}</div>
+          <button class="btn btn-sm btn-primary" onclick="showCreateTaskModal('${dStr}')" title="Ajouter une tâche" style="padding:2px 6px;">
+            <i data-lucide="plus" style="width:12px;height:12px;"></i>
+          </button>
         </div>`;
 
         for (const t of dayTasks) {
           const teamName = (t.teams && t.teams.name) ? t.teams.name : "";
-          html += `<div class="task-pill mb-1">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
+          html += `<div class="task-pill mb-1 pointer" onclick="showEditTaskModal('${t.id}')" title="Cliquer pour modifier">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
         }
 
         for (const e of dayEvents) {
@@ -1241,6 +1487,9 @@
       // Update title
       setText(document.getElementById('calTitle'), `${monthNames[month]} ${year}`);
       setText(document.getElementById('pageSubtitle'), `${monthNames[month]} ${year}`);
+
+      // Refresh icons
+      if (window.lucide) lucide.createIcons();
     }
 
     document.getElementById('calPrev')?.addEventListener('click', () => {
@@ -1306,8 +1555,11 @@
                 ${t.priority ? `<span class="badge bg-${t.priority === 'haute' ? 'danger' : t.priority === 'moyenne' ? 'warning' : 'secondary'}">${escapeHtml(t.priority)}</span>` : ''}
               </div>
             </div>
-            <div>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteTask('${t.id}')">
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary" onclick="showEditTaskModal('${t.id}')" title="Modifier">
+                <i data-lucide="edit" style="width:14px;height:14px;"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteTask('${t.id}')" title="Supprimer">
                 <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
               </button>
             </div>
@@ -1706,6 +1958,9 @@
     window.deleteEvent = deleteEvent;
     window.showCreateTeamModal = showCreateTeamModal;
     window.showCreateEventModal = showCreateEventModal;
+    window.showCreateTaskModal = showCreateTaskModal;
+    window.showEditTaskModal = showEditTaskModal;
+    window.saveTaskFromModal = saveTaskFromModal;
     window.exportTasksCSV = exportTasksCSV;
     window.exportTasksJSON = exportTasksJSON;
     window.exportTasksiCal = exportTasksiCal;
