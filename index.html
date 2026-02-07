@@ -2371,17 +2371,8 @@
 
       container.innerHTML = "";
 
-      const teamColors = [
-        '#3B82F6', // blue
-        '#9333EA', // purple
-        '#10B981', // green
-        '#EC4899', // pink
-        '#14B8A6', // teal
-        '#EF4444'  // red
-      ];
-
       teams.forEach((team, index) => {
-        const color = teamColors[index % teamColors.length];
+        const color = getTeamColor(team.id);
         const teamTasks = tasks.filter(t => t.team_id === team.id);
 
         const col = document.createElement('div');
@@ -2392,6 +2383,7 @@
               <div>
                 <h5 class="mb-1">${escapeHtml(team.name)}</h5>
                 <div class="opacity-75">${teamTasks.length} tâche(s)</div>
+                <div class="small opacity-75 mt-1">Couleur: ${color}</div>
               </div>
               <button class="btn btn-sm btn-light" onclick="deleteTeam('${team.id}')">
                 <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
@@ -2554,6 +2546,39 @@
     }
 
     // =========================
+    // TEAM COLORS
+    // =========================
+    const teamColors = [
+      '#FF6B35', // Orange
+      '#3B82F6', // Bleu
+      '#10B981', // Vert
+      '#F59E0B', // Jaune
+      '#EF4444', // Rouge
+      '#8B5CF6', // Violet
+      '#EC4899', // Rose
+      '#14B8A6', // Turquoise
+      '#6B7280'  // Gris
+    ];
+
+    function getTeamColor(teamId) {
+      if (!teamId) return '#FF6B35'; // Couleur par défaut
+      
+      const teamIndex = teams.findIndex(t => t.id === teamId);
+      if (teamIndex === -1) return '#FF6B35';
+      
+      return teamColors[teamIndex % teamColors.length];
+    }
+
+    function getTeamColorByName(teamName) {
+      if (!teamName) return '#FF6B35';
+      
+      const team = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+      if (!team) return '#FF6B35';
+      
+      return getTeamColor(team.id);
+    }
+
+    // =========================
     // EXPORT FUNCTIONS
     // =========================
     function downloadCSV(content, filename) {
@@ -2566,11 +2591,12 @@
     }
 
     function exportTasksCSV() {
-      let csv = 'Titre,Description,Catégorie,Début,Fin,Équipe,Priorité,Statut\n';
+      let csv = 'Titre,Description,Catégorie,Début,Fin,Équipe,Priorité,Couleur,Statut\n';
       
       tasks.forEach(t => {
         const teamName = (t.teams && t.teams.name) ? t.teams.name : '';
-        csv += `"${t.title}","${t.description || ''}","${t.category || ''}","${t.start_date}","${t.end_date}","${teamName}","${t.priority || ''}","${t.completed ? 'Terminée' : 'À faire'}"\n`;
+        const color = t.color || getTeamColor(t.team_id);
+        csv += `"${t.title}","${t.description || ''}","${t.category || ''}","${t.start_date}","${t.end_date}","${teamName}","${t.priority || ''}","${color}","${t.completed ? 'Terminée' : 'À faire'}"\n`;
       });
 
       downloadCSV(csv, 'taches_export.csv');
@@ -2629,7 +2655,10 @@
     }
 
     function downloadTasksTemplate() {
-      const csv = 'Titre,Description,Catégorie,Début,Fin,Équipe,Priorité\n"Exemple","Description","Dev","2026-02-01","2026-02-15","Production","haute"';
+      const csv = `Titre,Description,Catégorie,Début,Fin,Équipe,Priorité,Couleur
+"Exemple tâche 1","Description de la tâche","Dev","2026-02-01","2026-02-15","Production","haute","#FF6B35"
+"Exemple tâche 2","Autre description","Design","2026-02-05","2026-02-10","Design","moyenne","#3B82F6"
+"Exemple tâche 3","Exemple sans couleur (auto selon équipe)","Marketing","2026-02-10","2026-02-20","Marketing","basse",""`;
       downloadCSV(csv, 'modele_taches.csv');
     }
 
@@ -2642,35 +2671,72 @@
         const text = e.target.result;
         const lines = text.split('\n').filter(l => l.trim());
         
+        if (lines.length < 2) {
+          alert('❌ Fichier vide ou invalide');
+          return;
+        }
+
+        let imported = 0;
+        let errors = 0;
+        
         for (let i = 1; i < lines.length; i++) {
           const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
           if (parts.length >= 5) {
-            const [title, description, category, start_date, end_date, teamName, priority] = parts;
+            const [title, description, category, start_date, end_date, teamName, priority, colorFromCSV] = parts;
             
+            // Find team
             let team_id = teams[0]?.id;
+            let team = null;
             if (teamName) {
-              const team = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+              team = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
               if (team) team_id = team.id;
             }
 
-            await supabaseClient.from('tasks').insert([{
-              title,
-              description: description || '',
-              category: category || 'Autre',
-              start_date,
-              end_date,
-              team_id,
-              priority: priority || 'moyenne',
-              created_by: user.id,
-              completed: false
-            }]);
+            // Determine color: use CSV color if provided, otherwise auto-assign based on team
+            let taskColor = '#FF6B35'; // default
+            if (colorFromCSV && colorFromCSV.startsWith('#')) {
+              // Color provided in CSV
+              taskColor = colorFromCSV;
+            } else if (team_id) {
+              // Auto-assign color based on team
+              taskColor = getTeamColor(team_id);
+            }
+
+            if (!team_id) {
+              errors++;
+              continue;
+            }
+
+            try {
+              const { error } = await supabaseClient.from('tasks').insert([{
+                title,
+                description: description || '',
+                category: category || 'Autre',
+                start_date,
+                end_date,
+                team_id,
+                priority: priority || 'moyenne',
+                color: taskColor,
+                created_by: user.id,
+                completed: false
+              }]);
+              
+              if (error) throw error;
+              imported++;
+            } catch (e) {
+              console.error('Erreur import tâche:', e);
+              errors++;
+            }
           }
         }
 
         await loadTasks();
         renderTasksList();
         renderCalendar();
-        alert('Import terminé!');
+        if (calendarViewMode === 'list') renderCalendarList();
+        
+        alert(`✅ Import terminé!\n${imported} tâche(s) importée(s)\n${errors} erreur(s)\n\n💡 Les tâches sans couleur ont été colorées automatiquement selon leur équipe.`);
+        event.target.value = '';
       };
       reader.readAsText(file);
     }
