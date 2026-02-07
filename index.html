@@ -604,6 +604,100 @@
       }
     }
 
+    /* DAY & WEEK VIEW */
+    .day-view-container,
+    .week-view-container {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .day-view-header,
+    .week-day-header {
+      background: var(--gray-50);
+      padding: 1rem;
+      border-bottom: 1px solid var(--gray-200);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .day-view-content,
+    .week-view-content {
+      padding: 1rem;
+      min-height: 400px;
+    }
+
+    .week-view-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+    }
+
+    .week-day-column {
+      background: white;
+      min-height: 400px;
+      padding: 0.5rem;
+    }
+
+    .week-day-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .week-day-column.today {
+      background: rgba(255, 107, 53, 0.05);
+    }
+
+    .week-day-column.today .week-day-number {
+      color: var(--orange);
+    }
+
+    .time-slot {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--gray-100);
+      min-height: 60px;
+    }
+
+    .time-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .day-task-item,
+    .week-task-item {
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid;
+    }
+
+    .day-task-item:hover,
+    .week-task-item:hover {
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 991px) {
+      .week-view-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .week-day-column {
+        border-bottom: 2px solid var(--gray-200);
+      }
+    }
+
     /* TASK CARD */
     .task-card {
       border: 1px solid var(--gray-200);
@@ -1169,6 +1263,13 @@
                 <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd'hui</button>
               </div>
               <div class="d-flex gap-2">
+                <!-- Desktop view switcher -->
+                <div class="btn-group d-none d-lg-flex" role="group">
+                  <button class="btn btn-outline-secondary btn-sm" id="calViewDay">Jour</button>
+                  <button class="btn btn-outline-secondary btn-sm" id="calViewWeek">Semaine</button>
+                  <button class="btn btn-outline-secondary btn-sm active" id="calViewMonth">Mois</button>
+                </div>
+                <!-- Mobile list toggle -->
                 <button class="btn btn-outline-secondary btn-sm d-lg-none" id="calViewToggle" title="Changer de vue">
                   <i data-lucide="list" id="calViewIcon"></i>
                 </button>
@@ -1510,6 +1611,7 @@
     // CALENDAR VIEW TOGGLE (Mobile)
     // =========================
     let calendarViewMode = 'grid'; // 'grid' or 'list'
+    let calendarDesktopView = 'month'; // 'day', 'week', or 'month'
 
     function toggleCalendarView() {
       const gridView = document.getElementById('calendarGridView');
@@ -1533,10 +1635,34 @@
       if (window.lucide) lucide.createIcons();
     }
 
+    function setCalendarDesktopView(view) {
+      calendarDesktopView = view;
+
+      // Update button states
+      document.getElementById('calViewDay')?.classList.remove('active');
+      document.getElementById('calViewWeek')?.classList.remove('active');
+      document.getElementById('calViewMonth')?.classList.remove('active');
+
+      if (view === 'day') {
+        document.getElementById('calViewDay')?.classList.add('active');
+      } else if (view === 'week') {
+        document.getElementById('calViewWeek')?.classList.add('active');
+      } else {
+        document.getElementById('calViewMonth')?.classList.add('active');
+      }
+
+      renderCalendar();
+    }
+
     const calViewToggle = document.getElementById('calViewToggle');
     if (calViewToggle) {
       calViewToggle.addEventListener('click', toggleCalendarView);
     }
+
+    // Desktop view buttons
+    document.getElementById('calViewDay')?.addEventListener('click', () => setCalendarDesktopView('day'));
+    document.getElementById('calViewWeek')?.addEventListener('click', () => setCalendarDesktopView('week'));
+    document.getElementById('calViewMonth')?.addEventListener('click', () => setCalendarDesktopView('month'));
 
     // =========================
     // LOGO UPLOAD
@@ -2164,6 +2290,145 @@
     const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
     function renderCalendar() {
+      if (calendarDesktopView === 'day') {
+        renderDayView();
+      } else if (calendarDesktopView === 'week') {
+        renderWeekView();
+      } else {
+        renderMonthView();
+      }
+    }
+
+    function renderDayView() {
+      const calGrid = document.getElementById('calGrid');
+      if (!calGrid) return;
+
+      const dateStr = ymd(calDate);
+      const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+      const dayName = dayNames[calDate.getDay()];
+
+      // Update title
+      setText(document.getElementById('calTitle'), `${calDate.getDate()} ${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}`);
+
+      // Get tasks for this day
+      const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dateStr, t.start_date, t.end_date));
+      const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dateStr, e.start_date, e.end_date));
+
+      const allItems = [...dayTasks, ...dayEvents].sort((a, b) => {
+        const aStart = a.start_date || a.start_date;
+        const bStart = b.start_date || b.start_date;
+        return aStart.localeCompare(bStart);
+      });
+
+      calGrid.innerHTML = `
+        <div class="day-view-container">
+          <div class="day-view-header">
+            ${dayName} ${calDate.getDate()} ${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}
+          </div>
+          <div class="day-view-content">
+            ${allItems.length === 0 ? '<div class="text-center text-secondary py-5">Aucune tâche pour cette journée</div>' : ''}
+            ${allItems.map(item => {
+              const isEvent = !item.team_id;
+              const color = isEvent ? '#9333EA' : (item.color || getTeamColor(item.team_id));
+              const teamName = isEvent ? '' : ((item.teams && item.teams.name) ? item.teams.name : '');
+              
+              return `
+                <div class="day-task-item ${isEvent ? '' : 'pointer'}" 
+                     style="background:${color}15;border-left-color:${color};"
+                     ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
+                  <div class="d-flex align-items-start justify-content-between">
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
+                      ${item.description ? `<div class="small text-secondary mt-1">${escapeHtml(item.description)}</div>` : ''}
+                      <div class="d-flex gap-2 mt-2 flex-wrap">
+                        ${teamName ? `<span class="badge bg-light text-dark">${escapeHtml(teamName)}</span>` : ''}
+                        ${item.category ? `<span class="badge bg-light text-dark">${escapeHtml(item.category)}</span>` : ''}
+                        ${item.completed ? '<span class="badge bg-success text-white">✓ Terminée</span>' : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderWeekView() {
+      const calGrid = document.getElementById('calGrid');
+      if (!calGrid) return;
+
+      // Get Monday of current week
+      const curr = new Date(calDate);
+      const first = curr.getDate() - curr.getDay() + (curr.getDay() === 0 ? -6 : 1);
+      const monday = new Date(curr.setDate(first));
+
+      const weekDays = [];
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(monday);
+        day.setDate(monday.getDate() + i);
+        weekDays.push(day);
+      }
+
+      const startStr = ymd(weekDays[0]);
+      const endStr = ymd(weekDays[6]);
+
+      // Update title
+      setText(document.getElementById('calTitle'), 
+        `${weekDays[0].getDate()} ${monthNames[weekDays[0].getMonth()]} - ${weekDays[6].getDate()} ${monthNames[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`);
+
+      const today = ymd(new Date());
+      const dayNamesShort = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+      calGrid.innerHTML = `
+        <div class="week-view-container">
+          <div class="week-view-content">
+            <div class="week-view-grid">
+              ${weekDays.map(day => {
+                const dateStr = ymd(day);
+                const isToday = dateStr === today;
+                const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dateStr, t.start_date, t.end_date));
+                const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dateStr, e.start_date, e.end_date));
+                const allItems = [...dayTasks, ...dayEvents];
+
+                return `
+                  <div class="week-day-column ${isToday ? 'today' : ''}">
+                    <div class="week-day-header">
+                      ${dayNamesShort[day.getDay()]}
+                      <div class="week-day-number">${day.getDate()}</div>
+                    </div>
+                    ${allItems.length === 0 ? '<div class="text-center text-secondary small py-2">-</div>' : ''}
+                    ${allItems.map(item => {
+                      const isEvent = !item.team_id;
+                      const color = isEvent ? '#9333EA' : (item.color || getTeamColor(item.team_id));
+                      
+                      return `
+                        <div class="week-task-item ${isEvent ? '' : 'pointer'}" 
+                             style="background:${color}15;border-left-color:${color};"
+                             ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
+                          <div class="small fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
+                          ${item.completed ? '<div class="small text-success">✓</div>' : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                    <button class="btn btn-sm btn-outline-primary w-100 mt-2" onclick="showCreateTaskModal('${dateStr}')" style="font-size:0.75rem;">
+                      <i data-lucide="plus" style="width:12px;height:12px;"></i>
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderMonthView() {
       const calGrid = document.getElementById('calGrid');
       if (!calGrid) return;
 
@@ -2197,6 +2462,7 @@
 
         const cell = document.createElement("div");
         cell.className = "cal-cell";
+        if (dStr === today) cell.setAttribute('data-today', 'true');
 
         // Highlight today
         if (dStr === today) {
@@ -2237,16 +2503,37 @@
 
       // Refresh icons
       if (window.lucide) lucide.createIcons();
+
+      // Auto-scroll to today on first load
+      setTimeout(() => {
+        const todayCell = document.querySelector('.cal-cell[data-today="true"]');
+        if (todayCell && !window.calendarScrolledToToday) {
+          todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          window.calendarScrolledToToday = true;
+        }
+      }, 300);
     }
 
     document.getElementById('calPrev')?.addEventListener('click', () => {
-      calDate.setMonth(calDate.getMonth() - 1);
+      if (calendarDesktopView === 'day') {
+        calDate.setDate(calDate.getDate() - 1);
+      } else if (calendarDesktopView === 'week') {
+        calDate.setDate(calDate.getDate() - 7);
+      } else {
+        calDate.setMonth(calDate.getMonth() - 1);
+      }
       renderCalendar();
       if (calendarViewMode === 'list') renderCalendarList();
     });
 
     document.getElementById('calNext')?.addEventListener('click', () => {
-      calDate.setMonth(calDate.getMonth() + 1);
+      if (calendarDesktopView === 'day') {
+        calDate.setDate(calDate.getDate() + 1);
+      } else if (calendarDesktopView === 'week') {
+        calDate.setDate(calDate.getDate() + 7);
+      } else {
+        calDate.setMonth(calDate.getMonth() + 1);
+      }
       renderCalendar();
       if (calendarViewMode === 'list') renderCalendarList();
     });
@@ -2255,6 +2542,16 @@
       calDate = new Date();
       renderCalendar();
       if (calendarViewMode === 'list') renderCalendarList();
+      
+      // Scroll to today if in month view
+      if (calendarDesktopView === 'month') {
+        setTimeout(() => {
+          const todayCell = document.querySelector('.cal-cell[data-today="true"]');
+          if (todayCell) {
+            todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
     });
 
     // =========================
