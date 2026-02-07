@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TaskFlow - Gestion d'équipe</title>
+  <title>FK Team Planner - Gestion d'équipe</title>
 
   <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
@@ -94,6 +94,28 @@
       justify-content: center;
       font-weight: 700;
       font-size: 1rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .logo-icon:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    }
+
+    .logo-icon:hover::after {
+      content: '📷';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
     }
 
     .logo-text {
@@ -538,9 +560,13 @@
     <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="logo-content">
-          <div class="logo-icon">TF</div>
+          <div class="logo-icon" id="logoContainer" style="cursor:pointer;" onclick="document.getElementById('logoUpload').click()">
+            <span id="logoInitials">FK</span>
+            <img id="logoImage" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:none;" />
+          </div>
+          <input type="file" id="logoUpload" accept="image/*" style="display:none;" onchange="handleLogoUpload(event)">
           <div>
-            <div class="logo-text">TaskFlow</div>
+            <div class="logo-text">FK Team Planner</div>
             <span class="logo-subtitle">Gestion d'équipe</span>
           </div>
         </div>
@@ -1016,6 +1042,64 @@
     }
     function isBetween(dateStr, startStr, endStr){
       return dateStr >= startStr && dateStr <= endStr;
+    }
+
+    // =========================
+    // LOGO UPLOAD
+    // =========================
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert('Veuillez sélectionner une image');
+        return;
+      }
+
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('L\'image ne doit pas dépasser 2MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const logoImage = document.getElementById('logoImage');
+        const logoInitials = document.getElementById('logoInitials');
+        
+        if (logoImage && logoInitials) {
+          logoImage.src = e.target.result;
+          logoImage.style.display = 'block';
+          logoInitials.style.display = 'none';
+          
+          // Save to localStorage
+          try {
+            localStorage.setItem('fk_team_planner_logo', e.target.result);
+          } catch (err) {
+            console.error('Erreur sauvegarde logo:', err);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadSavedLogo() {
+      try {
+        const savedLogo = localStorage.getItem('fk_team_planner_logo');
+        if (savedLogo) {
+          const logoImage = document.getElementById('logoImage');
+          const logoInitials = document.getElementById('logoInitials');
+          
+          if (logoImage && logoInitials) {
+            logoImage.src = savedLogo;
+            logoImage.style.display = 'block';
+            logoInitials.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error('Erreur chargement logo:', err);
+      }
     }
 
     // =========================
@@ -1953,6 +2037,7 @@
     }
 
     // Make functions global
+    window.handleLogoUpload = handleLogoUpload;
     window.deleteTask = deleteTask;
     window.deleteTeam = deleteTeam;
     window.deleteEvent = deleteEvent;
@@ -1999,6 +2084,10 @@
     }
 
     (async () => {
+      // Load saved logo
+      loadSavedLogo();
+
+      // init session
       const { data } = await supabaseClient.auth.getSession();
       session = data.session;
       user = session ? session.user : null;
