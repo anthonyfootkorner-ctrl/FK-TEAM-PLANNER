@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FK Team Planner</title>
+  <title>TaskFlow - Gestion d'équipe</title>
 
-  <!-- Bootstrap (pas jsdelivr) -->
+  <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
 
   <!-- Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Supabase JS v2 (pas jsdelivr) -->
+  <!-- Supabase JS v2 -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
@@ -198,6 +198,57 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
 
+    /* STAT CARDS */
+    .stat-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* PROGRESS BARS */
+    .progress-item {
+      margin-bottom: 1rem;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--gray-100);
+    }
+
+    .progress-bar {
+      border-radius: 999px;
+    }
+
     /* CALENDAR */
     .calendar-header-custom {
       background: white;
@@ -272,6 +323,71 @@
       color: rgba(255,255,255,0.9) !important;
     }
 
+    /* TASK CARD */
+    .task-card {
+      border: 1px solid var(--gray-200);
+      border-left: 4px solid;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      background: white;
+      transition: all 0.2s ease;
+    }
+
+    .task-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .task-card.priority-haute { border-left-color: #EF4444; }
+    .task-card.priority-moyenne { border-left-color: #FBBF24; }
+    .task-card.priority-basse { border-left-color: #6B7280; }
+
+    /* TEAM CARD */
+    .team-card {
+      border-radius: 12px;
+      padding: 1.5rem;
+      color: white;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.1) 100%);
+      pointer-events: none;
+    }
+
+    /* EVENT CARD */
+    .event-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      background: white;
+      margin-bottom: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .event-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .event-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
     /* BUTTONS */
     .btn {
       border-radius: 8px !important;
@@ -323,15 +439,6 @@
       background: #B91C1C !important;
     }
 
-    .btn-link {
-      color: var(--orange) !important;
-      text-decoration: none !important;
-    }
-
-    .btn-link:hover {
-      text-decoration: underline !important;
-    }
-
     /* FORMS */
     .form-control,
     .form-select {
@@ -353,10 +460,6 @@
       font-size: 0.875rem !important;
     }
 
-    .form-text {
-      color: var(--gray-500) !important;
-    }
-
     /* BADGES */
     .badge {
       border-radius: 999px !important;
@@ -367,21 +470,6 @@
     .badge-soft {
       background: rgba(255, 107, 53, 0.1) !important;
       color: var(--orange) !important;
-    }
-
-    .text-bg-light {
-      background: var(--gray-100) !important;
-      color: var(--gray-700) !important;
-    }
-
-    .text-bg-warning {
-      background: rgba(251, 191, 36, 0.2) !important;
-      color: #D97706 !important;
-    }
-
-    .text-bg-success {
-      background: rgba(34, 197, 94, 0.2) !important;
-      color: #059669 !important;
     }
 
     /* ALERTS */
@@ -402,62 +490,13 @@
       border-color: rgba(34, 197, 94, 0.3) !important;
     }
 
-    .alert-info {
-      background: rgba(59, 130, 246, 0.1) !important;
-      color: #2563EB !important;
-      border-color: rgba(59, 130, 246, 0.3) !important;
-    }
-
-    /* MODAL */
-    .modal-content {
-      background: white !important;
-      border: 1px solid var(--gray-200) !important;
-      color: var(--text-primary) !important;
-      border-radius: 12px !important;
-    }
-
-    .modal-header {
-      border-bottom-color: var(--gray-200) !important;
-    }
-
-    .modal-footer {
-      border-top-color: var(--gray-200) !important;
-    }
-
-    .btn-close {
-      filter: none;
-    }
-
-    /* TEXT */
-    .muted,
-    .text-secondary {
-      color: var(--text-secondary) !important;
-    }
-
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, 'Courier New', monospace !important;
-      color: var(--gray-500) !important;
-    }
-
     /* UTILITIES */
-    .border {
-      border-color: var(--gray-200) !important;
-    }
-
-    .bg-white {
-      background: white !important;
-    }
-
-    .rounded-3 {
-      border-radius: 10px !important;
+    .hidden {
+      display: none !important;
     }
 
     .pointer {
       cursor: pointer !important;
-    }
-
-    .hidden {
-      display: none !important;
     }
 
     /* SCROLLBAR */
@@ -495,56 +534,60 @@
 <body>
   <div class="container py-4">
 
-    <!-- SIDEBAR NOIRE À GAUCHE -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="logo-content">
-          <div class="logo-icon">FK</div>
+          <div class="logo-icon">TF</div>
           <div>
-            <div class="logo-text">Task Team Manager</div>
+            <div class="logo-text">TaskFlow</div>
             <span class="logo-subtitle">Gestion d'équipe</span>
           </div>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <a href="#" class="nav-item" onclick="showDashboard(event)">
+        <a href="#" class="nav-item" data-view="dashboard">
           <i data-lucide="layout-dashboard" style="width:20px;height:20px;"></i>
-          Dashboard
+          Tableau de bord
         </a>
-        <a href="#" class="nav-item active" onclick="showCalendar(event)">
+        <a href="#" class="nav-item active" data-view="calendar">
           <i data-lucide="calendar" style="width:20px;height:20px;"></i>
           Calendrier
         </a>
-        <a href="#" class="nav-item" onclick="showTasks(event)">
+        <a href="#" class="nav-item" data-view="tasks">
           <i data-lucide="check-square" style="width:20px;height:20px;"></i>
           Tâches
         </a>
-        <a href="#" class="nav-item" onclick="showTeams(event)">
+        <a href="#" class="nav-item" data-view="teams">
           <i data-lucide="users" style="width:20px;height:20px;"></i>
           Équipes
         </a>
+        <a href="#" class="nav-item" data-view="events">
+          <i data-lucide="star" style="width:20px;height:20px;"></i>
+          Événements
+        </a>
 
         <div class="nav-section-title">VUES RAPIDES</div>
-        <a href="#" class="nav-item" onclick="quickFilter('mine', event)">
+        <a href="#" class="nav-item" data-filter="mine">
           <i data-lucide="user" style="width:20px;height:20px;"></i>
           Mes tâches
         </a>
-        <a href="#" class="nav-item" onclick="quickFilter('late', event)">
+        <a href="#" class="nav-item" data-filter="late">
           <i data-lucide="alert-circle" style="width:20px;height:20px;"></i>
           En retard
         </a>
-        <a href="#" class="nav-item" onclick="quickFilter('week', event)">
+        <a href="#" class="nav-item" data-filter="week">
           <i data-lucide="calendar-days" style="width:20px;height:20px;"></i>
           Cette semaine
         </a>
       </nav>
     </aside>
 
-    <!-- CONTENU PRINCIPAL DÉCALÉ -->
+    <!-- MAIN WRAPPER -->
     <div class="main-wrapper">
 
-      <!-- TOP BAR BLANC -->
+      <!-- TOP BAR -->
       <header class="top-bar">
         <div>
           <h1 class="page-title" id="pageTitle">Calendrier</h1>
@@ -557,524 +600,281 @@
         </div>
       </header>
 
-      <!-- ZONE DE CONTENU SCROLLABLE -->
+      <!-- CONTENT AREA -->
       <main class="content-area" id="mainContentArea">
 
-    <!-- AUTH -->
-    <div id="authView" class="row g-3">
-      <div class="col-12 col-lg-6">
-        <div class="card p-4">
-          <h4 class="mb-1">Connexion</h4>
-          <p class="muted mb-4">Connecte-toi pour accéder au calendrier collectif.</p>
-
-          <form id="loginForm" class="vstack gap-2">
-            <div>
-              <label class="form-label" for="loginEmail">Email</label>
-              <input class="form-control" type="email" id="loginEmail" required />
-            </div>
-            <div>
-              <label class="form-label" for="loginPassword">Mot de passe</label>
-              <input class="form-control" type="password" id="loginPassword" required />
-            </div>
-            <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
-          </form>
-
-          <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
-          <div class="alert alert-success mt-3 hidden" id="loginOk"></div>
-        </div>
-      </div>
-
-      <div class="col-12 col-lg-6">
-        <div class="card p-4">
-          <h4 class="mb-1">Créer un compte</h4>
-          <p class="muted mb-4">Inscription simple (email + mot de passe).</p>
-
-          <form id="registerForm" class="vstack gap-2">
-            <div>
-              <label class="form-label" for="regName">Nom complet (optionnel)</label>
-              <input class="form-control" type="text" id="regName" placeholder="Anthony POIGNARD" />
-            </div>
-            <div>
-              <label class="form-label" for="regEmail">Email</label>
-              <input class="form-control" type="email" id="regEmail" required />
-            </div>
-            <div>
-              <label class="form-label" for="regPassword">Mot de passe</label>
-              <input class="form-control" type="password" id="regPassword" required minlength="6" />
-              <div class="form-text">Min 6 caractères.</div>
-            </div>
-
-            <button class="btn btn-outline-primary mt-2" type="submit">Créer le compte</button>
-          </form>
-
-          <div class="alert alert-danger mt-3 hidden" id="regError"></div>
-          <div class="alert alert-success mt-3 hidden" id="regOk"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- APP -->
-    <div id="appView" class="hidden">
-
-      <!-- DASHBOARD VIEW -->
-      <div id="dashboardView" class="hidden">
-        <div class="row g-3">
-          <!-- Stats cards -->
-          <div class="col-12 col-lg-3">
-            <div class="card p-3">
-              <div class="d-flex align-items-center gap-3">
-                <div style="width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;">
-                  <i data-lucide="clipboard-list" style="width:24px;height:24px;color:#3B82F6;"></i>
-                </div>
-                <div>
-                  <div class="small text-secondary">Total tâches</div>
-                  <div class="fs-3 fw-bold" id="totalTasks">0</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-lg-3">
-            <div class="card p-3">
-              <div class="d-flex align-items-center gap-3">
-                <div style="width:48px;height:48px;border-radius:12px;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;">
-                  <i data-lucide="check-circle" style="width:24px;height:24px;color:#22C55E;"></i>
-                </div>
-                <div>
-                  <div class="small text-secondary">Terminées</div>
-                  <div class="fs-3 fw-bold" id="doneTasks">0</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-lg-3">
-            <div class="card p-3">
-              <div class="d-flex align-items-center gap-3">
-                <div style="width:48px;height:48px;border-radius:12px;background:rgba(251,191,36,0.1);display:flex;align-items:center;justify-content:center;">
-                  <i data-lucide="clock" style="width:24px;height:24px;color:#FBBF24;"></i>
-                </div>
-                <div>
-                  <div class="small text-secondary">En cours</div>
-                  <div class="fs-3 fw-bold" id="inProgressTasks">0</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-lg-3">
-            <div class="card p-3">
-              <div class="d-flex align-items-center gap-3">
-                <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;">
-                  <i data-lucide="alert-triangle" style="width:24px;height:24px;color:#EF4444;"></i>
-                </div>
-                <div>
-                  <div class="small text-secondary">En retard</div>
-                  <div class="fs-3 fw-bold text-danger" id="lateTasks">0</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-3 mt-3">
+        <!-- AUTH VIEW -->
+        <div id="authView" class="row g-3">
           <div class="col-12 col-lg-6">
-            <div class="card p-3">
-              <h5 class="mb-3">Répartition par statut</h5>
-              <div id="statusBreakdown"></div>
-            </div>
-          </div>
-          <div class="col-12 col-lg-6">
-            <div class="card p-3">
-              <h5 class="mb-3">Répartition par priorité</h5>
-              <div id="priorityBreakdown"></div>
-            </div>
-          </div>
-        </div>
+            <div class="card p-4">
+              <h4 class="mb-1">Connexion</h4>
+              <p class="text-secondary mb-4">Connecte-toi pour accéder à TaskFlow.</p>
 
-        <div class="row g-3 mt-3">
-          <div class="col-12">
-            <div class="card p-3">
-              <h5 class="mb-3">Charge par membre</h5>
-              <div id="memberWorkload"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CALENDAR VIEW -->
-      <div id="calendarView" class="hidden">
-        <!-- Calendar controls -->
-        <div class="calendar-header-custom">
-          <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" id="calPrev">
-              <i data-lucide="chevron-left"></i>
-            </button>
-            <div class="fw-semibold" style="min-width:140px;text-align:center;" id="calTitle"></div>
-            <button class="btn btn-outline-secondary btn-sm" id="calNext">
-              <i data-lucide="chevron-right"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd'hui</button>
-          </div>
-          <div>
-            <!-- View switcher could go here -->
-          </div>
-        </div>
-
-        <!-- Calendar grid -->
-        <div class="cal-grid" id="calGrid">
-          <div class="cal-head">Lun</div>
-          <div class="cal-head">Mar</div>
-          <div class="cal-head">Mer</div>
-          <div class="cal-head">Jeu</div>
-          <div class="cal-head">Ven</div>
-          <div class="cal-head">Sam</div>
-          <div class="cal-head">Dim</div>
-        </div>
-      </div>
-
-      <!-- TASKS VIEW -->
-      <div id="tasksView" class="hidden">
-        <div class="row g-3">
-          <div class="col-12 col-lg-8">
-            <div class="card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">Liste des tâches</h5>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" onclick="downloadTasksTemplate()">
-                    <i data-lucide="download" style="width:14px;height:14px;"></i>
-                    Modèle
-                  </button>
-                  <button class="btn btn-primary btn-sm" onclick="document.getElementById('importTasksFile').click()">
-                    <i data-lucide="upload" style="width:14px;height:14px;"></i>
-                    Importer
-                  </button>
-                  <input type="file" id="importTasksFile" accept=".csv,.xlsx,.xls" style="display:none;" onchange="importTasks(event)">
-                  <select class="form-select form-select-sm" id="taskFilterMode" style="width:auto;">
-                    <option value="all">Toutes les tâches</option>
-                    <option value="team">Équipe sélectionnée</option>
-                  </select>
-                  <select class="form-select form-select-sm" id="taskSort" style="width:auto;">
-                    <option value="start_asc">Plus anciennes</option>
-                    <option value="start_desc">Plus récentes</option>
-                  </select>
-                </div>
-              </div>
-              <div id="tasksListView"></div>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-4">
-            <div class="card p-3">
-              <h5 class="mb-3">Créer une tâche</h5>
-              <form id="taskForm">
-                <div class="mb-2">
-                  <label class="form-label" for="taskTitle">Titre</label>
-                  <input class="form-control" id="taskTitle" required />
-                </div>
-                <div class="mb-2">
-                  <label class="form-label" for="taskDescription">Description</label>
-                  <textarea class="form-control" id="taskDescription" rows="2"></textarea>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label" for="taskCategory">Catégorie</label>
-                  <select class="form-select" id="taskCategory">
-                    <option>Design</option>
-                    <option>Dev</option>
-                    <option>Marketing</option>
-                    <option>Réunion</option>
-                    <option>Autre</option>
-                  </select>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label" for="taskStart">Début</label>
-                  <input type="date" class="form-control" id="taskStart" required />
-                </div>
-                <div class="mb-2">
-                  <label class="form-label" for="taskEnd">Fin</label>
-                  <input type="date" class="form-control" id="taskEnd" required />
-                </div>
-                <div class="mb-2">
-                  <label class="form-label" for="taskAssignee">Assigné à</label>
-                  <select class="form-select" id="taskAssignee">
-                    <option value="">Non assigné</option>
-                  </select>
-                </div>
-                <button class="btn btn-primary w-100" type="submit">Créer</button>
-                <div class="alert alert-danger mt-2 hidden" id="taskError"></div>
-                <div class="alert alert-success mt-2 hidden" id="taskOk"></div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TEAMS VIEW -->
-      <div id="teamsView" class="hidden">
-        <div class="row g-3 mb-3">
-          <div class="col-12">
-            <div class="card p-3">
-              <div class="d-flex justify-content-between align-items-center">
+              <form id="loginForm" class="vstack gap-2">
                 <div>
-                  <h5 class="mb-1">Équipes</h5>
-                  <p class="text-secondary small mb-0">Gérez vos équipes et leurs membres</p>
+                  <label class="form-label" for="loginEmail">Email</label>
+                  <input class="form-control" type="email" id="loginEmail" required />
                 </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" onclick="downloadTeamsTemplate()">
-                    <i data-lucide="download" style="width:14px;height:14px;"></i>
-                    Modèle Équipes
-                  </button>
-                  <button class="btn btn-outline-secondary btn-sm" onclick="downloadMembersTemplate()">
-                    <i data-lucide="download" style="width:14px;height:14px;"></i>
-                    Modèle Membres
-                  </button>
-                  <button class="btn btn-primary btn-sm" onclick="document.getElementById('importTeamsFile').click()">
-                    <i data-lucide="upload" style="width:14px;height:14px;"></i>
-                    Importer
-                  </button>
-                  <input type="file" id="importTeamsFile" accept=".csv,.xlsx,.xls" style="display:none;" onchange="importTeamsOrMembers(event)">
-                  <button class="btn btn-primary btn-sm hidden" id="btnCreateTeam">
-                    <i data-lucide="plus" class="me-1"></i>Nouvelle équipe
-                  </button>
+                <div>
+                  <label class="form-label" for="loginPassword">Mot de passe</label>
+                  <input class="form-control" type="password" id="loginPassword" required />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-3">
-          <div class="col-12 col-lg-4">
-            <div class="card p-3">
-              <label class="form-label mb-2">Équipe sélectionnée</label>
-              <select class="form-select mb-3" id="teamSelect"></select>
-              <button class="btn btn-outline-secondary btn-sm w-100" id="btnRefresh">
-                <i data-lucide="refresh-cw" class="me-1"></i>Rafraîchir
-              </button>
-              <div id="writeStatus" class="badge mt-2"></div>
-            </div>
-
-            <div class="card p-3 mt-3">
-              <h6 class="mb-2">Membres (<span id="teamMembersCount">0</span>)</h6>
-              <div id="membersList"></div>
-
-              <hr class="my-3" />
-              
-              <h6 class="mb-2">Ajouter un membre</h6>
-              <form id="addMemberForm" class="hidden">
-                <input class="form-control form-control-sm mb-2" type="email" id="addMemberEmail" placeholder="email@exemple.com" required />
-                <select class="form-select form-select-sm mb-2" id="addMemberRole">
-                  <option value="member">Membre</option>
-                  <option value="viewer">Lecteur</option>
-                </select>
-                <button class="btn btn-primary btn-sm w-100" type="submit">Ajouter</button>
-                <div class="alert alert-danger mt-2 hidden" id="addMemberError"></div>
-                <div class="alert alert-success mt-2 hidden" id="addMemberOk"></div>
+                <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
               </form>
-              <div class="alert alert-info mt-2 hidden" id="addMemberHint">
-                Seuls les managers et admins peuvent ajouter des membres.
+
+              <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
+              <div class="alert alert-success mt-3 hidden" id="loginOk"></div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <div class="card p-4">
+              <h4 class="mb-1">Créer un compte</h4>
+              <p class="text-secondary mb-4">Inscription simple (email + mot de passe).</p>
+
+              <form id="registerForm" class="vstack gap-2">
+                <div>
+                  <label class="form-label" for="regName">Nom complet (optionnel)</label>
+                  <input class="form-control" type="text" id="regName" placeholder="Anthony POIGNARD" />
+                </div>
+                <div>
+                  <label class="form-label" for="regEmail">Email</label>
+                  <input class="form-control" type="email" id="regEmail" required />
+                </div>
+                <div>
+                  <label class="form-label" for="regPassword">Mot de passe</label>
+                  <input class="form-control" type="password" id="regPassword" required minlength="6" />
+                  <div class="form-text">Min 6 caractères.</div>
+                </div>
+
+                <button class="btn btn-outline-primary mt-2" type="submit">Créer le compte</button>
+              </form>
+
+              <div class="alert alert-danger mt-3 hidden" id="regError"></div>
+              <div class="alert alert-success mt-3 hidden" id="regOk"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- APP VIEW -->
+        <div id="appView" class="hidden">
+
+          <!-- DASHBOARD VIEW -->
+          <div id="dashboardView" class="hidden">
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-lg-3">
+                <div class="stat-card">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(59,130,246,0.1);">
+                      <i data-lucide="clipboard-list" style="width:24px;height:24px;color:#3B82F6;"></i>
+                    </div>
+                    <div>
+                      <div class="stat-label">Total des tâches</div>
+                      <div class="stat-value" id="totalTasks">0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-3">
+                <div class="stat-card">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(34,197,94,0.1);">
+                      <i data-lucide="check-circle" style="width:24px;height:24px;color:#22C55E;"></i>
+                    </div>
+                    <div>
+                      <div class="stat-label">Terminées</div>
+                      <div class="stat-value" id="doneTasks">0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-3">
+                <div class="stat-card">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(251,191,36,0.1);">
+                      <i data-lucide="clock" style="width:24px;height:24px;color:#FBBF24;"></i>
+                    </div>
+                    <div>
+                      <div class="stat-label">En cours</div>
+                      <div class="stat-value" id="inProgressTasks">0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-3">
+                <div class="stat-card">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="background:rgba(239,68,68,0.1);">
+                      <i data-lucide="alert-triangle" style="width:24px;height:24px;color:#EF4444;"></i>
+                    </div>
+                    <div>
+                      <div class="stat-label">En retard</div>
+                      <div class="stat-value text-danger" id="lateTasks">0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-12 col-lg-6">
+                <div class="card p-4">
+                  <h5 class="mb-3">Répartition par statut</h5>
+                  <div id="statusBreakdown"></div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-6">
+                <div class="card p-4">
+                  <h5 class="mb-3">Répartition par priorité</h5>
+                  <div id="priorityBreakdown"></div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="col-12 col-lg-8">
-            <div class="card p-3">
-              <h5 class="mb-3">Tâches de l'équipe (<span id="tasksCount">0</span>)</h5>
-              <div id="tasksListInTeams"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Modals restent en dehors -->
-        <div class="col-12 col-lg-4">
-          <div class="card p-3">
-            <label class="form-label mb-1">Équipe (pour créer/filtrer)</label>
-            <select class="form-select" id="teamSelect"></select>
-            <div class="d-flex gap-2 mt-2">
-              <button class="btn btn-outline-primary btn-sm hidden" id="btnCreateTeam">
-                <i data-lucide="plus" class="me-1"></i>Créer une équipe
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" id="btnRefresh">
-                <i data-lucide="refresh-cw" class="me-1"></i>Rafraîchir
-              </button>
-            </div>
-            <div class="small muted mt-2">
-              Lecture globale (calendrier collectif). Écriture selon permissions.
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-lg-8">
-          <div class="card p-3">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <div>
-                <div class="fw-bold">Calendrier collectif</div>
-                <div class="small muted">Affiche toutes les équipes. Les tâches couvrent la période start → end.</div>
-              </div>
+          <!-- CALENDAR VIEW -->
+          <div id="calendarView" class="hidden">
+            <div class="calendar-header-custom">
               <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-outline-secondary btn-sm" id="calPrev">
                   <i data-lucide="chevron-left"></i>
                 </button>
-                <div class="fw-semibold" id="calTitle"></div>
+                <div class="fw-semibold" style="min-width:140px;text-align:center;" id="calTitle"></div>
                 <button class="btn btn-outline-secondary btn-sm" id="calNext">
                   <i data-lucide="chevron-right"></i>
                 </button>
-                <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd’hui</button>
+                <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd'hui</button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Main columns -->
-      <div class="row g-3">
-        <!-- Left: members + add member -->
-        <div class="col-12 col-lg-4">
-          <div class="card p-3 mb-3">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">Membres de l’équipe</div>
-              <span class="badge badge-soft" id="teamMembersCount">0</span>
-            </div>
-            <div id="membersList" class="vstack gap-2 small"></div>
-
-            <hr class="my-3" />
-            <div class="fw-bold mb-2">Ajouter un membre (manager/admin)</div>
-            <div class="small muted mb-2">Le membre doit déjà avoir créé un compte (profile existant).</div>
-
-            <form id="addMemberForm" class="vstack gap-2 hidden">
-              <input class="form-control" type="email" id="addMemberEmail" placeholder="email@exemple.com" required />
-              <select class="form-select" id="addMemberRole">
-                <option value="member">member (peut modifier son équipe)</option>
-                <option value="viewer">viewer (lecture seule)</option>
-              </select>
-              <button class="btn btn-outline-primary btn-sm" type="submit">Ajouter</button>
-              <div class="alert alert-danger mt-2 hidden" id="addMemberError"></div>
-              <div class="alert alert-success mt-2 hidden" id="addMemberOk"></div>
-            </form>
-
-            <div class="alert alert-info mt-2 hidden" id="addMemberHint">
-              Tu n’es pas manager/admin : tu peux voir le collectif, mais tu ne peux pas gérer les membres.
+            <div class="cal-grid" id="calGrid">
+              <div class="cal-head">Lun</div>
+              <div class="cal-head">Mar</div>
+              <div class="cal-head">Mer</div>
+              <div class="cal-head">Jeu</div>
+              <div class="cal-head">Ven</div>
+              <div class="cal-head">Sam</div>
+              <div class="cal-head">Dim</div>
             </div>
           </div>
 
-          <div class="card p-3">
-            <div class="fw-bold mb-2">Debug</div>
-            <div class="small mono muted" id="debugBox">—</div>
-          </div>
-        </div>
-
-        <!-- Right: tasks + create task -->
-        <div class="col-12 col-lg-8">
-          <div class="card p-3 mb-3">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <div class="fw-bold">Créer une tâche</div>
-                <div class="small muted">Dates : début + fin. L’équipe vient du sélecteur.</div>
-              </div>
-              <span class="badge text-bg-light border" id="writeStatus">—</span>
-            </div>
-
-            <form id="taskForm" class="row g-2 mt-1">
-              <div class="col-12 col-lg-6">
-                <label class="form-label">Titre</label>
-                <input class="form-control" id="taskTitle" required />
-              </div>
-              <div class="col-12 col-lg-6">
-                <label class="form-label">Catégorie</label>
-                <select class="form-select" id="taskCategory">
-                  <option>Design</option>
-                  <option>Dev</option>
-                  <option>Marketing</option>
-                  <option>Réunion</option>
-                  <option>Autre</option>
-                </select>
-              </div>
+          <!-- TASKS VIEW -->
+          <div id="tasksView" class="hidden">
+            <div class="row g-3">
               <div class="col-12">
-                <label class="form-label">Description</label>
-                <textarea class="form-control" id="taskDescription" rows="2"></textarea>
-              </div>
+                <div class="card p-3">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Tâches</h5>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-outline-secondary btn-sm" onclick="downloadTasksTemplate()">
+                        <i data-lucide="download" style="width:14px;height:14px;"></i>
+                        Modèle
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('importTasksFile').click()">
+                        <i data-lucide="upload" style="width:14px;height:14px;"></i>
+                        Import CSV
+                      </button>
+                      <input type="file" id="importTasksFile" accept=".csv,.xlsx" style="display:none;" onchange="importTasks(event)">
+                      <button class="btn btn-success btn-sm" onclick="exportTasksCSV()">
+                        <i data-lucide="download" style="width:14px;height:14px;"></i>
+                        Export CSV
+                      </button>
+                      <button class="btn btn-success btn-sm" onclick="exportTasksJSON()">
+                        <i data-lucide="download" style="width:14px;height:14px;"></i>
+                        Export JSON
+                      </button>
+                      <button class="btn btn-primary btn-sm" onclick="exportTasksiCal()">
+                        <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+                        Export iCal
+                      </button>
+                    </div>
+                  </div>
 
-              <div class="col-6 col-lg-3">
-                <label class="form-label">Début</label>
-                <input type="date" class="form-control" id="taskStart" required />
-              </div>
-              <div class="col-6 col-lg-3">
-                <label class="form-label">Fin</label>
-                <input type="date" class="form-control" id="taskEnd" required />
-              </div>
+                  <div class="d-flex gap-2 mb-3">
+                    <select class="form-select form-select-sm" id="taskStatusFilter" style="width:auto;">
+                      <option value="">Tous</option>
+                      <option value="todo">À faire</option>
+                      <option value="done">Terminées</option>
+                    </select>
+                    <select class="form-select form-select-sm" id="taskPriorityFilter" style="width:auto;">
+                      <option value="">Toutes</option>
+                      <option value="haute">Haute</option>
+                      <option value="moyenne">Moyenne</option>
+                      <option value="basse">Basse</option>
+                    </select>
+                    <select class="form-select form-select-sm" id="taskTeamFilter" style="width:auto;">
+                      <option value="">Toutes</option>
+                    </select>
+                  </div>
 
-              <div class="col-12 col-lg-6">
-                <label class="form-label">Assigné à</label>
-                <select class="form-select" id="taskAssignee">
-                  <option value="">Non assigné</option>
-                </select>
+                  <div id="tasksListView"></div>
+                </div>
               </div>
-
-              <div class="col-12 d-flex gap-2 align-items-center">
-                <button class="btn btn-primary" type="submit">Créer</button>
-                <div class="alert alert-danger py-2 px-3 mb-0 hidden" id="taskError"></div>
-                <div class="alert alert-success py-2 px-3 mb-0 hidden" id="taskOk"></div>
-              </div>
-            </form>
+            </div>
           </div>
 
-          <div class="card p-3">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">Tâches (liste)</div>
-              <span class="badge badge-soft" id="tasksCount">0</span>
+          <!-- TEAMS VIEW -->
+          <div id="teamsView" class="hidden">
+            <div class="row g-3 mb-3">
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5>Équipes</h5>
+                    <p class="text-secondary small mb-0">Gérez vos équipes et leurs tâches</p>
+                  </div>
+                  <button class="btn btn-primary" onclick="showCreateTeamModal()">
+                    <i data-lucide="plus" style="width:16px;height:16px;"></i>
+                    Nouvelle équipe
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="small muted mb-2">Affiche toutes les équipes (collectif). Tu peux filtrer avec l’équipe si tu veux.</div>
 
-            <div class="d-flex gap-2 align-items-center mb-3">
-              <select class="form-select form-select-sm w-auto" id="taskFilterMode">
-                <option value="all">Tout (collectif)</option>
-                <option value="team">Seulement l’équipe sélectionnée</option>
-              </select>
-              <select class="form-select form-select-sm w-auto" id="taskSort">
-                <option value="start_asc">Trier: début ↑</option>
-                <option value="start_desc">Trier: début ↓</option>
-              </select>
-            </div>
-
-            <div id="tasksList" class="vstack gap-2"></div>
+            <div class="row g-3" id="teamsGrid"></div>
           </div>
+
+          <!-- EVENTS VIEW -->
+          <div id="eventsView" class="hidden">
+            <div class="row g-3 mb-3">
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5>Événements</h5>
+                    <p class="text-secondary small mb-0">Jours fériés, soldes et événements spéciaux</p>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('importEventsFile').click()">
+                      <i data-lucide="upload" style="width:14px;height:14px;"></i>
+                      Import CSV
+                    </button>
+                    <input type="file" id="importEventsFile" accept=".csv" style="display:none;" onchange="importEvents(event)">
+                    <button class="btn btn-success btn-sm" onclick="exportEventsCSV()">
+                      <i data-lucide="download" style="width:14px;height:14px;"></i>
+                      Export CSV
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="exportEventsJSON()">
+                      <i data-lucide="download" style="width:14px;height:14px;"></i>
+                      Export JSON
+                    </button>
+                    <button class="btn btn-primary" onclick="showCreateEventModal()">
+                      <i data-lucide="plus" style="width:16px;height:16px;"></i>
+                      Nouvel événement
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="eventsListView"></div>
+          </div>
+
         </div>
-      </div>
 
-      <!-- Calendar -->
-      <div class="card p-3 mt-3">
-        <div class="cal-grid mb-2" id="calHeader"></div>
-        <div class="cal-grid" id="calGrid"></div>
-      </div>
-
-      <!-- Create team modal (simple) -->
-      <div class="modal fade" id="createTeamModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header">
-              <h5 class="modal-title">Créer une équipe</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-2">
-                <label class="form-label">Nom</label>
-                <input class="form-control" id="newTeamName" placeholder="Web" />
-              </div>
-              <div class="alert alert-danger hidden" id="createTeamError"></div>
-              <div class="alert alert-success hidden" id="createTeamOk"></div>
-              <div class="small muted">Seuls admin/manager peuvent créer des équipes.</div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-              <button class="btn btn-primary" note="btn" id="btnCreateTeamConfirm">Créer</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      </main>
     </div>
   </div>
 
-  <!-- Bootstrap JS (pas jsdelivr) -->
+  <!-- Bootstrap JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 
   <script>
@@ -1087,92 +887,31 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // =========================
-    // DOM
-    // =========================
-    const authView = document.getElementById("authView");
-    const appView  = document.getElementById("appView");
-
-    const userEmail = document.getElementById("userEmail");
-    const roleBadge = document.getElementById("roleBadge");
-    const btnLogout = document.getElementById("btnLogout");
-
-    const debugBox = document.getElementById("debugBox");
-
-    const teamSelect = document.getElementById("teamSelect");
-    const btnRefresh = document.getElementById("btnRefresh");
-    const btnCreateTeam = document.getElementById("btnCreateTeam");
-
-    const membersList = document.getElementById("membersList");
-    const teamMembersCount = document.getElementById("teamMembersCount");
-
-    const addMemberForm = document.getElementById("addMemberForm");
-    const addMemberEmail = document.getElementById("addMemberEmail");
-    const addMemberRole = document.getElementById("addMemberRole");
-    const addMemberError = document.getElementById("addMemberError");
-    const addMemberOk = document.getElementById("addMemberOk");
-    const addMemberHint = document.getElementById("addMemberHint");
-
-    const taskForm = document.getElementById("taskForm");
-    const taskTitle = document.getElementById("taskTitle");
-    const taskCategory = document.getElementById("taskCategory");
-    const taskDescription = document.getElementById("taskDescription");
-    const taskStart = document.getElementById("taskStart");
-    const taskEnd = document.getElementById("taskEnd");
-    const taskAssignee = document.getElementById("taskAssignee");
-    const taskError = document.getElementById("taskError");
-    const taskOk = document.getElementById("taskOk");
-    const writeStatus = document.getElementById("writeStatus");
-
-    const tasksList = document.getElementById("tasksList");
-    const tasksCount = document.getElementById("tasksCount");
-    const taskFilterMode = document.getElementById("taskFilterMode");
-    const taskSort = document.getElementById("taskSort");
-
-    const calHeader = document.getElementById("calHeader");
-    const calGrid = document.getElementById("calGrid");
-    const calTitle = document.getElementById("calTitle");
-    const calPrev = document.getElementById("calPrev");
-    const calNext = document.getElementById("calNext");
-    const calToday = document.getElementById("calToday");
-
-    const createTeamModalEl = document.getElementById("createTeamModal");
-    const createTeamModal = new bootstrap.Modal(createTeamModalEl);
-    const newTeamName = document.getElementById("newTeamName");
-    const createTeamError = document.getElementById("createTeamError");
-    const createTeamOk = document.getElementById("createTeamOk");
-    const btnCreateTeamConfirm = document.getElementById("btnCreateTeamConfirm");
-
-    // =========================
-    // State
+    // STATE
     // =========================
     let session = null;
     let user = null;
-    let globalRole = null; // "admin" | "manager" | null
+    let globalRole = null;
     let teams = [];
-    let memberships = []; // team_memberships rows for current user (for UI decisions)
-    let allMemberships = []; // for viewing members by team (global select allowed)
-    let profilesCache = new Map(); // user_id -> profile
     let tasks = [];
-
-    let selectedTeamId = null;
-
+    let events = [];
+    let memberships = [];
     let calDate = new Date();
 
     // =========================
-    // Utils
+    // UTILS
     // =========================
-    function show(el){ el.classList.remove("hidden"); }
-    function hide(el){ el.classList.add("hidden"); }
-    function setText(idOrEl, txt){
-      const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
-      if (el) el.textContent = txt;
-    }
-    function fmtDate(d){
-      // d: YYYY-MM-DD
-      try {
-        const dt = new Date(d + "T00:00:00");
-        return dt.toLocaleDateString("fr-FR");
-      } catch { return d; }
+    function show(el){ if(el) el.classList.remove("hidden"); }
+    function hide(el){ if(el) el.classList.add("hidden"); }
+    function setText(el, txt){ if(el) el.textContent = txt; }
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
     }
     function ymd(dateObj){
       const y = dateObj.getFullYear();
@@ -1180,18 +919,77 @@
       const d = String(dateObj.getDate()).padStart(2,"0");
       return `${y}-${m}-${d}`;
     }
-    function monthKey(dateObj){
-      return `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,"0")}`;
+    function fmtDate(d){
+      try {
+        const dt = new Date(d + "T00:00:00");
+        return dt.toLocaleDateString("fr-FR");
+      } catch { return d; }
     }
     function isBetween(dateStr, startStr, endStr){
       return dateStr >= startStr && dateStr <= endStr;
     }
-    function info(msg){
-      debugBox.textContent = msg;
-    }
 
     // =========================
-    // Auth UI
+    // NAVIGATION
+    // =========================
+    function switchView(viewName) {
+      // Hide all views
+      const views = ['dashboardView', 'calendarView', 'tasksView', 'teamsView', 'eventsView'];
+      views.forEach(v => {
+        const el = document.getElementById(v);
+        if (el) hide(el);
+      });
+
+      // Show selected view
+      const viewEl = document.getElementById(viewName);
+      if (viewEl) show(viewEl);
+
+      // Update active nav
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      const activeNav = document.querySelector(`.nav-item[data-view="${viewName.replace('View', '')}"]`);
+      if (activeNav) activeNav.classList.add('active');
+
+      // Update page title
+      const titles = {
+        dashboardView: { title: 'Tableau de bord', subtitle: 'Vue d\'ensemble de toutes les équipes' },
+        calendarView: { title: 'Calendrier', subtitle: `${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}` },
+        tasksView: { title: 'Tâches', subtitle: 'Gestion des tâches' },
+        teamsView: { title: 'Équipes', subtitle: 'Gestion des équipes' },
+        eventsView: { title: 'Événements', subtitle: 'Jours fériés et événements spéciaux' }
+      };
+
+      const titleData = titles[viewName];
+      if (titleData) {
+        setText(document.getElementById('pageTitle'), titleData.title);
+        setText(document.getElementById('pageSubtitle'), titleData.subtitle);
+      }
+
+      // Render view content
+      if (viewName === 'dashboardView') renderDashboard();
+      else if (viewName === 'calendarView') renderCalendar();
+      else if (viewName === 'tasksView') renderTasksList();
+      else if (viewName === 'teamsView') renderTeamsGrid();
+      else if (viewName === 'eventsView') renderEventsList();
+
+      // Refresh icons
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Setup nav clicks
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const view = item.getAttribute('data-view') + 'View';
+          switchView(view);
+        });
+      });
+    });
+
+    // =========================
+    // AUTH
     // =========================
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1242,319 +1040,147 @@
       show(ok);
     });
 
-    btnLogout.addEventListener("click", async () => {
+    document.getElementById("btnLogout").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
     });
 
     // =========================
-    // Data loaders
+    // DATA LOADERS
     // =========================
-    async function loadGlobalRole() {
-      globalRole = null;
-      const { data, error } = await supabaseClient
-        .from("app_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!error && data && data.role) globalRole = data.role;
+    async function loadAllData() {
+      await Promise.all([
+        loadTeams(),
+        loadTasks(),
+        loadEvents()
+      ]);
     }
 
     async function loadTeams() {
       const { data, error } = await supabaseClient
         .from("teams")
-        .select("id,name")
+        .select("*")
         .order("name", { ascending: true });
-
-      if (error) throw error;
-      teams = data || [];
-    }
-
-    async function loadMyMemberships() {
-      // pour savoir si l’utilisateur est member/viewer sur telle team (UI)
-      const { data, error } = await supabaseClient
-        .from("team_memberships")
-        .select("team_id, role")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      memberships = data || [];
-    }
-
-    async function loadAllMembershipsAndProfiles() {
-      // lecture globale autorisée => on peut lister les membres par équipe
-      // On récupère user_id + role + team_id + profiles(email/full_name)
-      const { data, error } = await supabaseClient
-        .from("team_memberships")
-        .select("team_id, user_id, role, profiles!team_memberships_user_id_fkey (id, email, full_name)")
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      allMemberships = data || [];
-
-      profilesCache.clear();
-      for (const row of allMemberships) {
-        if (row.profiles && row.profiles.id) {
-          profilesCache.set(row.user_id, row.profiles);
-        }
-      }
+      if (!error) teams = data || [];
     }
 
     async function loadTasks() {
       const { data, error } = await supabaseClient
         .from("tasks")
-        .select("id, team_id, title, description, category, start_date, end_date, completed, assignee_id, created_at, teams!tasks_team_id_fkey (name)")
+        .select("*, teams(name)")
         .order("start_date", { ascending: true });
-
-      if (error) throw error;
-      tasks = data || [];
+      if (!error) tasks = data || [];
     }
 
-    function renderTeamSelect() {
-      teamSelect.innerHTML = "";
-      if (!teams.length) {
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "Aucune équipe (crée-en une)";
-        teamSelect.appendChild(opt);
-        selectedTeamId = null;
-        return;
-      }
-
-      for (const t of teams) {
-        const opt = document.createElement("option");
-        opt.value = t.id;
-        opt.textContent = t.name;
-        teamSelect.appendChild(opt);
-      }
-
-      // keep previous selection if still exists
-      if (selectedTeamId && teams.some(t => t.id === selectedTeamId)) {
-        teamSelect.value = selectedTeamId;
-      } else {
-        selectedTeamId = teams[0].id;
-        teamSelect.value = selectedTeamId;
-      }
+    async function loadEvents() {
+      const { data, error } = await supabaseClient
+        .from("events")
+        .select("*")
+        .order("start_date", { ascending: true });
+      if (!error) events = data || [];
     }
 
-    function canWriteSelectedTeam() {
-      if (!user || !selectedTeamId) return false;
-      if (globalRole === "admin" || globalRole === "manager") return true;
+    // =========================
+    // DASHBOARD
+    // =========================
+    function renderDashboard() {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const todayStr = ymd(today);
 
-      const my = memberships.find(m => m.team_id === selectedTeamId);
-      return my && my.role === "member";
-    }
+      const total = tasks.length;
+      const done = tasks.filter(t => t.completed).length;
+      const inProgress = tasks.filter(t => !t.completed && t.end_date >= todayStr).length;
+      const late = tasks.filter(t => !t.completed && t.end_date < todayStr).length;
 
-    function renderWriteStatus() {
-      if (!selectedTeamId) {
-        writeStatus.textContent = "Sélectionne une équipe";
-        writeStatus.className = "badge text-bg-light border";
-        return;
-      }
+      setText(document.getElementById('totalTasks'), total);
+      setText(document.getElementById('doneTasks'), done);
+      setText(document.getElementById('inProgressTasks'), inProgress);
+      setText(document.getElementById('lateTasks'), late);
 
-      if (globalRole === "admin" || globalRole === "manager") {
-        writeStatus.textContent = `Écriture OK (global ${globalRole})`;
-        writeStatus.className = "badge text-bg-success";
-        return;
-      }
+      // Status breakdown
+      const statusBreakdown = document.getElementById('statusBreakdown');
+      if (statusBreakdown) {
+        const todoCount = tasks.filter(t => !t.completed).length;
+        const todoPercent = total > 0 ? Math.round((todoCount / total) * 100) : 0;
+        const donePercent = total > 0 ? Math.round((done / total) * 100) : 0;
 
-      const my = memberships.find(m => m.team_id === selectedTeamId);
-      if (!my) {
-        writeStatus.textContent = "Lecture seule (pas membre de cette équipe)";
-        writeStatus.className = "badge text-bg-secondary";
-        return;
-      }
-
-      if (my.role === "viewer") {
-        writeStatus.textContent = "Lecture seule (viewer)";
-        writeStatus.className = "badge text-bg-secondary";
-        return;
-      }
-
-      writeStatus.textContent = "Écriture OK (member sur cette équipe)";
-      writeStatus.className = "badge text-bg-success";
-    }
-
-    function renderMembersList() {
-      membersList.innerHTML = "";
-
-      if (!selectedTeamId) {
-        membersList.innerHTML = `<div class="muted">Aucune équipe sélectionnée.</div>`;
-        setText(teamMembersCount, "0");
-        return;
-      }
-
-      const rows = allMemberships.filter(r => r.team_id === selectedTeamId);
-
-      setText(teamMembersCount, String(rows.length));
-
-      if (!rows.length) {
-        membersList.innerHTML = `<div class="muted">Aucun membre dans cette équipe.</div>`;
-        return;
-      }
-
-      for (const r of rows) {
-        const p = r.profiles || profilesCache.get(r.user_id) || {};
-        const name = (p.full_name && p.full_name.trim()) ? p.full_name : (p.email || "inconnu");
-        const email = p.email || "";
-
-        const div = document.createElement("div");
-        div.className = "d-flex align-items-center justify-content-between border rounded-3 px-3 py-2 bg-white";
-
-        div.innerHTML = `
-          <div>
-            <div class="fw-semibold">${escapeHtml(name)}</div>
-            <div class="muted">${escapeHtml(email)}</div>
-          </div>
-          <span class="badge text-bg-light border">${escapeHtml(r.role)}</span>
-        `;
-
-        membersList.appendChild(div);
-      }
-    }
-
-    function renderAssigneeOptions() {
-      taskAssignee.innerHTML = `<option value="">Non assigné</option>`;
-
-      if (!selectedTeamId) return;
-
-      const rows = allMemberships.filter(r => r.team_id === selectedTeamId);
-      for (const r of rows) {
-        const p = r.profiles || profilesCache.get(r.user_id) || {};
-        const label = (p.full_name && p.full_name.trim()) ? `${p.full_name} (${p.email || "?"})` : (p.email || r.user_id);
-
-        const opt = document.createElement("option");
-        opt.value = r.user_id;
-        opt.textContent = label;
-        taskAssignee.appendChild(opt);
-      }
-    }
-
-    function renderTasksList() {
-      // Determine which container to use
-      const container = document.getElementById('tasksListView') || document.getElementById('tasksList');
-      if (!container) return;
-      
-      container.innerHTML = "";
-
-      let rows = [...tasks];
-
-      // filter mode
-      if (taskFilterMode && taskFilterMode.value === "team" && selectedTeamId) {
-        rows = rows.filter(t => t.team_id === selectedTeamId);
-      }
-
-      // sort
-      if (taskSort && taskSort.value === "start_desc") {
-        rows.sort((a,b) => (b.start_date || "").localeCompare(a.start_date || ""));
-      } else {
-        rows.sort((a,b) => (a.start_date || "").localeCompare(b.start_date || ""));
-      }
-
-      if (tasksCount) setText(tasksCount, String(rows.length));
-
-      if (!rows.length) {
-        container.innerHTML = `<div class="muted">Aucune tâche.</div>`;
-        return;
-      }
-
-      for (const t of rows) {
-        const teamName = (t.teams && t.teams.name) ? t.teams.name : "—";
-        const range = `${fmtDate(t.start_date)} → ${fmtDate(t.end_date)}`;
-
-        const div = document.createElement("div");
-        div.className = "border rounded-3 px-3 py-2 bg-white mb-2";
-
-        div.innerHTML = `
-          <div class="d-flex align-items-start justify-content-between gap-2">
-            <div class="flex-grow-1">
-              <div class="fw-semibold">${escapeHtml(t.title)}</div>
-              <div class="muted small">${escapeHtml(t.description || "")}</div>
-              <div class="small mt-1">
-                <span class="badge badge-soft me-1">${escapeHtml(teamName)}</span>
-                <span class="badge text-bg-light border me-1">${escapeHtml(t.category || "Autre")}</span>
-                <span class="badge text-bg-light border">${escapeHtml(range)}</span>
-              </div>
+        statusBreakdown.innerHTML = `
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>À faire</span>
+              <span class="fw-semibold">${todoCount}</span>
             </div>
-            <div class="text-end d-flex flex-column align-items-end gap-2">
-              ${t.completed ? `<span class="badge text-bg-success">done</span>` : `<span class="badge text-bg-warning">todo</span>`}
-              ${canWriteForTask(t) ? `
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${t.id}')" title="Supprimer">
-                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
-                </button>
-              ` : ''}
-              <div class="small muted mt-1">${escapeHtml(t.id.slice(0,8))}</div>
+            <div class="progress">
+              <div class="progress-bar bg-secondary" style="width:${todoPercent}%"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>Terminée</span>
+              <span class="fw-semibold">${done}</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-success" style="width:${donePercent}%"></div>
             </div>
           </div>
         `;
-
-        // (Option) click to toggle completed if allowed
-        if (canWriteForTask(t)) {
-          div.classList.add("pointer");
-          div.title = "Cliquer pour toggle completed";
-          div.addEventListener("click", async (e) => {
-            // Don't toggle if clicking the delete button
-            if (e.target.closest('button')) return;
-            await toggleTaskCompleted(t);
-          });
-        }
-
-        container.appendChild(div);
       }
-      
-      // Refresh icons
-      setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 100);
-    }
 
-    function canWriteForTask(task) {
-      // server enforces anyway; this is UI comfort
-      if (!user) return false;
-      if (globalRole === "admin" || globalRole === "manager") return true;
+      // Priority breakdown
+      const priorityBreakdown = document.getElementById('priorityBreakdown');
+      if (priorityBreakdown) {
+        const hauteCount = tasks.filter(t => t.priority === 'haute').length;
+        const moyenneCount = tasks.filter(t => t.priority === 'moyenne').length;
+        const basseCount = tasks.filter(t => t.priority === 'basse').length;
 
-      const my = memberships.find(m => m.team_id === task.team_id);
-      return my && my.role === "member";
-    }
+        const hautePercent = total > 0 ? Math.round((hauteCount / total) * 100) : 0;
+        const moyennePercent = total > 0 ? Math.round((moyenneCount / total) * 100) : 0;
+        const bassePercent = total > 0 ? Math.round((basseCount / total) * 100) : 0;
 
-    async function toggleTaskCompleted(task) {
-      try {
-        const next = !task.completed;
-        const { error } = await supabaseClient
-          .from("tasks")
-          .update({ completed: next })
-          .eq("id", task.id);
-
-        if (error) throw error;
-
-        task.completed = next;
-        renderTasksList();
-        renderCalendar();
-
-      } catch (e) {
-        alert("Impossible de modifier (permissions).");
-        console.error(e);
+        priorityBreakdown.innerHTML = `
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>Basse</span>
+              <span class="fw-semibold">${basseCount}</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-secondary" style="width:${bassePercent}%"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>Moyenne</span>
+              <span class="fw-semibold">${moyenneCount}</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-warning" style="width:${moyennePercent}%"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="progress-label">
+              <span>Haute</span>
+              <span class="fw-semibold">${hauteCount}</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-danger" style="width:${hautePercent}%"></div>
+            </div>
+          </div>
+        `;
       }
     }
 
     // =========================
-    // Calendar
+    // CALENDAR
     // =========================
+    const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
     function renderCalendar() {
-      // header
-      calHeader.innerHTML = "";
-      const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
-      for (const d of days) {
-        const el = document.createElement("div");
-        el.className = "cal-head text-center";
-        el.textContent = d;
-        calHeader.appendChild(el);
-      }
+      const calGrid = document.getElementById('calGrid');
+      if (!calGrid) return;
 
-      // title
-      const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-      calTitle.textContent = `${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}`;
-
-      // grid
-      calGrid.innerHTML = "";
+      // Clear existing cells (keep headers)
+      const cells = calGrid.querySelectorAll('.cal-cell');
+      cells.forEach(c => c.remove());
 
       const year = calDate.getFullYear();
       const month = calDate.getMonth();
@@ -1562,21 +1188,20 @@
       const first = new Date(year, month, 1);
       const last = new Date(year, month + 1, 0);
 
-      // Convert to Monday-based offset
-      let startDay = first.getDay(); // 0 sunday
+      let startDay = first.getDay();
       if (startDay === 0) startDay = 7;
-      startDay = startDay - 1; // 0 = Monday
+      startDay = startDay - 1;
 
-      // empty cells before
+      // Empty cells
       for (let i=0; i<startDay; i++) {
         const cell = document.createElement("div");
         cell.className = "cal-cell";
         cell.style.opacity = "0.35";
-        lookTodayCell(cell, null);
         calGrid.appendChild(cell);
       }
 
-      // actual days
+      // Days
+      const today = ymd(new Date());
       for (let day=1; day<=last.getDate(); day++) {
         const dt = new Date(year, month, day);
         const dStr = ymd(dt);
@@ -1584,321 +1209,541 @@
         const cell = document.createElement("div");
         cell.className = "cal-cell";
 
-        // tasks covering that day
-        const todays = tasks
-          .filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date))
-          .slice(0, 5); // limit display
-
-        let html = `<div class="d-flex align-items-center justify-content-between">
-          <div class="cal-day">${day}</div>
-          <div class="small muted">${dStr}</div>
-        </div>`;
-
-        for (const t of todays) {
-          const teamName = (t.teams && t.teams.name) ? t.teams.name : "—";
-          html += `<span class="task-pill">
-            ${escapeHtml(t.title)}
-            <br><small>${escapeHtml(teamName)} • ${escapeHtml(t.category || "Autre")}</small>
-          </span>`;
+        // Highlight today
+        if (dStr === today) {
+          cell.style.background = "rgba(255, 107, 53, 0.05)";
+          cell.style.border = "2px solid var(--orange)";
         }
 
-        if (!todays.length) {
-          html += `<div class="small muted mt-2">—</div>`;
-        } else if (tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date)).length > 5) {
-          html += `<div class="small muted mt-2">+ plus…</div>`;
+        // Tasks for this day
+        const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date)).slice(0, 3);
+
+        // Events for this day
+        const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dStr, e.start_date, e.end_date)).slice(0, 2);
+
+        let html = `<div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="cal-day">${day}</div>
+        </div>`;
+
+        for (const t of dayTasks) {
+          const teamName = (t.teams && t.teams.name) ? t.teams.name : "";
+          html += `<div class="task-pill mb-1">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
+        }
+
+        for (const e of dayEvents) {
+          html += `<div class="task-pill mb-1" style="background:#9333EA !important;">${escapeHtml(e.name)}</div>`;
         }
 
         cell.innerHTML = html;
-        lookTodayCell(cell, dStr);
-
         calGrid.appendChild(cell);
       }
+
+      // Update title
+      setText(document.getElementById('calTitle'), `${monthNames[month]} ${year}`);
+      setText(document.getElementById('pageSubtitle'), `${monthNames[month]} ${year}`);
     }
 
-    function lookTodayCell(cell, dStr) {
-      const today = ymd(new Date());
-      if (dStr && dStr === today) {
-        cell.style.outline = "2px solid rgba(13,110,253,.45)";
-        cell.style.boxShadow = "0 6px 18px rgba(13,110,253,.10)";
-      }
-    }
-
-    calPrev.addEventListener("click", () => {
+    document.getElementById('calPrev')?.addEventListener('click', () => {
       calDate.setMonth(calDate.getMonth() - 1);
       renderCalendar();
     });
 
-    calNext.addEventListener("click", () => {
+    document.getElementById('calNext')?.addEventListener('click', () => {
       calDate.setMonth(calDate.getMonth() + 1);
       renderCalendar();
     });
 
-    calToday.addEventListener("click", () => {
+    document.getElementById('calToday')?.addEventListener('click', () => {
       calDate = new Date();
       renderCalendar();
     });
 
     // =========================
-    // Actions: Create team / Add member / Create task
+    // TASKS
     // =========================
-    btnRefresh.addEventListener("click", async () => {
-      await refreshAll();
-    });
+    function renderTasksList() {
+      const container = document.getElementById('tasksListView');
+      if (!container) return;
 
-    teamSelect.addEventListener("change", () => {
-      selectedTeamId = teamSelect.value || null;
-      renderMembersList();
-      renderAssigneeOptions();
-      renderWriteStatus();
-      renderTasksList();
-      info(`selectedTeamId=${selectedTeamId}`);
-    });
+      container.innerHTML = "";
 
-    btnCreateTeam.addEventListener("click", () => {
-      hide(createTeamError); hide(createTeamOk);
-      newTeamName.value = "";
-      createTeamModal.show();
-    });
+      // Apply filters
+      let filtered = [...tasks];
 
-    btnCreateTeamConfirm.addEventListener("click", async () => {
-      hide(createTeamError); hide(createTeamOk);
+      const statusFilter = document.getElementById('taskStatusFilter')?.value;
+      if (statusFilter === 'todo') filtered = filtered.filter(t => !t.completed);
+      if (statusFilter === 'done') filtered = filtered.filter(t => t.completed);
 
-      const name = (newTeamName.value || "").trim();
-      if (!name) {
-        createTeamError.textContent = "Nom requis.";
-        show(createTeamError);
+      const priorityFilter = document.getElementById('taskPriorityFilter')?.value;
+      if (priorityFilter) filtered = filtered.filter(t => t.priority === priorityFilter);
+
+      const teamFilter = document.getElementById('taskTeamFilter')?.value;
+      if (teamFilter) filtered = filtered.filter(t => t.team_id === teamFilter);
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="text-secondary">Aucune tâche.</div>`;
         return;
       }
 
-      try {
-        const { data, error } = await supabaseClient
-          .from("teams")
-          .insert([{ name, created_by: user.id }])
-          .select("id,name")
-          .single();
+      for (const t of filtered) {
+        const teamName = (t.teams && t.teams.name) ? t.teams.name : "";
+        const priorityClass = t.priority || 'basse';
 
-        if (error) throw error;
-
-        createTeamOk.textContent = "Équipe créée.";
-        show(createTeamOk);
-
-        // auto add yourself as member of that team (optional)
-        await supabaseClient
-          .from("team_memberships")
-          .insert([{ team_id: data.id, user_id: user.id, role: "member" }]);
-
-        await refreshAll();
-        selectedTeamId = data.id;
-        renderTeamSelect();
-        teamSelect.value = selectedTeamId;
-        renderMembersList();
-        renderAssigneeOptions();
-        renderWriteStatus();
-
-      } catch (e) {
-        createTeamError.textContent = e.message || "Erreur création équipe.";
-        show(createTeamError);
-        console.error(e);
+        const card = document.createElement('div');
+        card.className = `task-card priority-${priorityClass}`;
+        card.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <h6 class="mb-0">${escapeHtml(t.title)}</h6>
+                ${t.completed ? '<span class="badge bg-success">✓ Terminée</span>' : '<span class="badge bg-warning">À faire</span>'}
+              </div>
+              <p class="text-secondary small mb-2">${escapeHtml(t.description || '')}</p>
+              <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-light text-dark">${escapeHtml(teamName)}</span>
+                <span class="badge bg-light text-dark">${escapeHtml(t.category || 'Autre')}</span>
+                <span class="badge bg-light text-dark">${fmtDate(t.start_date)} → ${fmtDate(t.end_date)}</span>
+                ${t.priority ? `<span class="badge bg-${t.priority === 'haute' ? 'danger' : t.priority === 'moyenne' ? 'warning' : 'secondary'}">${escapeHtml(t.priority)}</span>` : ''}
+              </div>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteTask('${t.id}')">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
       }
-    });
 
-    addMemberForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      hide(addMemberError); hide(addMemberOk);
+      if (window.lucide) lucide.createIcons();
+    }
 
-      const email = (addMemberEmail.value || "").trim().toLowerCase();
-      const role = addMemberRole.value;
+    // Populate team filter
+    function populateTaskFilters() {
+      const teamFilter = document.getElementById('taskTeamFilter');
+      if (!teamFilter) return;
 
-      if (!selectedTeamId) {
-        addMemberError.textContent = "Sélectionne une équipe.";
-        show(addMemberError);
+      teamFilter.innerHTML = '<option value="">Toutes</option>';
+      teams.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        teamFilter.appendChild(opt);
+      });
+    }
+
+    document.getElementById('taskStatusFilter')?.addEventListener('change', renderTasksList);
+    document.getElementById('taskPriorityFilter')?.addEventListener('change', renderTasksList);
+    document.getElementById('taskTeamFilter')?.addEventListener('change', renderTasksList);
+
+    async function deleteTask(taskId) {
+      if (!confirm('Supprimer cette tâche ?')) return;
+
+      const { error } = await supabaseClient
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) {
+        alert('Erreur: ' + error.message);
         return;
       }
 
-      try {
-        // find profile by email
-        const { data: prof, error: pErr } = await supabaseClient
-          .from("profiles")
-          .select("id,email,full_name")
-          .eq("email", email)
-          .maybeSingle();
-
-        if (pErr) throw pErr;
-        if (!prof) {
-          addMemberError.textContent = "Aucun profile trouvé avec cet email. Le user doit d’abord créer un compte.";
-          show(addMemberError);
-          return;
-        }
-
-        const { error: mErr } = await supabaseClient
-          .from("team_memberships")
-          .insert([{ team_id: selectedTeamId, user_id: prof.id, role }]);
-
-        if (mErr) throw mErr;
-
-        addMemberOk.textContent = "Membre ajouté.";
-        show(addMemberOk);
-
-        addMemberEmail.value = "";
-        await refreshAll();
-
-      } catch (e2) {
-        addMemberError.textContent = e2.message || "Erreur ajout membre (permissions ?).";
-        show(addMemberError);
-        console.error(e2);
-      }
-    });
-
-    taskForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      hide(taskError); hide(taskOk);
-
-      if (!selectedTeamId) {
-        taskError.textContent = "Sélectionne une équipe.";
-        show(taskError);
-        return;
-      }
-
-      const start = taskStart.value;
-      const end = taskEnd.value;
-      if (end < start) {
-        taskError.textContent = "La date de fin doit être >= date de début.";
-        show(taskError);
-        return;
-      }
-
-      try {
-        const payload = {
-          team_id: selectedTeamId,
-          title: taskTitle.value.trim(),
-          description: taskDescription.value.trim() || null,
-          category: taskCategory.value || "Autre",
-          start_date: start,
-          end_date: end,
-          completed: false,
-          assignee_id: taskAssignee.value || null,
-          created_by: user.id
-        };
-
-        const { error } = await supabaseClient
-          .from("tasks")
-          .insert([payload]);
-
-        if (error) throw error;
-
-        taskOk.textContent = "Tâche créée.";
-        show(taskOk);
-
-        taskTitle.value = "";
-        taskDescription.value = "";
-
-        await refreshAll();
-
-      } catch (e3) {
-        taskError.textContent = e3.message || "Erreur création tâche (permissions ?).";
-        show(taskError);
-        console.error(e3);
-      }
-    });
-
-    taskFilterMode.addEventListener("change", renderTasksList);
-    taskSort.addEventListener("change", renderTasksList);
-
-    // =========================
-    // Refresh orchestration
-    // =========================
-    async function refreshAll() {
-      info("refresh…");
-
-      await loadGlobalRole();
-      await loadTeams();
-      await loadMyMemberships();
-      await loadAllMembershipsAndProfiles();
       await loadTasks();
-
-      // teams selection
-      if (!selectedTeamId && teams.length) selectedTeamId = teams[0].id;
-
-      renderTeamSelect();
-      renderWriteStatus();
-
-      // permissions UI
-      const isGlobal = (globalRole === "admin" || globalRole === "manager");
-
-      if (isGlobal) {
-        show(btnCreateTeam);
-        show(addMemberForm);
-        hide(addMemberHint);
-      } else {
-        hide(btnCreateTeam);
-        hide(addMemberForm);
-        show(addMemberHint);
-      }
-
-      // assignees/members
-      renderMembersList();
-      renderAssigneeOptions();
-
-      // tasks + list + calendar
       renderTasksList();
       renderCalendar();
-
-      // status badge
-      roleBadge.textContent = globalRole ? `global: ${globalRole}` : `global: standard`;
-      info(`user=${user.email} | globalRole=${globalRole || "none"} | teams=${teams.length} | tasks=${tasks.length}`);
     }
 
     // =========================
-    // HTML escape
+    // TEAMS
     // =========================
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return "";
-      return String(str)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
+    function renderTeamsGrid() {
+      const container = document.getElementById('teamsGrid');
+      if (!container) return;
+
+      container.innerHTML = "";
+
+      const teamColors = [
+        '#3B82F6', // blue
+        '#9333EA', // purple
+        '#10B981', // green
+        '#EC4899', // pink
+        '#14B8A6', // teal
+        '#EF4444'  // red
+      ];
+
+      teams.forEach((team, index) => {
+        const color = teamColors[index % teamColors.length];
+        const teamTasks = tasks.filter(t => t.team_id === team.id);
+
+        const col = document.createElement('div');
+        col.className = 'col-12 col-lg-4';
+        col.innerHTML = `
+          <div class="team-card" style="background:${color};">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h5 class="mb-1">${escapeHtml(team.name)}</h5>
+                <div class="opacity-75">${teamTasks.length} tâche(s)</div>
+              </div>
+              <button class="btn btn-sm btn-light" onclick="deleteTeam('${team.id}')">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <div class="vstack gap-2">
+              ${teamTasks.slice(0, 3).map(t => `
+                <div class="bg-white bg-opacity-25 rounded p-2 small">
+                  ${escapeHtml(t.title)}
+                </div>
+              `).join('')}
+              ${teamTasks.length > 3 ? `<div class="small opacity-75">+ ${teamTasks.length - 3} autres...</div>` : ''}
+            </div>
+          </div>
+        `;
+        container.appendChild(col);
+      });
+
+      if (!teams.length) {
+        container.innerHTML = `<div class="col-12"><div class="text-secondary">Aucune équipe.</div></div>`;
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function deleteTeam(teamId) {
+      if (!confirm('Supprimer cette équipe et toutes ses tâches ?')) return;
+
+      // Delete tasks first
+      await supabaseClient.from('tasks').delete().eq('team_id', teamId);
+
+      const { error } = await supabaseClient
+        .from('teams')
+        .delete()
+        .eq('id', teamId);
+
+      if (error) {
+        alert('Erreur: ' + error.message);
+        return;
+      }
+
+      await loadAllData();
+      renderTeamsGrid();
+    }
+
+    function showCreateTeamModal() {
+      const name = prompt('Nom de l\'équipe:');
+      if (!name) return;
+
+      createTeam(name);
+    }
+
+    async function createTeam(name) {
+      const { error } = await supabaseClient
+        .from('teams')
+        .insert([{ name, created_by: user.id }]);
+
+      if (error) {
+        alert('Erreur: ' + error.message);
+        return;
+      }
+
+      await loadTeams();
+      renderTeamsGrid();
+      populateTaskFilters();
     }
 
     // =========================
-    // Boot
+    // EVENTS
+    // =========================
+    function renderEventsList() {
+      const container = document.getElementById('eventsListView');
+      if (!container) return;
+
+      container.innerHTML = "";
+
+      if (!events.length) {
+        container.innerHTML = `<div class="text-secondary">Aucun événement.</div>`;
+        return;
+      }
+
+      const eventColors = {
+        'Jour férié': '#EF4444',
+        'Soldes': '#EC4899',
+        'Fête': '#F59E0B',
+        'Autre': '#6B7280'
+      };
+
+      for (const e of events) {
+        const color = eventColors[e.type] || eventColors['Autre'];
+
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        card.innerHTML = `
+          <div class="event-dot" style="background:${color};"></div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${escapeHtml(e.name)}</div>
+            <div class="small text-secondary">${fmtDate(e.start_date)}${e.end_date && e.end_date !== e.start_date ? ' - ' + fmtDate(e.end_date) : ''}</div>
+          </div>
+          <span class="badge" style="background:${color};">${escapeHtml(e.type || 'Autre')}</span>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${e.id}')">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+          </button>
+        `;
+        container.appendChild(card);
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function deleteEvent(eventId) {
+      if (!confirm('Supprimer cet événement ?')) return;
+
+      const { error } = await supabaseClient
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) {
+        alert('Erreur: ' + error.message);
+        return;
+      }
+
+      await loadEvents();
+      renderEventsList();
+      renderCalendar();
+    }
+
+    function showCreateEventModal() {
+      const name = prompt('Nom de l\'événement:');
+      if (!name) return;
+
+      const date = prompt('Date (AAAA-MM-JJ):');
+      if (!date) return;
+
+      const type = prompt('Type (Jour férié, Soldes, Fête, Autre):');
+
+      createEvent(name, date, type || 'Autre');
+    }
+
+    async function createEvent(name, date, type) {
+      const { error } = await supabaseClient
+        .from('events')
+        .insert([{
+          name,
+          start_date: date,
+          end_date: date,
+          type,
+          created_by: user.id
+        }]);
+
+      if (error) {
+        alert('Erreur: ' + error.message);
+        return;
+      }
+
+      await loadEvents();
+      renderEventsList();
+      renderCalendar();
+    }
+
+    // =========================
+    // EXPORT FUNCTIONS
+    // =========================
+    function downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function exportTasksCSV() {
+      let csv = 'Titre,Description,Catégorie,Début,Fin,Équipe,Priorité,Statut\n';
+      
+      tasks.forEach(t => {
+        const teamName = (t.teams && t.teams.name) ? t.teams.name : '';
+        csv += `"${t.title}","${t.description || ''}","${t.category || ''}","${t.start_date}","${t.end_date}","${teamName}","${t.priority || ''}","${t.completed ? 'Terminée' : 'À faire'}"\n`;
+      });
+
+      downloadCSV(csv, 'taches_export.csv');
+    }
+
+    function exportTasksJSON() {
+      const json = JSON.stringify(tasks, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'taches_export.json';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function exportTasksiCal() {
+      let ical = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//TaskFlow//FR\n';
+
+      tasks.forEach(t => {
+        ical += 'BEGIN:VEVENT\n';
+        ical += `DTSTART:${t.start_date.replace(/-/g, '')}\n`;
+        ical += `DTEND:${t.end_date.replace(/-/g, '')}\n`;
+        ical += `SUMMARY:${t.title}\n`;
+        if (t.description) ical += `DESCRIPTION:${t.description}\n`;
+        ical += 'END:VEVENT\n';
+      });
+
+      ical += 'END:VCALENDAR';
+
+      const blob = new Blob([ical], { type: 'text/calendar' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'taches_export.ics';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function exportEventsCSV() {
+      let csv = 'Nom,Type,Date début,Date fin\n';
+      
+      events.forEach(e => {
+        csv += `"${e.name}","${e.type || ''}","${e.start_date}","${e.end_date}"\n`;
+      });
+
+      downloadCSV(csv, 'evenements_export.csv');
+    }
+
+    function exportEventsJSON() {
+      const json = JSON.stringify(events, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'evenements_export.json';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function downloadTasksTemplate() {
+      const csv = 'Titre,Description,Catégorie,Début,Fin,Équipe,Priorité\n"Exemple","Description","Dev","2026-02-01","2026-02-15","Production","haute"';
+      downloadCSV(csv, 'modele_taches.csv');
+    }
+
+    function importTasks(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(l => l.trim());
+        
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+          if (parts.length >= 5) {
+            const [title, description, category, start_date, end_date, teamName, priority] = parts;
+            
+            let team_id = teams[0]?.id;
+            if (teamName) {
+              const team = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase());
+              if (team) team_id = team.id;
+            }
+
+            await supabaseClient.from('tasks').insert([{
+              title,
+              description: description || '',
+              category: category || 'Autre',
+              start_date,
+              end_date,
+              team_id,
+              priority: priority || 'moyenne',
+              created_by: user.id,
+              completed: false
+            }]);
+          }
+        }
+
+        await loadTasks();
+        renderTasksList();
+        renderCalendar();
+        alert('Import terminé!');
+      };
+      reader.readAsText(file);
+    }
+
+    function importEvents(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(l => l.trim());
+        
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+          if (parts.length >= 3) {
+            const [name, type, start_date, end_date] = parts;
+
+            await supabaseClient.from('events').insert([{
+              name,
+              type: type || 'Autre',
+              start_date,
+              end_date: end_date || start_date,
+              created_by: user.id
+            }]);
+          }
+        }
+
+        await loadEvents();
+        renderEventsList();
+        renderCalendar();
+        alert('Import terminé!');
+      };
+      reader.readAsText(file);
+    }
+
+    // Make functions global
+    window.deleteTask = deleteTask;
+    window.deleteTeam = deleteTeam;
+    window.deleteEvent = deleteEvent;
+    window.showCreateTeamModal = showCreateTeamModal;
+    window.showCreateEventModal = showCreateEventModal;
+    window.exportTasksCSV = exportTasksCSV;
+    window.exportTasksJSON = exportTasksJSON;
+    window.exportTasksiCal = exportTasksiCal;
+    window.exportEventsCSV = exportEventsCSV;
+    window.exportEventsJSON = exportEventsJSON;
+    window.downloadTasksTemplate = downloadTasksTemplate;
+    window.importTasks = importTasks;
+    window.importEvents = importEvents;
+
+    // =========================
+    // INIT
     // =========================
     async function setAuthedUI() {
-      hide(authView);
-      show(appView);
-      show(btnLogout);
+      hide(document.getElementById('authView'));
+      show(document.getElementById('appView'));
+      show(document.getElementById('btnLogout'));
 
-      userEmail.textContent = user.email || "";
-      await refreshAll();
+      setText(document.getElementById('userEmail'), user.email || '');
+      
+      await loadAllData();
+      populateTaskFilters();
+      
+      // Show calendar by default
+      switchView('calendarView');
 
-      // default dates to today
-      const today = ymd(new Date());
-      if (!taskStart.value) taskStart.value = today;
-      if (!taskEnd.value) taskEnd.value = today;
-
-      // Initialize views - show calendar by default
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
-        initializeViews();
-      }, 100);
-
-      // icons
       if (window.lucide) lucide.createIcons();
     }
 
     function setAnonUI() {
-      show(authView);
-      hide(appView);
-      hide(btnLogout);
+      show(document.getElementById('authView'));
+      hide(document.getElementById('appView'));
+      hide(document.getElementById('btnLogout'));
 
-      userEmail.textContent = "";
-      roleBadge.textContent = "non connecté";
-      info("—");
+      setText(document.getElementById('userEmail'), '');
+      setText(document.getElementById('roleBadge'), 'non connecté');
     }
 
     (async () => {
-      // init session
       const { data } = await supabaseClient.auth.getSession();
       session = data.session;
       user = session ? session.user : null;
@@ -1906,7 +1751,6 @@
       if (user) await setAuthedUI();
       else setAnonUI();
 
-      // auth state changes
       supabaseClient.auth.onAuthStateChange(async (_event, newSession) => {
         session = newSession;
         user = newSession ? newSession.user : null;
@@ -1917,574 +1761,6 @@
 
       if (window.lucide) lucide.createIcons();
     })();
-
-    // =========================
-    // IMPORT / EXPORT FUNCTIONS
-    // =========================
-    
-    // Download CSV template for tasks
-    function downloadTasksTemplate() {
-      const csv = `titre,description,categorie,date_debut,date_fin,equipe,priorite
-Exemple tâche 1,Description de la tâche,Dev,2026-02-01,2026-02-15,Développement,haute
-Exemple tâche 2,Autre description,Design,2026-02-05,2026-02-10,Design,moyenne`;
-      
-      downloadCSV(csv, 'modele_taches.csv');
-    }
-    
-    // Download CSV template for teams
-    function downloadTeamsTemplate() {
-      const csv = `nom,description
-Développement,Équipe de développement
-Design,Équipe de design
-Marketing,Équipe marketing`;
-      
-      downloadCSV(csv, 'modele_equipes.csv');
-    }
-    
-    // Download CSV template for members
-    function downloadMembersTemplate() {
-      const csv = `email,nom_complet,equipe,role
-john@exemple.com,John Doe,Développement,member
-jane@exemple.com,Jane Smith,Design,member
-bob@exemple.com,Bob Martin,Marketing,viewer`;
-      
-      downloadCSV(csv, 'modele_membres.csv');
-    }
-    
-    // Helper to download CSV
-    function downloadCSV(content, filename) {
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
-    
-    // Import tasks from CSV/Excel
-    async function importTasks(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      try {
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        if (lines.length < 2) {
-          alert('❌ Fichier vide ou invalide');
-          return;
-        }
-        
-        // Skip header
-        const dataLines = lines.slice(1);
-        let imported = 0;
-        let errors = 0;
-        
-        for (const line of dataLines) {
-          const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-          
-          if (values.length < 5) {
-            errors++;
-            continue;
-          }
-          
-          const [titre, description, categorie, date_debut, date_fin, equipe_nom, priorite] = values;
-          
-          // Find team by name
-          let team_id = selectedTeamId;
-          if (equipe_nom) {
-            const team = teams.find(t => t.name.toLowerCase() === equipe_nom.toLowerCase());
-            if (team) team_id = team.id;
-          }
-          
-          if (!team_id) {
-            errors++;
-            continue;
-          }
-          
-          try {
-            const { error } = await supabaseClient
-              .from('tasks')
-              .insert([{
-                title: titre,
-                description: description || '',
-                category: categorie || 'Autre',
-                start_date: date_debut,
-                end_date: date_fin,
-                team_id: team_id,
-                created_by: user.id,
-                completed: false
-              }]);
-            
-            if (error) throw error;
-            imported++;
-          } catch (e) {
-            console.error('Erreur import tâche:', e);
-            errors++;
-          }
-        }
-        
-        await refreshAll();
-        alert(`✅ Import terminé!\n${imported} tâche(s) importée(s)\n${errors} erreur(s)`);
-        event.target.value = ''; // Reset input
-        
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('❌ Erreur lors de l\'import: ' + error.message);
-      }
-    }
-    
-    // Import teams or members from CSV/Excel
-    async function importTeamsOrMembers(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      try {
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        if (lines.length < 2) {
-          alert('❌ Fichier vide ou invalide');
-          return;
-        }
-        
-        const header = lines[0].toLowerCase();
-        
-        // Detect if it's teams or members
-        if (header.includes('email')) {
-          await importMembers(lines);
-        } else {
-          await importTeams(lines);
-        }
-        
-        event.target.value = ''; // Reset input
-        
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('❌ Erreur lors de l\'import: ' + error.message);
-      }
-    }
-    
-    async function importTeams(lines) {
-      const dataLines = lines.slice(1);
-      let imported = 0;
-      let errors = 0;
-      
-      for (const line of dataLines) {
-        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        
-        if (values.length < 1) {
-          errors++;
-          continue;
-        }
-        
-        const [nom, description] = values;
-        
-        try {
-          const { error } = await supabaseClient
-            .from('teams')
-            .insert([{
-              name: nom,
-              description: description || '',
-              created_by: user.id
-            }]);
-          
-          if (error) throw error;
-          imported++;
-        } catch (e) {
-          console.error('Erreur import équipe:', e);
-          errors++;
-        }
-      }
-      
-      await refreshAll();
-      alert(`✅ Import terminé!\n${imported} équipe(s) importée(s)\n${errors} erreur(s)`);
-    }
-    
-    async function importMembers(lines) {
-      const dataLines = lines.slice(1);
-      let imported = 0;
-      let errors = 0;
-      
-      for (const line of dataLines) {
-        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        
-        if (values.length < 3) {
-          errors++;
-          continue;
-        }
-        
-        const [email, nom_complet, equipe_nom, role] = values;
-        
-        // Find team by name
-        const team = teams.find(t => t.name.toLowerCase() === equipe_nom.toLowerCase());
-        if (!team) {
-          errors++;
-          continue;
-        }
-        
-        // Find user by email in profiles
-        try {
-          const { data: profiles, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('user_id')
-            .eq('email', email)
-            .single();
-          
-          if (profileError || !profiles) {
-            errors++;
-            continue;
-          }
-          
-          const { error } = await supabaseClient
-            .from('team_memberships')
-            .insert([{
-              team_id: team.id,
-              user_id: profiles.user_id,
-              role: role || 'member'
-            }]);
-          
-          if (error) throw error;
-          imported++;
-        } catch (e) {
-          console.error('Erreur import membre:', e);
-          errors++;
-        }
-      }
-      
-      await refreshAll();
-      alert(`✅ Import terminé!\n${imported} membre(s) importé(s)\n${errors} erreur(s)`);
-    }
-    
-    // Make functions global
-    window.downloadTasksTemplate = downloadTasksTemplate;
-    window.downloadTeamsTemplate = downloadTeamsTemplate;
-    window.downloadMembersTemplate = downloadMembersTemplate;
-    window.importTasks = importTasks;
-    window.importTeamsOrMembers = importTeamsOrMembers;
-
-    // =========================
-    // DELETE & EDIT TASKS
-    // =========================
-    async function deleteTask(taskId) {
-      if (!confirm('Supprimer cette tâche définitivement ?')) return;
-      
-      try {
-        const { error } = await supabaseClient
-          .from('tasks')
-          .delete()
-          .eq('id', taskId);
-        
-        if (error) throw error;
-        
-        await refreshAll();
-        alert('✅ Tâche supprimée');
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('❌ Erreur: ' + error.message);
-      }
-    }
-
-    async function removeMember(teamId, userId) {
-      if (!confirm('Retirer ce membre de l\'équipe ?')) return;
-      
-      try {
-        const { error } = await supabaseClient
-          .from('team_memberships')
-          .delete()
-          .eq('team_id', teamId)
-          .eq('user_id', userId);
-        
-        if (error) throw error;
-        
-        await refreshAll();
-        alert('✅ Membre retiré');
-      } catch (error) {
-        console.error('Erreur:', error);
-        alert('❌ Erreur: ' + error.message);
-      }
-    }
-
-    // =========================
-    // NAVIGATION SIDEBAR
-    // =========================
-    function showDashboard(e) {
-      console.log('showDashboard called', e);
-      if(e) e.preventDefault();
-      updateNavActive(e);
-      
-      // Hide all views
-      const dashboardView = document.getElementById('dashboardView');
-      const calendarView = document.getElementById('calendarView');
-      const tasksView = document.getElementById('tasksView');
-      const teamsView = document.getElementById('teamsView');
-      
-      if (dashboardView) dashboardView.classList.remove('hidden');
-      if (calendarView) calendarView.classList.add('hidden');
-      if (tasksView) tasksView.classList.add('hidden');
-      if (teamsView) teamsView.classList.add('hidden');
-      
-      // Update header
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      
-      if (pageTitle) pageTitle.textContent = 'Tableau de bord';
-      if (pageSubtitle) pageSubtitle.textContent = 'Vue d\'ensemble de toutes les équipes';
-      
-      // Refresh dashboard stats
-      if (typeof refreshDashboardStats === 'function') {
-        refreshDashboardStats();
-      }
-      
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function showCalendar(e) {
-      console.log('showCalendar called');
-      if(e) e.preventDefault();
-      updateNavActive(e);
-      
-      // Hide all views
-      const dashboardView = document.getElementById('dashboardView');
-      const calendarView = document.getElementById('calendarView');
-      const tasksView = document.getElementById('tasksView');
-      const teamsView = document.getElementById('teamsView');
-      
-      console.log('Views found:', {
-        dashboardView: !!dashboardView,
-        calendarView: !!calendarView,
-        tasksView: !!tasksView,
-        teamsView: !!teamsView
-      });
-      
-      if (dashboardView) dashboardView.classList.add('hidden');
-      if (calendarView) calendarView.classList.remove('hidden');
-      if (tasksView) tasksView.classList.add('hidden');
-      if (teamsView) teamsView.classList.add('hidden');
-      
-      // Update header
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      
-      if (pageTitle) pageTitle.textContent = 'Calendrier';
-      
-      if (pageSubtitle && typeof calDate !== 'undefined') {
-        const month = calDate.getMonth();
-        const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-        pageSubtitle.textContent = `${months[month]} ${calDate.getFullYear()}`;
-      }
-      
-      // Render calendar
-      if (typeof renderCalendar === 'function') {
-        console.log('Rendering calendar');
-        renderCalendar();
-      } else {
-        console.error('renderCalendar function not found');
-      }
-      
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function showTasks(e) {
-      console.log('showTasks called', e);
-      if(e) e.preventDefault();
-      updateNavActive(e);
-      
-      // Hide all views
-      const dashboardView = document.getElementById('dashboardView');
-      const calendarView = document.getElementById('calendarView');
-      const tasksView = document.getElementById('tasksView');
-      const teamsView = document.getElementById('teamsView');
-      
-      if (dashboardView) dashboardView.classList.add('hidden');
-      if (calendarView) calendarView.classList.add('hidden');
-      if (tasksView) tasksView.classList.remove('hidden');
-      if (teamsView) teamsView.classList.add('hidden');
-      
-      // Update header
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      
-      if (pageTitle) pageTitle.textContent = 'Tâches';
-      if (pageSubtitle) pageSubtitle.textContent = 'Gestion des tâches';
-      
-      // Render tasks
-      if (typeof renderTasksList === 'function') {
-        renderTasksList();
-      }
-      
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function showTeams(e) {
-      console.log('showTeams called', e);
-      if(e) e.preventDefault();
-      updateNavActive(e);
-      
-      // Hide all views
-      const dashboardView = document.getElementById('dashboardView');
-      const calendarView = document.getElementById('calendarView');
-      const tasksView = document.getElementById('tasksView');
-      const teamsView = document.getElementById('teamsView');
-      
-      if (dashboardView) dashboardView.classList.add('hidden');
-      if (calendarView) calendarView.classList.add('hidden');
-      if (tasksView) tasksView.classList.add('hidden');
-      if (teamsView) teamsView.classList.remove('hidden');
-      
-      // Update header
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      
-      if (pageTitle) pageTitle.textContent = 'Équipes';
-      if (pageSubtitle) pageSubtitle.textContent = 'Gestion des équipes et membres';
-      
-      // Render teams
-      if (typeof renderMembersList === 'function') {
-        renderMembersList();
-      }
-      
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function quickFilter(type, e) {
-      console.log('quickFilter called', type, e);
-      if(e) e.preventDefault();
-      updateNavActive(e);
-      
-      // Show tasks view with filter
-      const dashboardView = document.getElementById('dashboardView');
-      const calendarView = document.getElementById('calendarView');
-      const tasksView = document.getElementById('tasksView');
-      const teamsView = document.getElementById('teamsView');
-      
-      if (dashboardView) dashboardView.classList.add('hidden');
-      if (calendarView) calendarView.classList.add('hidden');
-      if (tasksView) tasksView.classList.remove('hidden');
-      if (teamsView) teamsView.classList.add('hidden');
-      
-      const titles = {
-        'mine': 'Mes tâches',
-        'late': 'En retard',
-        'week': 'Cette semaine'
-      };
-      
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      
-      if (pageTitle) pageTitle.textContent = titles[type] || type;
-      if (pageSubtitle) pageSubtitle.textContent = 'Vue filtrée';
-      
-      // Apply filter (you can customize this)
-      if (typeof renderTasksList === 'function') {
-        renderTasksList();
-      }
-      
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function updateNavActive(e) {
-      if(!e || !e.target) return;
-      const navItem = e.target.closest('.nav-item');
-      if (!navItem) return;
-      
-      document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-      });
-      navItem.classList.add('active');
-    }
-
-    // Make functions global - AFTER declarations
-    window.deleteTask = deleteTask;
-    window.removeMember = removeMember;
-    window.showDashboard = showDashboard;
-    window.showCalendar = showCalendar;
-    window.showTasks = showTasks;
-    window.showTeams = showTeams;
-    window.quickFilter = quickFilter;
-
-    function refreshDashboardStats() {
-      // Update dashboard statistics
-      document.getElementById('totalTasks').textContent = tasks.length;
-      document.getElementById('doneTasks').textContent = tasks.filter(t => t.completed).length;
-      document.getElementById('inProgressTasks').textContent = tasks.filter(t => !t.completed && new Date(t.end_date) >= new Date()).length;
-      
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      document.getElementById('lateTasks').textContent = tasks.filter(t => !t.completed && new Date(t.end_date) < today).length;
-      
-      // You can add more dashboard rendering here (charts, etc.)
-    }
-
-    // Initialize with calendar view on load
-    function initializeViews() {
-      console.log('initializeViews called');
-      
-      // Hide all views first
-      const dashboardView = document.getElementById('dashboardView');
-      const calendarView = document.getElementById('calendarView');
-      const tasksView = document.getElementById('tasksView');
-      const teamsView = document.getElementById('teamsView');
-      
-      console.log('Views elements:', {
-        dashboardView: !!dashboardView,
-        calendarView: !!calendarView,
-        tasksView: !!tasksView,
-        teamsView: !!teamsView
-      });
-      
-      if (dashboardView) dashboardView.classList.add('hidden');
-      if (calendarView) calendarView.classList.add('hidden');
-      if (tasksView) tasksView.classList.add('hidden');
-      if (teamsView) teamsView.classList.add('hidden');
-      
-      // Show calendar by default when logged in
-      if (calendarView) {
-        calendarView.classList.remove('hidden');
-        console.log('Calendar view shown');
-      }
-      
-      // Update header
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      
-      if (pageTitle) pageTitle.textContent = 'Calendrier';
-      
-      const month = new Date().getMonth();
-      const year = new Date().getFullYear();
-      const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-      if (pageSubtitle) pageSubtitle.textContent = `${months[month]} ${year}`;
-      
-      // Set calendar nav item as active
-      const calendarNavItem = document.querySelector('.nav-item[onclick*="showCalendar"]');
-      if (calendarNavItem) {
-        document.querySelectorAll('.nav-item').forEach(item => {
-          item.classList.remove('active');
-        });
-        calendarNavItem.classList.add('active');
-      }
-      
-      // Render calendar
-      if (typeof renderCalendar === 'function') {
-        console.log('Rendering calendar');
-        renderCalendar();
-      } else {
-        console.error('renderCalendar function not found');
-      }
-      
-      // Refresh icons
-      if (window.lucide) {
-        lucide.createIcons();
-        console.log('Icons refreshed');
-      }
-      
-      console.log('initializeViews completed');
-    }
   </script>
-
-  </main>
-  </div>
-  </div>
-
 </body>
 </html>
