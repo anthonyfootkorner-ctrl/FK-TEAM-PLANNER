@@ -1208,6 +1208,14 @@
 
                       <div class="alert alert-danger mt-3 hidden" id="regError"></div>
                       <div class="alert alert-success mt-3 hidden" id="regOk"></div>
+                      
+                      <!-- DEV MODE: Quick bypass for rate limit issues -->
+                      <div class="mt-3 pt-3 border-top">
+                        <small class="text-muted">🛠️ Mode développement</small>
+                        <button class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="bypassEmailConfirmation()">
+                          Créer compte sans confirmation email
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2051,17 +2059,36 @@
     }
 
     function continueAsGuest() {
+      console.log('🔵 continueAsGuest called');
       isGuestMode = true;
-      hide(document.getElementById('authView'));
-      show(document.getElementById('appView'));
+      
+      // Hide auth view
+      const authView = document.getElementById('authView');
+      const appView = document.getElementById('appView');
+      
+      console.log('authView:', authView);
+      console.log('appView:', appView);
+      
+      if (authView) {
+        hide(authView);
+        console.log('✅ Auth view hidden');
+      }
+      
+      // Show app view
+      if (appView) {
+        show(appView);
+        console.log('✅ App view shown');
+      }
       
       // Set guest UI
       setText(document.getElementById('userEmail'), 'Mode lecture seule');
       setText(document.getElementById('roleBadge'), '👁️ Invité');
       
       // Show login button, hide logout button
-      document.getElementById('btnLogin').style.display = 'inline-flex';
-      hide(document.getElementById('btnLogout'));
+      const btnLogin = document.getElementById('btnLogin');
+      const btnLogout = document.getElementById('btnLogout');
+      if (btnLogin) btnLogin.style.display = 'inline-flex';
+      if (btnLogout) hide(btnLogout);
       
       // Update UI elements
       updateUIForAuthState();
@@ -2073,6 +2100,8 @@
       switchView('calendarView');
 
       if (window.lucide) lucide.createIcons();
+      
+      console.log('✅ continueAsGuest finished');
     }
 
     function showLoginModal() {
@@ -2101,6 +2130,62 @@
     // =========================
     // AUTH
     // =========================
+    async function bypassEmailConfirmation() {
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+
+      if (!email || !password) {
+        alert('⚠️ Veuillez remplir email et mot de passe');
+        return;
+      }
+
+      if (password.length < 6) {
+        alert('⚠️ Le mot de passe doit faire au moins 6 caractères');
+        return;
+      }
+
+      try {
+        // Try to sign up with autoConfirm disabled (will work if email confirmation is disabled in Supabase)
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: document.getElementById('regName').value || null
+            }
+          }
+        });
+
+        if (error) {
+          // If signup fails, try to login instead (user might already exist)
+          const { data: loginData, error: loginError } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (loginError) {
+            throw new Error(`Erreur: ${error.message}\n\nSuggestion: Vérifiez que la confirmation email est désactivée dans Supabase (Authentication → Settings → Disable email confirmation)`);
+          }
+
+          alert('✅ Connexion réussie avec le compte existant!');
+          if (loginModalInstance) loginModalInstance.hide();
+          return;
+        }
+
+        if (data.user && !data.session) {
+          alert('⚠️ Compte créé mais vous devez confirmer votre email.\n\nPour désactiver cette contrainte:\n1. Supabase Dashboard\n2. Authentication → Settings\n3. Disable "Enable email confirmations"');
+          return;
+        }
+
+        alert('✅ Compte créé et connecté!');
+        if (loginModalInstance) loginModalInstance.hide();
+
+      } catch (err) {
+        alert('❌ ' + err.message);
+        console.error(err);
+      }
+    }
+
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       hide(document.getElementById("loginError"));
@@ -2142,7 +2227,13 @@
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          // Check if it's a rate limit error
+          if (error.message.includes('rate limit') || error.message.includes('email rate')) {
+            throw new Error('⏱️ Trop de tentatives d\'envoi d\'email.\n\nSolutions:\n1. Attendez 1 heure\n2. Utilisez la connexion par mot de passe\n3. Contactez l\'administrateur');
+          }
+          throw error;
+        }
 
         const ok = document.getElementById("loginOk");
         ok.textContent = `✉️ Magic Link envoyé à ${email}. Vérifie ta boîte mail !`;
@@ -3260,12 +3351,26 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
     async function setAuthedUI() {
       isGuestMode = false; // User is now logged in
       
-      hide(document.getElementById('authView'));
-      show(document.getElementById('appView'));
-      show(document.getElementById('btnLogout'));
+      const authView = document.getElementById('authView');
+      const appView = document.getElementById('appView');
+      const btnLogout = document.getElementById('btnLogout');
+      const btnLogin = document.getElementById('btnLogin');
+      
+      if (authView) hide(authView);
+      if (appView) show(appView);
+      if (btnLogout) show(btnLogout);
       
       // Hide login button
-      document.getElementById('btnLogin').style.display = 'none';
+      if (btnLogin) btnLogin.style.display = 'none';
+      
+      // Close login modal if open
+      if (loginModalInstance) {
+        try {
+          loginModalInstance.hide();
+        } catch (e) {
+          console.log('Modal already closed');
+        }
+      }
 
       setText(document.getElementById('userEmail'), user.email || '');
       setText(document.getElementById('roleBadge'), '✓ Connecté');
@@ -3283,9 +3388,15 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
     }
 
     function setAnonUI() {
-      show(document.getElementById('authView'));
-      hide(document.getElementById('appView'));
-      hide(document.getElementById('btnLogout'));
+      const authView = document.getElementById('authView');
+      const appView = document.getElementById('appView');
+      const btnLogout = document.getElementById('btnLogout');
+      const btnLogin = document.getElementById('btnLogin');
+      
+      if (authView) show(authView);
+      if (appView) hide(appView);
+      if (btnLogout) hide(btnLogout);
+      if (btnLogin) btnLogin.style.display = 'none';
 
       setText(document.getElementById('userEmail'), '');
       setText(document.getElementById('roleBadge'), 'non connecté');
