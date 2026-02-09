@@ -1076,6 +1076,14 @@
         <div class="d-flex align-items-center gap-2">
           <span class="badge text-bg-light border d-none d-md-inline" id="roleBadge">non connecté</span>
           <span class="text-secondary small d-none d-md-inline" id="userEmail"></span>
+          
+          <!-- Guest mode: Login button -->
+          <button class="btn btn-primary btn-sm" id="btnLogin" onclick="showLoginModal()" style="display:none;">
+            <i data-lucide="log-in" style="width:16px;height:16px;"></i>
+            <span class="d-none d-lg-inline ms-1">Se connecter</span>
+          </button>
+          
+          <!-- Logged in: Logout button -->
           <button class="btn btn-outline-secondary btn-sm hidden" id="btnLogout">
             <i data-lucide="log-out" class="d-lg-none" style="width:16px;height:16px;"></i>
             <span class="d-none d-lg-inline">Se déconnecter</span>
@@ -1088,87 +1096,122 @@
 
         <!-- AUTH VIEW -->
         <div id="authView" class="row g-3">
-          <div class="col-12 col-lg-6">
-            <div class="card p-4">
-              <h4 class="mb-1">Connexion</h4>
-              <p class="text-secondary mb-4">Connecte-toi pour accéder à FK Team Planner.</p>
-
-              <!-- Tabs pour choisir entre mot de passe et magic link -->
-              <ul class="nav nav-tabs mb-3" role="tablist">
-                <li class="nav-item" role="presentation">
-                  <button class="nav-link active" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-login" type="button" role="tab">
-                    Mot de passe
-                  </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                  <button class="nav-link" id="magiclink-tab" data-bs-toggle="tab" data-bs-target="#magiclink-login" type="button" role="tab">
-                    Magic Link
-                  </button>
-                </li>
-              </ul>
-
-              <div class="tab-content">
-                <!-- PASSWORD LOGIN -->
-                <div class="tab-pane fade show active" id="password-login" role="tabpanel">
-                  <form id="loginForm" class="vstack gap-2">
-                    <div>
-                      <label class="form-label" for="loginEmail">Email</label>
-                      <input class="form-control" type="email" id="loginEmail" required />
-                    </div>
-                    <div>
-                      <label class="form-label" for="loginPassword">Mot de passe</label>
-                      <input class="form-control" type="password" id="loginPassword" required />
-                    </div>
-                    <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
-                  </form>
-                </div>
-
-                <!-- MAGIC LINK LOGIN -->
-                <div class="tab-pane fade" id="magiclink-login" role="tabpanel">
-                  <form id="magicLinkForm" class="vstack gap-2">
-                    <div>
-                      <label class="form-label" for="magicLinkEmail">Email</label>
-                      <input class="form-control" type="email" id="magicLinkEmail" required />
-                      <div class="form-text">Un lien de connexion sera envoyé à cette adresse.</div>
-                    </div>
-                    <button class="btn btn-primary mt-2" type="submit">
-                      <i data-lucide="mail" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></i>
-                      Envoyer le Magic Link
-                    </button>
-                  </form>
-                </div>
+          <div class="col-12">
+            <div class="card p-4 text-center">
+              <h3 class="mb-3">👋 Bienvenue sur FK Team Planner</h3>
+              <p class="text-secondary mb-4">
+                Vous pouvez <strong>consulter</strong> le calendrier et les tâches sans vous connecter.<br>
+                Pour <strong>créer ou modifier</strong> des tâches, veuillez vous connecter.
+              </p>
+              <div class="d-flex gap-2 justify-content-center mb-3">
+                <button class="btn btn-primary" onclick="continueAsGuest()">
+                  <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                  Continuer en lecture seule
+                </button>
+                <button class="btn btn-outline-primary" onclick="showLoginModal()">
+                  <i data-lucide="log-in" style="width:16px;height:16px;"></i>
+                  Se connecter
+                </button>
               </div>
-
-              <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
-              <div class="alert alert-success mt-3 hidden" id="loginOk"></div>
             </div>
           </div>
+        </div>
 
-          <div class="col-12 col-lg-6">
-            <div class="card p-4">
-              <h4 class="mb-1">Créer un compte</h4>
-              <p class="text-secondary mb-4">Inscription simple (email + mot de passe).</p>
+        <!-- LOGIN MODAL -->
+        <div class="modal fade" id="loginModal" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Connexion / Inscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3">
+                  <div class="col-12 col-lg-6">
+                    <div class="card p-4">
+                      <h4 class="mb-1">Connexion</h4>
+                      <p class="text-secondary mb-4">Connecte-toi pour gérer les tâches.</p>
 
-              <form id="registerForm" class="vstack gap-2">
-                <div>
-                  <label class="form-label" for="regName">Nom complet (optionnel)</label>
-                  <input class="form-control" type="text" id="regName" placeholder="Anthony POIGNARD" />
+                      <!-- Tabs pour choisir entre mot de passe et magic link -->
+                      <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link active" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-login" type="button" role="tab">
+                            Mot de passe
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="magiclink-tab" data-bs-toggle="tab" data-bs-target="#magiclink-login" type="button" role="tab">
+                            Magic Link
+                          </button>
+                        </li>
+                      </ul>
+
+                      <div class="tab-content">
+                        <!-- PASSWORD LOGIN -->
+                        <div class="tab-pane fade show active" id="password-login" role="tabpanel">
+                          <form id="loginForm" class="vstack gap-2">
+                            <div>
+                              <label class="form-label" for="loginEmail">Email</label>
+                              <input class="form-control" type="email" id="loginEmail" required />
+                            </div>
+                            <div>
+                              <label class="form-label" for="loginPassword">Mot de passe</label>
+                              <input class="form-control" type="password" id="loginPassword" required />
+                            </div>
+                            <button class="btn btn-primary mt-2" type="submit">Se connecter</button>
+                          </form>
+                        </div>
+
+                        <!-- MAGIC LINK LOGIN -->
+                        <div class="tab-pane fade" id="magiclink-login" role="tabpanel">
+                          <form id="magicLinkForm" class="vstack gap-2">
+                            <div>
+                              <label class="form-label" for="magicLinkEmail">Email</label>
+                              <input class="form-control" type="email" id="magicLinkEmail" required />
+                              <div class="form-text">Un lien de connexion sera envoyé à cette adresse.</div>
+                            </div>
+                            <button class="btn btn-primary mt-2" type="submit">
+                              <i data-lucide="mail" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></i>
+                              Envoyer le Magic Link
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+
+                      <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
+                      <div class="alert alert-success mt-3 hidden" id="loginOk"></div>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <div class="card p-4">
+                      <h4 class="mb-1">Créer un compte</h4>
+                      <p class="text-secondary mb-4">Inscription simple (email + mot de passe).</p>
+
+                      <form id="registerForm" class="vstack gap-2">
+                        <div>
+                          <label class="form-label" for="regName">Nom complet (optionnel)</label>
+                          <input class="form-control" type="text" id="regName" placeholder="Anthony POIGNARD" />
+                        </div>
+                        <div>
+                          <label class="form-label" for="regEmail">Email</label>
+                          <input class="form-control" type="email" id="regEmail" required />
+                        </div>
+                        <div>
+                          <label class="form-label" for="regPassword">Mot de passe</label>
+                          <input class="form-control" type="password" id="regPassword" required minlength="6" />
+                          <div class="form-text">Min 6 caractères.</div>
+                        </div>
+
+                        <button class="btn btn-outline-primary mt-2" type="submit">Créer le compte</button>
+                      </form>
+
+                      <div class="alert alert-danger mt-3 hidden" id="regError"></div>
+                      <div class="alert alert-success mt-3 hidden" id="regOk"></div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label class="form-label" for="regEmail">Email</label>
-                  <input class="form-control" type="email" id="regEmail" required />
-                </div>
-                <div>
-                  <label class="form-label" for="regPassword">Mot de passe</label>
-                  <input class="form-control" type="password" id="regPassword" required minlength="6" />
-                  <div class="form-text">Min 6 caractères.</div>
-                </div>
-
-                <button class="btn btn-outline-primary mt-2" type="submit">Créer le compte</button>
-              </form>
-
-              <div class="alert alert-danger mt-3 hidden" id="regError"></div>
-              <div class="alert alert-success mt-3 hidden" id="regOk"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1303,7 +1346,7 @@
                   <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Tâches</h5>
                     <div class="d-flex gap-2">
-                      <button class="btn btn-primary" onclick="showCreateTaskModal()">
+                      <button class="btn btn-primary require-auth" onclick="showCreateTaskModal()">
                         <i data-lucide="plus" style="width:14px;height:14px;"></i>
                         Nouvelle tâche
                       </button>
@@ -1311,14 +1354,14 @@
                         <i data-lucide="download" style="width:14px;height:14px;"></i>
                         Modèle
                       </button>
-                      <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('importTasksFile').click()">
+                      <button class="btn btn-outline-secondary btn-sm require-auth" onclick="document.getElementById('importTasksFile').click()">
                         <i data-lucide="upload" style="width:14px;height:14px;"></i>
-                        Import CSV
+                        Import TXT
                       </button>
-                      <input type="file" id="importTasksFile" accept=".csv,.xlsx" style="display:none;" onchange="importTasks(event)">
+                      <input type="file" id="importTasksFile" accept=".txt,.tsv" style="display:none;" onchange="importTasks(event)">
                       <button class="btn btn-success btn-sm" onclick="exportTasksCSV()">
                         <i data-lucide="download" style="width:14px;height:14px;"></i>
-                        Export CSV
+                        Export TXT
                       </button>
                       <button class="btn btn-success btn-sm" onclick="exportTasksJSON()">
                         <i data-lucide="download" style="width:14px;height:14px;"></i>
@@ -1386,12 +1429,12 @@
                   <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('importEventsFile').click()">
                       <i data-lucide="upload" style="width:14px;height:14px;"></i>
-                      Import CSV
+                      Import TXT
                     </button>
-                    <input type="file" id="importEventsFile" accept=".csv" style="display:none;" onchange="importEvents(event)">
+                    <input type="file" id="importEventsFile" accept=".txt,.tsv" style="display:none;" onchange="importEvents(event)">
                     <button class="btn btn-success btn-sm" onclick="exportEventsCSV()">
                       <i data-lucide="download" style="width:14px;height:14px;"></i>
-                      Export CSV
+                      Export TXT
                     </button>
                     <button class="btn btn-success btn-sm" onclick="exportEventsJSON()">
                       <i data-lucide="download" style="width:14px;height:14px;"></i>
@@ -1539,6 +1582,7 @@
     let events = [];
     let memberships = [];
     let calDate = new Date();
+    let isGuestMode = false; // Mode lecture seule
 
     // =========================
     // UTILS
@@ -1770,6 +1814,11 @@
     }
 
     function showCreateTaskModal(defaultDate = null) {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour créer des tâches.\n\nCliquez sur "Se connecter" en haut à droite.');
+        return;
+      }
+
       currentEditingTaskId = null;
       
       document.getElementById('taskModalTitle').textContent = 'Nouvelle tâche';
@@ -1801,6 +1850,11 @@
     }
 
     function showEditTaskModal(taskId) {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour modifier des tâches.\n\nCliquez sur "Se connecter" en haut à droite.');
+        return;
+      }
+
       const task = tasks.find(t => t.id === taskId);
       if (!task) return;
 
@@ -1980,6 +2034,71 @@
     });
 
     // =========================
+    // GUEST MODE
+    // =========================
+    let loginModalInstance = null;
+
+    function updateUIForAuthState() {
+      // Hide/show elements based on guest mode
+      const requireAuthElements = document.querySelectorAll('.require-auth');
+      requireAuthElements.forEach(el => {
+        if (isGuestMode) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = '';
+        }
+      });
+    }
+
+    function continueAsGuest() {
+      isGuestMode = true;
+      hide(document.getElementById('authView'));
+      show(document.getElementById('appView'));
+      
+      // Set guest UI
+      setText(document.getElementById('userEmail'), 'Mode lecture seule');
+      setText(document.getElementById('roleBadge'), '👁️ Invité');
+      
+      // Show login button, hide logout button
+      document.getElementById('btnLogin').style.display = 'inline-flex';
+      hide(document.getElementById('btnLogout'));
+      
+      // Update UI elements
+      updateUIForAuthState();
+      
+      // Load data without user
+      loadGuestData();
+      
+      // Show calendar by default
+      switchView('calendarView');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function showLoginModal() {
+      const modalEl = document.getElementById('loginModal');
+      if (!modalEl) return;
+      
+      if (!loginModalInstance) {
+        loginModalInstance = new bootstrap.Modal(modalEl);
+      }
+      loginModalInstance.show();
+      
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function loadGuestData() {
+      try {
+        await loadTeams();
+        await loadTasks();
+        await loadEvents();
+        populateTaskFilters();
+      } catch (error) {
+        console.error('Erreur chargement données:', error);
+      }
+    }
+
+    // =========================
     // AUTH
     // =========================
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
@@ -2000,6 +2119,11 @@
       const ok = document.getElementById("loginOk");
       ok.textContent = "Connecté.";
       show(ok);
+      
+      // Close modal after successful login
+      setTimeout(() => {
+        if (loginModalInstance) loginModalInstance.hide();
+      }, 1000);
     });
 
     // Magic Link Form
@@ -2607,6 +2731,7 @@
                 ${t.priority ? `<span class="badge bg-${t.priority === 'haute' ? 'danger' : t.priority === 'moyenne' ? 'warning' : 'secondary'}">${escapeHtml(t.priority)}</span>` : ''}
               </div>
             </div>
+            ${!isGuestMode ? `
             <div class="d-flex gap-1">
               <button class="btn btn-sm btn-outline-primary" onclick="showEditTaskModal('${t.id}')" title="Modifier">
                 <i data-lucide="edit" style="width:14px;height:14px;"></i>
@@ -2615,6 +2740,7 @@
                 <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
               </button>
             </div>
+            ` : ''}
           </div>
         `;
         container.appendChild(card);
@@ -2642,6 +2768,11 @@
     document.getElementById('taskTeamFilter')?.addEventListener('change', renderTasksList);
 
     async function deleteTask(taskId) {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour supprimer des tâches.');
+        return;
+      }
+
       if (!confirm('Supprimer cette tâche ?')) return;
 
       const { error } = await supabaseClient
@@ -2707,6 +2838,11 @@
     }
 
     async function deleteTeam(teamId) {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour supprimer des équipes.');
+        return;
+      }
+
       if (!confirm('Supprimer cette équipe et toutes ses tâches ?')) return;
 
       // Delete tasks first
@@ -2727,6 +2863,11 @@
     }
 
     function showCreateTeamModal() {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour créer des équipes.');
+        return;
+      }
+
       const name = prompt('Nom de l\'équipe:');
       if (!name) return;
 
@@ -2734,6 +2875,7 @@
     }
 
     async function createTeam(name) {
+      if (isGuestMode) return;
       const { error } = await supabaseClient
         .from('teams')
         .insert([{ name, created_by: user.id }]);
@@ -2792,6 +2934,11 @@
     }
 
     async function deleteEvent(eventId) {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour supprimer des événements.');
+        return;
+      }
+
       if (!confirm('Supprimer cet événement ?')) return;
 
       const { error } = await supabaseClient
@@ -2810,6 +2957,11 @@
     }
 
     function showCreateEventModal() {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour créer des événements.');
+        return;
+      }
+
       const name = prompt('Nom de l\'événement:');
       if (!name) return;
 
@@ -2822,6 +2974,7 @@
     }
 
     async function createEvent(name, date, type) {
+      if (isGuestMode) return;
       const { error } = await supabaseClient
         .from('events')
         .insert([{
@@ -2887,16 +3040,25 @@
       URL.revokeObjectURL(link.href);
     }
 
+    function downloadTSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
     function exportTasksCSV() {
-      let csv = 'Titre,Description,Catégorie,Début,Fin,Équipe,Priorité,Couleur,Statut\n';
+      let tsv = 'Titre\tDescription\tCatégorie\tDébut\tFin\tÉquipe\tPriorité\tCouleur\tStatut\n';
       
       tasks.forEach(t => {
         const teamName = (t.teams && t.teams.name) ? t.teams.name : '';
         const color = t.color || getTeamColor(t.team_id);
-        csv += `"${t.title}","${t.description || ''}","${t.category || ''}","${t.start_date}","${t.end_date}","${teamName}","${t.priority || ''}","${color}","${t.completed ? 'Terminée' : 'À faire'}"\n`;
+        tsv += `${t.title}\t${t.description || ''}\t${t.category || ''}\t${t.start_date}\t${t.end_date}\t${teamName}\t${t.priority || ''}\t${color}\t${t.completed ? 'Terminée' : 'À faire'}\n`;
       });
 
-      downloadCSV(csv, 'taches_export.csv');
+      downloadTSV(tsv, 'taches_export.txt');
     }
 
     function exportTasksJSON() {
@@ -2932,13 +3094,13 @@
     }
 
     function exportEventsCSV() {
-      let csv = 'Nom,Type,Date début,Date fin\n';
+      let tsv = 'Nom\tType\tDate début\tDate fin\n';
       
       events.forEach(e => {
-        csv += `"${e.name}","${e.type || ''}","${e.start_date}","${e.end_date}"\n`;
+        tsv += `${e.name}\t${e.type || ''}\t${e.start_date}\t${e.end_date}\n`;
       });
 
-      downloadCSV(csv, 'evenements_export.csv');
+      downloadTSV(tsv, 'evenements_export.txt');
     }
 
     function exportEventsJSON() {
@@ -2952,11 +3114,11 @@
     }
 
     function downloadTasksTemplate() {
-      const csv = `Titre,Description,Catégorie,Début,Fin,Équipe,Priorité,Couleur
-"Exemple tâche 1","Description de la tâche","Dev","2026-02-01","2026-02-15","Production","haute","#FF6B35"
-"Exemple tâche 2","Autre description","Design","2026-02-05","2026-02-10","Design","moyenne","#3B82F6"
-"Exemple tâche 3","Exemple sans couleur (auto selon équipe)","Marketing","2026-02-10","2026-02-20","Marketing","basse",""`;
-      downloadCSV(csv, 'modele_taches.csv');
+      const tsv = `Titre\tDescription\tCatégorie\tDébut\tFin\tÉquipe\tPriorité\tCouleur
+Exemple tâche 1\tDescription de la tâche\tDev\t2026-02-01\t2026-02-15\tProduction\thaute\t#FF6B35
+Exemple tâche 2\tAutre description\tDesign\t2026-02-05\t2026-02-10\tDesign\tmoyenne\t#3B82F6
+Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-10\t2026-02-20\tMarketing\tbasse\t`;
+      downloadTSV(tsv, 'modele_taches.txt');
     }
 
     function importTasks(event) {
@@ -2977,9 +3139,10 @@
         let errors = 0;
         
         for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+          // Split by tab instead of comma
+          const parts = lines[i].split('\t').map(p => p.trim());
           if (parts.length >= 5) {
-            const [title, description, category, start_date, end_date, teamName, priority, colorFromCSV] = parts;
+            const [title, description, category, start_date, end_date, teamName, priority, colorFromTSV] = parts;
             
             // Find team
             let team_id = teams[0]?.id;
@@ -2989,11 +3152,11 @@
               if (team) team_id = team.id;
             }
 
-            // Determine color: use CSV color if provided, otherwise auto-assign based on team
+            // Determine color: use TSV color if provided, otherwise auto-assign based on team
             let taskColor = '#FF6B35'; // default
-            if (colorFromCSV && colorFromCSV.startsWith('#')) {
-              // Color provided in CSV
-              taskColor = colorFromCSV;
+            if (colorFromTSV && colorFromTSV.startsWith('#')) {
+              // Color provided in TSV
+              taskColor = colorFromTSV;
             } else if (team_id) {
               // Auto-assign color based on team
               taskColor = getTeamColor(team_id);
@@ -3048,7 +3211,8 @@
         const lines = text.split('\n').filter(l => l.trim());
         
         for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+          // Split by tab instead of comma
+          const parts = lines[i].split('\t').map(p => p.trim());
           if (parts.length >= 3) {
             const [name, type, start_date, end_date] = parts;
 
@@ -3094,11 +3258,20 @@
     // INIT
     // =========================
     async function setAuthedUI() {
+      isGuestMode = false; // User is now logged in
+      
       hide(document.getElementById('authView'));
       show(document.getElementById('appView'));
       show(document.getElementById('btnLogout'));
+      
+      // Hide login button
+      document.getElementById('btnLogin').style.display = 'none';
 
       setText(document.getElementById('userEmail'), user.email || '');
+      setText(document.getElementById('roleBadge'), '✓ Connecté');
+      
+      // Update UI elements
+      updateUIForAuthState();
       
       await loadAllData();
       populateTaskFilters();
