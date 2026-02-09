@@ -2753,9 +2753,16 @@
       const calGrid = document.getElementById('calGrid');
       if (!calGrid) return;
 
-      // Clear existing cells (keep headers)
-      const cells = calGrid.querySelectorAll('.cal-cell');
-      cells.forEach(c => c.remove());
+      // Clear everything and rebuild the grid structure
+      calGrid.innerHTML = `
+        <div class="cal-head">Lun</div>
+        <div class="cal-head">Mar</div>
+        <div class="cal-head">Mer</div>
+        <div class="cal-head">Jeu</div>
+        <div class="cal-head">Ven</div>
+        <div class="cal-head">Sam</div>
+        <div class="cal-head">Dim</div>
+      `;
 
       const year = calDate.getFullYear();
       const month = calDate.getMonth();
