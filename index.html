@@ -1347,7 +1347,11 @@
                 </button>
                 <button class="btn btn-outline-secondary btn-sm" id="calToday">Aujourd'hui</button>
               </div>
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 align-items-center">
+                <!-- Team filter -->
+                <select class="form-select form-select-sm" id="calTeamFilter" style="width:auto;min-width:150px;" onchange="renderCalendar()">
+                  <option value="">Toutes les équipes</option>
+                </select>
                 <!-- Desktop view switcher -->
                 <div class="btn-group d-none d-lg-flex" role="group">
                   <button class="btn btn-outline-secondary btn-sm" id="calViewDay">Jour</button>
@@ -2528,13 +2532,20 @@
       const today = ymd(new Date());
       const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
+      // Get filter value
+      const teamFilterValue = document.getElementById('calTeamFilter')?.value || '';
+
       for (let day = 1; day <= lastDay; day++) {
         const dt = new Date(year, month, day);
         const dStr = ymd(dt);
         const dayName = dayNames[dt.getDay()];
 
-        // Get tasks for this day
-        const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date));
+        // Get tasks for this day (with filter)
+        let dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date));
+        if (teamFilterValue) {
+          dayTasks = dayTasks.filter(t => t.team_id === teamFilterValue);
+        }
+        
         const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dStr, e.start_date, e.end_date));
 
         const allItems = [...dayTasks, ...dayEvents];
@@ -2629,8 +2640,15 @@
       // Update title
       setText(document.getElementById('calTitle'), `${calDate.getDate()} ${monthNames[calDate.getMonth()]} ${calDate.getFullYear()}`);
 
-      // Get tasks for this day
-      const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dateStr, t.start_date, t.end_date));
+      // Get filter value
+      const teamFilterValue = document.getElementById('calTeamFilter')?.value || '';
+
+      // Get tasks for this day (with filter)
+      let dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dateStr, t.start_date, t.end_date));
+      if (teamFilterValue) {
+        dayTasks = dayTasks.filter(t => t.team_id === teamFilterValue);
+      }
+
       const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dateStr, e.start_date, e.end_date));
 
       const allItems = [...dayTasks, ...dayEvents].sort((a, b) => {
@@ -2702,6 +2720,9 @@
       const today = ymd(new Date());
       const dayNamesShort = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
+      // Get filter value
+      const teamFilterValue = document.getElementById('calTeamFilter')?.value || '';
+
       calGrid.innerHTML = `
         <div class="week-view-container">
           <div class="week-view-content">
@@ -2709,7 +2730,13 @@
               ${weekDays.map(day => {
                 const dateStr = ymd(day);
                 const isToday = dateStr === today;
-                const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dateStr, t.start_date, t.end_date));
+                
+                // Get tasks for this day (with filter)
+                let dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dateStr, t.start_date, t.end_date));
+                if (teamFilterValue) {
+                  dayTasks = dayTasks.filter(t => t.team_id === teamFilterValue);
+                }
+                
                 const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dateStr, e.start_date, e.end_date));
                 const allItems = [...dayTasks, ...dayEvents];
 
@@ -2784,6 +2811,10 @@
 
       // Days
       const today = ymd(new Date());
+      
+      // Get filter value
+      const teamFilterValue = document.getElementById('calTeamFilter')?.value || '';
+      
       for (let day=1; day<=last.getDate(); day++) {
         const dt = new Date(year, month, day);
         const dStr = ymd(dt);
@@ -2798,8 +2829,11 @@
           cell.style.border = "2px solid var(--orange)";
         }
 
-        // Tasks for this day
-        const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date));
+        // Tasks for this day (with filter)
+        let dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date));
+        if (teamFilterValue) {
+          dayTasks = dayTasks.filter(t => t.team_id === teamFilterValue);
+        }
 
         // Events for this day
         const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dStr, e.start_date, e.end_date));
@@ -2957,16 +2991,29 @@
 
     // Populate team filter
     function populateTaskFilters() {
+      // Task view filter
       const teamFilter = document.getElementById('taskTeamFilter');
-      if (!teamFilter) return;
+      if (teamFilter) {
+        teamFilter.innerHTML = '<option value="">Toutes</option>';
+        teams.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name;
+          teamFilter.appendChild(opt);
+        });
+      }
 
-      teamFilter.innerHTML = '<option value="">Toutes</option>';
-      teams.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.name;
-        teamFilter.appendChild(opt);
-      });
+      // Calendar view filter
+      const calTeamFilter = document.getElementById('calTeamFilter');
+      if (calTeamFilter) {
+        calTeamFilter.innerHTML = '<option value="">Toutes les équipes</option>';
+        teams.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name;
+          calTeamFilter.appendChild(opt);
+        });
+      }
     }
 
     document.getElementById('taskStatusFilter')?.addEventListener('change', renderTasksList);
