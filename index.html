@@ -614,7 +614,7 @@
     .week-view-container {
       background: white;
       border-radius: 12px;
-      overflow: hidden;
+      overflow: visible;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
@@ -637,26 +637,31 @@
       padding: 0;
       overflow-x: auto;
       overflow-y: visible;
+      width: 100%;
     }
 
     .week-view-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(180px, 1fr));
+      display: flex;
       gap: 1px;
       background: var(--gray-200);
       border: 1px solid var(--gray-200);
-      width: max-content;
+      width: fit-content;
       min-width: 100%;
     }
 
     .week-day-column {
       background: white;
       min-height: 400px;
-      min-width: 180px;
+      flex: 0 0 180px;
       width: 180px;
       padding: 0.75rem 0.5rem;
       display: flex;
       flex-direction: column;
+      border-right: 1px solid var(--gray-200);
+    }
+
+    .week-day-column:last-child {
+      border-right: none;
     }
 
     .week-day-number {
@@ -707,14 +712,19 @@
 
     @media (max-width: 991px) {
       .week-view-grid {
-        grid-template-columns: 1fr;
+        flex-direction: column;
         width: 100%;
       }
 
       .week-day-column {
         border-bottom: 2px solid var(--gray-200);
-        min-width: auto;
+        border-right: none;
+        flex: 1 1 auto;
         width: 100%;
+      }
+
+      .week-day-column:last-child {
+        border-bottom: none;
       }
 
       .week-view-content {
