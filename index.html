@@ -2117,13 +2117,59 @@
     }
 
     async function loadGuestData() {
+      console.log('🔵 loadGuestData called');
       try {
-        await loadTeams();
-        await loadTasks();
-        await loadEvents();
+        // Load teams (public read)
+        const { data: teamsData, error: teamsError } = await supabaseClient
+          .from('teams')
+          .select('*')
+          .order('name');
+        
+        if (teamsError) {
+          console.warn('⚠️ Error loading teams:', teamsError);
+          teams = [];
+        } else {
+          teams = teamsData || [];
+          console.log('✅ Teams loaded:', teams.length);
+        }
+
+        // Load tasks with team info (public read)
+        const { data: tasksData, error: tasksError } = await supabaseClient
+          .from('tasks')
+          .select('*, teams(*)')
+          .order('start_date');
+        
+        if (tasksError) {
+          console.warn('⚠️ Error loading tasks:', tasksError);
+          tasks = [];
+        } else {
+          tasks = tasksData || [];
+          console.log('✅ Tasks loaded:', tasks.length);
+        }
+
+        // Load events (public read)
+        const { data: eventsData, error: eventsError } = await supabaseClient
+          .from('events')
+          .select('*')
+          .order('start_date');
+        
+        if (eventsError) {
+          console.warn('⚠️ Error loading events:', eventsError);
+          events = [];
+        } else {
+          events = eventsData || [];
+          console.log('✅ Events loaded:', events.length);
+        }
+
         populateTaskFilters();
+        console.log('✅ loadGuestData finished');
+        
       } catch (error) {
-        console.error('Erreur chargement données:', error);
+        console.error('❌ Error in loadGuestData:', error);
+        // Set empty arrays so the app doesn't crash
+        teams = [];
+        tasks = [];
+        events = [];
       }
     }
 
