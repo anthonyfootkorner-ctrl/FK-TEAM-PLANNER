@@ -3282,6 +3282,40 @@
     }
 
     // =========================
+    // DATE UTILITIES
+    // =========================
+    function parseDateString(dateStr) {
+      if (!dateStr) return null;
+      
+      dateStr = dateStr.trim();
+      
+      // Already in ISO format (YYYY-MM-DD)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      
+      // French format (DD/MM/YYYY) or (DD-MM-YYYY)
+      const frenchMatch = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (frenchMatch) {
+        const day = frenchMatch[1].padStart(2, '0');
+        const month = frenchMatch[2].padStart(2, '0');
+        const year = frenchMatch[3];
+        return `${year}-${month}-${day}`;
+      }
+      
+      // American format (MM/DD/YYYY) - fallback
+      const americanMatch = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (americanMatch) {
+        const month = americanMatch[1].padStart(2, '0');
+        const day = americanMatch[2].padStart(2, '0');
+        const year = americanMatch[3];
+        return `${year}-${month}-${day}`;
+      }
+      
+      return null;
+    }
+
+    // =========================
     // EXPORT FUNCTIONS
     // =========================
     function downloadCSV(content, filename) {
@@ -3390,12 +3424,26 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
 
         let imported = 0;
         let errors = 0;
+        const errorDetails = [];
         
         for (let i = 1; i < lines.length; i++) {
           // Split by tab instead of comma
           const parts = lines[i].split('\t').map(p => p.trim());
           if (parts.length >= 5) {
-            const [title, description, category, start_date, end_date, teamName, priority, colorFromTSV] = parts;
+            const [title, description, category, start_date_raw, end_date_raw, teamName, priority, colorFromTSV] = parts;
+            
+            // Skip empty titles
+            if (!title) continue;
+            
+            // Convert dates from French format to ISO
+            const start_date = parseDateString(start_date_raw);
+            const end_date = parseDateString(end_date_raw);
+            
+            if (!start_date || !end_date) {
+              errorDetails.push(`Ligne ${i + 1}: "${title}" - dates invalides (${start_date_raw} / ${end_date_raw})`);
+              errors++;
+              continue;
+            }
             
             // Find team
             let team_id = teams[0]?.id;
@@ -3416,6 +3464,7 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
             }
 
             if (!team_id) {
+              errorDetails.push(`Ligne ${i + 1}: "${title}" - équipe "${teamName}" introuvable`);
               errors++;
               continue;
             }
@@ -3438,6 +3487,7 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
               imported++;
             } catch (e) {
               console.error('Erreur import tâche:', e);
+              errorDetails.push(`Ligne ${i + 1}: "${title}" - ${e.message}`);
               errors++;
             }
           }
@@ -3448,7 +3498,18 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
         renderCalendar();
         if (calendarViewMode === 'list') renderCalendarList();
         
-        alert(`✅ Import terminé!\n${imported} tâche(s) importée(s)\n${errors} erreur(s)\n\n💡 Les tâches sans couleur ont été colorées automatiquement selon leur équipe.`);
+        let message = `✅ Import terminé!\n${imported} tâche(s) importée(s)\n${errors} erreur(s)`;
+        
+        if (errorDetails.length > 0) {
+          message += '\n\n⚠️ Détails des erreurs:\n' + errorDetails.slice(0, 5).join('\n');
+          if (errorDetails.length > 5) {
+            message += `\n... et ${errorDetails.length - 5} autres erreurs`;
+          }
+        } else if (imported > 0) {
+          message += '\n\n💡 Les tâches sans couleur ont été colorées automatiquement selon leur équipe.';
+        }
+        
+        alert(message);
         event.target.value = '';
       };
       reader.readAsText(file);
