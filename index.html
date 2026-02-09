@@ -400,7 +400,11 @@
       border-right: 1px solid var(--gray-100) !important;
       border-bottom: 1px solid var(--gray-100) !important;
       padding: 0.5rem !important;
-      min-height: 80px !important;
+      min-height: 120px !important;
+      max-height: 250px !important;
+      height: auto !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
       transition: background 0.2s ease !important;
       border-radius: 0 !important;
     }
@@ -408,7 +412,8 @@
     @media (min-width: 768px) {
       .cal-cell {
         padding: 12px !important;
-        min-height: 120px !important;
+        min-height: 200px !important;
+        max-height: 350px !important;
       }
     }
 
@@ -616,30 +621,42 @@
     .day-view-header,
     .week-day-header {
       background: var(--gray-50);
-      padding: 1rem;
+      padding: 0.5rem;
       border-bottom: 1px solid var(--gray-200);
       font-weight: 600;
       text-align: center;
+      font-size: 0.875rem;
     }
 
-    .day-view-content,
-    .week-view-content {
+    .day-view-content {
       padding: 1rem;
       min-height: 400px;
     }
 
+    .week-view-content {
+      padding: 0;
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
     .week-view-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(180px, 1fr));
       gap: 1px;
       background: var(--gray-200);
       border: 1px solid var(--gray-200);
+      width: max-content;
+      min-width: 100%;
     }
 
     .week-day-column {
       background: white;
       min-height: 400px;
-      padding: 0.5rem;
+      min-width: 180px;
+      width: 180px;
+      padding: 0.75rem 0.5rem;
+      display: flex;
+      flex-direction: column;
     }
 
     .week-day-number {
@@ -691,10 +708,17 @@
     @media (max-width: 991px) {
       .week-view-grid {
         grid-template-columns: 1fr;
+        width: 100%;
       }
 
       .week-day-column {
         border-bottom: 2px solid var(--gray-200);
+        min-width: auto;
+        width: 100%;
+      }
+
+      .week-view-content {
+        overflow-x: visible;
       }
     }
 
@@ -2699,9 +2723,11 @@
                         </div>
                       `;
                     }).join('')}
+                    ${!isGuestMode ? `
                     <button class="btn btn-sm btn-outline-primary w-100 mt-2" onclick="showCreateTaskModal('${dateStr}')" style="font-size:0.75rem;">
                       <i data-lucide="plus" style="width:12px;height:12px;"></i>
                     </button>
+                    ` : ''}
                   </div>
                 `;
               }).join('')}
@@ -2756,16 +2782,18 @@
         }
 
         // Tasks for this day
-        const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date)).slice(0, 3);
+        const dayTasks = tasks.filter(t => t.start_date && t.end_date && isBetween(dStr, t.start_date, t.end_date));
 
         // Events for this day
-        const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dStr, e.start_date, e.end_date)).slice(0, 2);
+        const dayEvents = events.filter(e => e.start_date && e.end_date && isBetween(dStr, e.start_date, e.end_date));
 
         let html = `<div class="d-flex align-items-center justify-content-between mb-2">
           <div class="cal-day">${day}</div>
+          ${!isGuestMode ? `
           <button class="btn btn-sm btn-primary" onclick="showCreateTaskModal('${dStr}')" title="Ajouter une tâche" style="padding:2px 6px;">
             <i data-lucide="plus" style="width:12px;height:12px;"></i>
           </button>
+          ` : ''}
         </div>`;
 
         for (const t of dayTasks) {
