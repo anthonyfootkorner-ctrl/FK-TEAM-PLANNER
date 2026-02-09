@@ -1118,12 +1118,12 @@
         </div>
 
         <!-- LOGIN MODAL -->
-        <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">Connexion / Inscription</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="loginModalLabel">Connexion / Inscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <div class="row g-3">
@@ -1467,7 +1467,7 @@
   </div>
 
   <!-- MODAL: CREATE/EDIT TASK -->
-  <div class="modal fade" id="taskModal" tabindex="-1">
+  <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalTitle" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -2247,14 +2247,17 @@
         show(box);
         return;
       }
+      
       const ok = document.getElementById("loginOk");
-      ok.textContent = "Connecté.";
+      ok.textContent = "✅ Connecté ! Redirection...";
       show(ok);
       
-      // Close modal after successful login
+      // Close modal and reload
       setTimeout(() => {
         if (loginModalInstance) loginModalInstance.hide();
-      }, 1000);
+        // Force reload to switch from guest to authenticated mode
+        window.location.reload();
+      }, 500);
     });
 
     // Magic Link Form
@@ -2320,9 +2323,22 @@
         return;
       }
 
+      if (data.user && !data.session) {
+        const ok = document.getElementById("regOk");
+        ok.textContent = "⚠️ Compte créé ! Vérifie ton email pour confirmer.";
+        show(ok);
+        return;
+      }
+
       const ok = document.getElementById("regOk");
-      ok.textContent = "Compte créé. Tu peux te connecter.";
+      ok.textContent = "✅ Compte créé ! Redirection...";
       show(ok);
+      
+      // Close modal and reload
+      setTimeout(() => {
+        if (loginModalInstance) loginModalInstance.hide();
+        window.location.reload();
+      }, 500);
     });
 
     document.getElementById("btnLogout").addEventListener("click", async () => {
