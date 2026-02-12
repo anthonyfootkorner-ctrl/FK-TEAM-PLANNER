@@ -2659,9 +2659,16 @@
               taskDiv.onclick = () => showEditTaskModal(item.id);
             }
 
+            const imgSrc = extractFirstImage(item.description);
+            
             taskDiv.innerHTML = `
               <div class="cal-list-task-color" style="background:${color};"></div>
               <div class="cal-list-task-content">
+                ${imgSrc ? `
+                  <div style="width:100%;height:100px;margin-bottom:8px;overflow:hidden;border-radius:6px;">
+                    <img src="${imgSrc}" alt="" style="width:100%;height:100%;object-fit:cover;">
+                  </div>
+                ` : ''}
                 <div class="cal-list-task-title">${escapeHtml(item.title || item.name)}</div>
                 <div class="cal-list-task-meta">
                   ${teamName ? `<span class="cal-list-task-badge">${escapeHtml(teamName)}</span>` : ''}
@@ -2740,20 +2747,20 @@
                 <div class="day-task-item ${isEvent ? '' : 'pointer'}" 
                      style="background:${color}15;border-left-color:${color};"
                      ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
-                  <div class="d-flex align-items-start justify-content-between gap-2">
-                    <div class="flex-grow-1">
-                      <div class="fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
-                      ${item.description ? `<div class="small text-secondary mt-1">${stripHtml(item.description).substring(0, 100)}${stripHtml(item.description).length > 100 ? '...' : ''}</div>` : ''}
-                      <div class="d-flex gap-2 mt-2 flex-wrap">
-                        ${teamName ? `<span class="badge bg-light text-dark">${escapeHtml(teamName)}</span>` : ''}
-                        ${item.category ? `<span class="badge bg-light text-dark">${escapeHtml(item.category)}</span>` : ''}
-                        ${item.completed ? '<span class="badge bg-success text-white">✓ Terminée</span>' : ''}
+                  ${(() => {
+                    const imgSrc = extractFirstImage(item.description);
+                    return imgSrc ? `
+                      <div style="width:100%;height:120px;margin-bottom:12px;overflow:hidden;border-radius:8px;">
+                        <img src="${imgSrc}" alt="" style="width:100%;height:100%;object-fit:cover;">
                       </div>
-                    </div>
-                    ${(() => {
-                      const imgSrc = extractFirstImage(item.description);
-                      return imgSrc ? `<img src="${imgSrc}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : '';
-                    })()}
+                    ` : '';
+                  })()}
+                  <div class="fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
+                  ${item.description ? `<div class="small text-secondary mt-1">${stripHtml(item.description).substring(0, 150)}${stripHtml(item.description).length > 150 ? '...' : ''}</div>` : ''}
+                  <div class="d-flex gap-2 mt-2 flex-wrap">
+                    ${teamName ? `<span class="badge bg-light text-dark">${escapeHtml(teamName)}</span>` : ''}
+                    ${item.category ? `<span class="badge bg-light text-dark">${escapeHtml(item.category)}</span>` : ''}
+                    ${item.completed ? '<span class="badge bg-success text-white">✓ Terminée</span>' : ''}
                   </div>
                 </div>
               `;
@@ -2827,13 +2834,13 @@
                         <div class="week-task-item ${isEvent ? '' : 'pointer'}" 
                              style="background:${color}15;border-left-color:${color};"
                              ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
-                          <div class="d-flex align-items-center gap-2">
-                            <div class="flex-grow-1">
-                              <div class="small fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
-                              ${item.completed ? '<div class="small text-success">✓</div>' : ''}
+                          ${imgSrc ? `
+                            <div style="width:100%;height:60px;margin-bottom:8px;overflow:hidden;border-radius:6px;">
+                              <img src="${imgSrc}" alt="" style="width:100%;height:100%;object-fit:cover;">
                             </div>
-                            ${imgSrc ? `<img src="${imgSrc}" alt="" style="width:32px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
-                          </div>
+                          ` : ''}
+                          <div class="small fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
+                          ${item.completed ? '<div class="small text-success mt-1">✓</div>' : ''}
                         </div>
                       `;
                     }).join('')}
