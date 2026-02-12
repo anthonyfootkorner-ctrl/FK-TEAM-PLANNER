@@ -2740,16 +2740,20 @@
                 <div class="day-task-item ${isEvent ? '' : 'pointer'}" 
                      style="background:${color}15;border-left-color:${color};"
                      ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
-                  <div class="d-flex align-items-start justify-content-between">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
                     <div class="flex-grow-1">
                       <div class="fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
-                      ${item.description ? `<div class="small text-secondary mt-1">${escapeHtml(item.description)}</div>` : ''}
+                      ${item.description ? `<div class="small text-secondary mt-1">${stripHtml(item.description).substring(0, 100)}${stripHtml(item.description).length > 100 ? '...' : ''}</div>` : ''}
                       <div class="d-flex gap-2 mt-2 flex-wrap">
                         ${teamName ? `<span class="badge bg-light text-dark">${escapeHtml(teamName)}</span>` : ''}
                         ${item.category ? `<span class="badge bg-light text-dark">${escapeHtml(item.category)}</span>` : ''}
                         ${item.completed ? '<span class="badge bg-success text-white">✓ Terminée</span>' : ''}
                       </div>
                     </div>
+                    ${(() => {
+                      const imgSrc = extractFirstImage(item.description);
+                      return imgSrc ? `<img src="${imgSrc}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : '';
+                    })()}
                   </div>
                 </div>
               `;
@@ -2817,13 +2821,19 @@
                     ${allItems.map(item => {
                       const isEvent = !item.team_id;
                       const color = isEvent ? '#9333EA' : (item.color || getTeamColor(item.team_id));
+                      const imgSrc = extractFirstImage(item.description);
                       
                       return `
                         <div class="week-task-item ${isEvent ? '' : 'pointer'}" 
                              style="background:${color}15;border-left-color:${color};"
                              ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
-                          <div class="small fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
-                          ${item.completed ? '<div class="small text-success">✓</div>' : ''}
+                          <div class="d-flex align-items-center gap-2">
+                            <div class="flex-grow-1">
+                              <div class="small fw-semibold" style="color:${color};">${escapeHtml(item.title || item.name)}</div>
+                              ${item.completed ? '<div class="small text-success">✓</div>' : ''}
+                            </div>
+                            ${imgSrc ? `<img src="${imgSrc}" alt="" style="width:32px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
+                          </div>
                         </div>
                       `;
                     }).join('')}
@@ -3346,6 +3356,28 @@
       if (!team) return '#FF6B35';
       
       return getTeamColor(team.id);
+    }
+
+    // =========================
+    // HTML UTILITIES
+    // =========================
+    function extractFirstImage(html) {
+      if (!html) return null;
+      
+      // Create a temporary div to parse HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      
+      // Find first image
+      const img = temp.querySelector('img');
+      return img ? img.src : null;
+    }
+
+    function stripHtml(html) {
+      if (!html) return '';
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      return temp.textContent || temp.innerText || '';
     }
 
     // =========================
