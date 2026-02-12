@@ -972,6 +972,31 @@
       cursor: pointer !important;
     }
 
+    /* Rich Text Description Preview */
+    .task-description-preview {
+      max-height: 100px;
+      overflow: hidden;
+      line-height: 1.4;
+    }
+
+    .task-description-preview img {
+      max-width: 100%;
+      height: auto;
+      max-height: 80px;
+      border-radius: 4px;
+      margin: 4px 0;
+    }
+
+    .task-description-preview p {
+      margin: 0 0 0.5em 0;
+    }
+
+    .task-description-preview ul,
+    .task-description-preview ol {
+      margin: 0.5em 0;
+      padding-left: 1.5em;
+    }
+
     /* SCROLLBAR */
     ::-webkit-scrollbar {
       width: 8px;
@@ -1523,7 +1548,8 @@
 
             <div class="mb-3">
               <label class="form-label" for="taskModalDescription">Description</label>
-              <textarea class="form-control" id="taskModalDescription" rows="3"></textarea>
+              <div id="taskModalDescriptionEditor" style="height: 200px; background: white;"></div>
+              <input type="hidden" id="taskModalDescription">
             </div>
 
             <div class="row">
@@ -1607,6 +1633,13 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Quill Rich Text Editor -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 
   <script>
     // =========================
@@ -1817,11 +1850,28 @@
     // =========================
     let taskModal = null;
     let currentEditingTaskId = null;
+    let quillEditor = null;
 
     document.addEventListener('DOMContentLoaded', () => {
       const taskModalEl = document.getElementById('taskModal');
       if (taskModalEl) {
         taskModal = new bootstrap.Modal(taskModalEl);
+        
+        // Initialize Quill editor
+        quillEditor = new Quill('#taskModalDescriptionEditor', {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              [{ 'header': [1, 2, 3, false] }],
+              ['link', 'image'],
+              ['clean']
+            ]
+          },
+          placeholder: 'Décrivez la tâche...'
+        });
       }
 
       // Color palette click handlers
@@ -1870,7 +1920,12 @@
       document.getElementById('taskModalTitle').textContent = 'Nouvelle tâche';
       document.getElementById('taskModalId').value = '';
       document.getElementById('taskModalTitre').value = '';
-      document.getElementById('taskModalDescription').value = '';
+      
+      // Clear Quill editor
+      if (quillEditor) {
+        quillEditor.setContents([]);
+      }
+      
       document.getElementById('taskModalCategorie').value = 'Autre';
       document.getElementById('taskModalPriorite').value = 'moyenne';
       selectColor('#FF6B35');
@@ -1909,7 +1964,16 @@
       document.getElementById('taskModalTitle').textContent = 'Modifier la tâche';
       document.getElementById('taskModalId').value = task.id;
       document.getElementById('taskModalTitre').value = task.title || '';
-      document.getElementById('taskModalDescription').value = task.description || '';
+      
+      // Load description into Quill
+      if (quillEditor) {
+        if (task.description) {
+          quillEditor.root.innerHTML = task.description;
+        } else {
+          quillEditor.setContents([]);
+        }
+      }
+      
       document.getElementById('taskModalCategorie').value = task.category || 'Autre';
       document.getElementById('taskModalPriorite').value = task.priority || 'moyenne';
       selectColor(task.color || '#FF6B35');
@@ -1935,7 +1999,10 @@
 
     async function saveTaskFromModal() {
       const titre = document.getElementById('taskModalTitre').value.trim();
-      const description = document.getElementById('taskModalDescription').value.trim();
+      
+      // Get HTML from Quill editor
+      const description = quillEditor ? quillEditor.root.innerHTML : '';
+      
       const categorie = document.getElementById('taskModalCategorie').value;
       const priorite = document.getElementById('taskModalPriorite').value;
       const couleur = document.getElementById('taskModalCouleur').value;
@@ -2963,7 +3030,7 @@
                 </div>
                 ${t.completed ? '<span class="badge bg-success">✓ Terminée</span>' : '<span class="badge bg-warning">À faire</span>'}
               </div>
-              <p class="text-secondary small mb-2">${escapeHtml(t.description || '')}</p>
+              <p class="text-secondary small mb-2"><div class="task-description-preview">${t.description || ''}</div></p>
               <div class="d-flex gap-2 flex-wrap">
                 <span class="badge bg-light text-dark">${escapeHtml(teamName)}</span>
                 <span class="badge bg-light text-dark">${escapeHtml(t.category || 'Autre')}</span>
