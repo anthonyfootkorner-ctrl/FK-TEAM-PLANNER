@@ -1154,7 +1154,7 @@
       <main class="content-area" id="mainContentArea">
 
         <!-- AUTH VIEW -->
-        <div id="authView" class="row g-3">
+        <div id="authView" class="row g-3 hidden">
           <div class="col-12">
             <div class="card p-4 text-center">
               <h3 class="mb-3">👋 Bienvenue sur FK Team Planner</h3>
@@ -1284,7 +1284,7 @@
         </div>
 
         <!-- APP VIEW -->
-        <div id="appView" class="hidden">
+        <div id="appView">
 
           <!-- DASHBOARD VIEW -->
           <div id="dashboardView" class="hidden">
@@ -3737,21 +3737,6 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
       console.log('✅ setAuthedUI finished');
     }
 
-    function setAnonUI() {
-      const authView = document.getElementById('authView');
-      const appView = document.getElementById('appView');
-      const btnLogout = document.getElementById('btnLogout');
-      const btnLogin = document.getElementById('btnLogin');
-      
-      if (authView) show(authView);
-      if (appView) hide(appView);
-      if (btnLogout) hide(btnLogout);
-      if (btnLogin) btnLogin.style.display = 'none';
-
-      setText(document.getElementById('userEmail'), '');
-      setText(document.getElementById('roleBadge'), 'non connecté');
-    }
-
     (async () => {
       // Load saved logo
       loadSavedLogo();
@@ -3770,8 +3755,9 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
         console.log('🟢 User authenticated, calling setAuthedUI');
         await setAuthedUI();
       } else {
-        console.log('🔴 No user, calling setAnonUI');
-        setAnonUI();
+        console.log('🔴 No user, starting as guest');
+        // Start directly as guest (no auth screen)
+        continueAsGuest();
       }
 
       // Listen for auth changes
@@ -3786,8 +3772,8 @@ Exemple tâche 3\tExemple sans couleur (auto selon équipe)\tMarketing\t2026-02-
           console.log('🟢 User now authenticated');
           await setAuthedUI();
         } else {
-          console.log('🔴 User logged out');
-          setAnonUI();
+          console.log('🔴 User logged out, back to guest');
+          continueAsGuest();
         }
       });
 
