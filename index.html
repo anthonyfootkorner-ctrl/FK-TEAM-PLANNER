@@ -1899,59 +1899,24 @@
               <!-- Collections Tab -->
               <div id="merchTabCollections" class="merch-tab-content">
                 <div class="row g-3 mb-3">
-                  <div class="col-md-8">
-                    <div class="btn-group" role="group">
-                      <button class="btn btn-outline-secondary btn-sm" onclick="downloadMerchTemplate()">
-                        <i data-lucide="download" style="width:14px;height:14px;"></i>
-                        Modèle TXT
-                      </button>
-                      <button class="btn btn-outline-secondary btn-sm require-auth" onclick="document.getElementById('importMerchFile').click()">
-                        <i data-lucide="upload" style="width:14px;height:14px;"></i>
-                        Import TXT
-                      </button>
-                      <button class="btn btn-success btn-sm" onclick="exportMerchCollections()">
-                        <i data-lucide="download" style="width:14px;height:14px;"></i>
-                        Export TXT
-                      </button>
-                    </div>
-                    <input type="file" id="importMerchFile" accept=".txt,.tsv" style="display:none;" onchange="importMerchCollections(event)">
+                  <div class="col-md-6">
+                    <input type="text" class="form-control" id="merchCollectionSearch" placeholder="🔍 Rechercher une collection..." oninput="renderMerchCollections()">
                   </div>
-                  <div class="col-md-4 text-end">
-                    <button class="btn btn-primary require-auth" onclick="showCreateMerchModal()">
+                  <div class="col-md-3">
+                    <select class="form-select" id="merchCollectionStatusFilter" onchange="renderMerchCollections()">
+                      <option value="">Tous les statuts</option>
+                      <option value="pending">En attente</option>
+                      <option value="validated">Validées</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3 text-end">
+                    <button class="btn btn-primary" onclick="showAddCollectionModal()">
                       <i data-lucide="plus"></i>
-                      Nouvelle collection
+                      Ajouter
                     </button>
                   </div>
                 </div>
-
-                <!-- Filters -->
-                <div class="row g-3 mb-3">
-                  <div class="col-md-3">
-                    <select class="form-select form-select-sm" id="merchStatusFilter" onchange="renderMerchList()">
-                      <option value="">Tous les statuts</option>
-                      <option value="todo">À faire</option>
-                      <option value="in_progress">En cours</option>
-                      <option value="review">Validation</option>
-                      <option value="done">Terminé</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <select class="form-select form-select-sm" id="merchPriorityFilter" onchange="renderMerchList()">
-                      <option value="">Toutes les priorités</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="high">Haute</option>
-                      <option value="medium">Moyenne</option>
-                      <option value="low">Basse</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <select class="form-select form-select-sm" id="merchResponsableFilter" onchange="renderMerchList()">
-                      <option value="">Tous les responsables</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div id="merchListView"></div>
+                <div id="merchCollectionsGrid"></div>
               </div>
 
               <!-- Team Tab -->
@@ -2235,59 +2200,6 @@
     </div>
   </div>
 
-  <!-- MODAL: CREATE/EDIT TEAM MEMBER -->
-  <div class="modal fade" id="teamMemberModal" tabindex="-1" aria-labelledby="teamMemberModalTitle" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="teamMemberModalTitle">Nouveau membre</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="teamMemberModalForm">
-            <input type="hidden" id="teamMemberModalId">
-            
-            <div class="mb-3">
-              <label class="form-label" for="teamMemberModalName">Nom / Prénom *</label>
-              <input type="text" class="form-control" id="teamMemberModalName" required placeholder="Anthony">
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="teamMemberModalRole">Rôle</label>
-              <input type="text" class="form-control" id="teamMemberModalRole" placeholder="Designer, Photographe, etc.">
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="teamMemberModalEmail">Email</label>
-              <input type="email" class="form-control" id="teamMemberModalEmail" placeholder="anthony@exemple.com">
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="teamMemberModalAvatar">Avatar URL</label>
-              <input type="url" class="form-control" id="teamMemberModalAvatar" placeholder="https://exemple.com/photo.jpg">
-            </div>
-
-            <div class="mb-3">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="teamMemberModalActive" checked>
-                <label class="form-check-label" for="teamMemberModalActive">
-                  Membre actif
-                </label>
-              </div>
-            </div>
-
-            <div class="alert alert-danger hidden" id="teamMemberModalError"></div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="button" class="btn btn-danger" id="teamMemberModalDeleteBtn" onclick="deleteTeamMemberFromModal()" style="margin-right: auto;">Supprimer</button>
-          <button type="button" class="btn btn-primary" onclick="saveTeamMemberFromModal()">Enregistrer</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Bootstrap JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
   
@@ -2317,7 +2229,6 @@
     let tasks = [];
     let events = [];
     let merchItems = [];
-    let merchTeamMembers = [];
     let memberships = [];
     let calDate = new Date();
     let isGuestMode = false; // Mode lecture seule
@@ -2941,21 +2852,6 @@
           console.log('✅ Merch loaded:', merchItems.length);
         }
 
-        // Load merch team members (public read)
-        const { data: teamMembersData, error: teamMembersError } = await supabaseClient
-          .from('merch_team_members')
-          .select('*')
-          .eq('active', true)
-          .order('name');
-        
-        if (teamMembersError) {
-          console.warn('⚠️ Error loading team members:', teamMembersError);
-          merchTeamMembers = [];
-        } else {
-          merchTeamMembers = teamMembersData || [];
-          console.log('✅ Merch team members loaded:', merchTeamMembers.length);
-        }
-
         populateTaskFilters();
         console.log('✅ loadGuestData finished');
         
@@ -3156,8 +3052,7 @@
         loadTeams(),
         loadTasks(),
         loadEvents(),
-        loadMerch(),
-        loadMerchTeamMembers()
+        loadMerch()
       ]);
     }
 
@@ -3193,15 +3088,6 @@
       if (!error) merchItems = data || [];
     }
 
-    async function loadMerchTeamMembers() {
-      const { data, error } = await supabaseClient
-        .from("merch_team_members")
-        .select("*")
-        .eq("active", true)
-        .order("name", { ascending: true });
-      if (!error) merchTeamMembers = data || [];
-    }
-
     // =========================
     // MERCH
     // =========================
@@ -3229,871 +3115,261 @@
       if (tabName === 'collections') {
         renderMerchList();
       }
-      if (tabName === 'team') {
-        renderMerchTeamGrid();
-      }
       
       if (window.lucide) lucide.createIcons();
     }
 
     // Quick actions placeholders
     function showImportCollectionsModal() {
-      alert('🚧 Import de collections
-
-Fonctionnalité à venir :
-- Import CSV/TXT
-- Ajout manuel multiple');
+      alert('🚧 Import de collections\n\nFonctionnalité à venir :\n- Import CSV/TXT\n- Ajout manuel multiple');
     }
 
     function showValidateTodayModal() {
-      alert('🚧 Validation quotidienne
-
-Fonctionnalité à venir :
-- Assigner collections aux membres
-- Validation en masse');
+      alert('🚧 Validation quotidienne\n\nFonctionnalité à venir :\n- Assigner collections aux membres\n- Validation en masse');
     }
 
-    // Rendu de la liste avec workflow tracking
-// Download modèle TSV
-function downloadMerchTemplate() {
-  const headers = [
-    'Nom',
-    'Marque',
-    'Description',
-    'Statut',
-    'Priorité',
-    'Responsable',
-    'Date lancement',
-    'Deadline',
-    'Date dernier merch',
-    'Personne dernier merch',
-    'Design',
-    'Contenu',
-    'Photo',
-    'Intégration',
-    'Image URL',
-    'Notes'
-  ];
+    function renderMerchList() {
+      const container = document.getElementById('merchListView');
+      if (!container) return;
 
-  const example1 = [
-    'BESTSELLERS - Ils reviennent !',
-    'Nike',
-    'Collection bestsellers avec promo -20%',
-    'in_progress',
-    'high',
-    'Anthony',
-    '12/02/2026',
-    '10/02/2026',
-    '15/01/2026',
-    'Anthony',
-    'done',
-    'in_progress',
-    'done',
-    'pending',
-    'https://exemple.com/visuel.jpg',
-    'Coordination avec équipe marketing'
-  ];
+      const statusFilter = document.getElementById('merchStatusFilter')?.value || '';
+      const categoryFilter = document.getElementById('merchCategoryFilter')?.value || '';
 
-  const example2 = [
-    'NOUVEAUTES Printemps',
-    'Adidas',
-    'Nouvelle collection printemps 2026',
-    'todo',
-    'medium',
-    'Sophie',
-    '01/03/2026',
-    '25/02/2026',
-    '',
-    '',
-    'pending',
-    'pending',
-    'pending',
-    'pending',
-    '',
-    ''
-  ];
+      let filtered = merchItems;
+      if (statusFilter) filtered = filtered.filter(m => m.status === statusFilter);
+      if (categoryFilter) filtered = filtered.filter(m => m.category === categoryFilter);
 
-  const rows = [headers, example1, example2];
-  const tsvContent = rows.map(row => row.join('\t')).join('\n');
-
-  const blob = new Blob([tsvContent], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'modele_collections_merch.txt';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-// Export collections to TSV
-function exportMerchCollections() {
-  if (merchItems.length === 0) {
-    alert('📋 Aucune collection à exporter');
-    return;
-  }
-
-  const headers = [
-    'Nom',
-    'Marque',
-    'Description',
-    'Statut',
-    'Priorité',
-    'Responsable',
-    'Date lancement',
-    'Deadline',
-    'Date dernier merch',
-    'Personne dernier merch',
-    'Design',
-    'Contenu',
-    'Photo',
-    'Intégration',
-    'Image URL',
-    'Notes'
-  ];
-
-  const rows = [headers];
-
-  merchItems.forEach(item => {
-    rows.push([
-      item.collection_name || '',
-      item.brand || '',
-      item.description || '',
-      item.status || 'todo',
-      item.priority || 'medium',
-      item.responsable || '',
-      item.launch_date ? new Date(item.launch_date).toLocaleDateString('fr-FR') : '',
-      item.deadline ? new Date(item.deadline).toLocaleDateString('fr-FR') : '',
-      item.date_dernier_merch ? new Date(item.date_dernier_merch).toLocaleDateString('fr-FR') : '',
-      item.personne_dernier_merch || '',
-      item.design_status || 'pending',
-      item.content_status || 'pending',
-      item.photo_status || 'pending',
-      item.integration_status || 'pending',
-      item.image_url || '',
-      item.notes || ''
-    ]);
-  });
-
-  const tsvContent = rows.map(row => row.join('\t')).join('\n');
-
-  const blob = new Blob([tsvContent], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `collections_merch_export_${new Date().toISOString().split('T')[0]}.txt`;
-  link.click();
-  URL.revokeObjectURL(url);
-
-  alert(`✅ Export réussi!\n${merchItems.length} collection(s) exportée(s)`);
-}
-
-// Import collections from TSV
-async function importMerchCollections(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const text = e.target.result;
-    const lines = text.split('\n').filter(l => l.trim());
-    
-    if (lines.length < 2) {
-      alert('❌ Fichier vide ou invalide');
-      return;
-    }
-
-    let imported = 0;
-    let errors = 0;
-    const errorDetails = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split('\t').map(p => p.trim());
-      
-      if (parts.length < 6) {
-        errorDetails.push(`Ligne ${i + 1}: Format invalide (colonnes manquantes)`);
-        errors++;
-        continue;
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-secondary py-5">
+            <i data-lucide="shopping-bag" style="width:48px;height:48px;opacity:0.3;"></i>
+            <p class="mt-3">Aucun produit</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
       }
 
-      const [
-        name, brand, description, status, priority, responsable,
-        launchDateRaw, deadlineRaw, dateDernierMerchRaw, personneDernierMerch,
-        designStatus, contentStatus, photoStatus, integrationStatus,
-        imageUrl, notes
-      ] = parts;
-
-      if (!name) {
-        errorDetails.push(`Ligne ${i + 1}: Nom manquant`);
-        errors++;
-        continue;
-      }
-
-      // Parse dates
-      const launchDate = launchDateRaw ? parseDateString(launchDateRaw) : null;
-      const deadline = deadlineRaw ? parseDateString(deadlineRaw) : null;
-      const dateDernierMerch = dateDernierMerchRaw ? parseDateString(dateDernierMerchRaw) : null;
-
-      const collectionData = {
-        collection_name: name,
-        brand: brand || null,
-        description: description || null,
-        status: status || 'todo',
-        priority: priority || 'medium',
-        responsable: responsable || null,
-        launch_date: launchDate,
-        deadline: deadline,
-        date_dernier_merch: dateDernierMerch,
-        personne_dernier_merch: personneDernierMerch || null,
-        design_status: designStatus || 'pending',
-        content_status: contentStatus || 'pending',
-        photo_status: photoStatus || 'pending',
-        integration_status: integrationStatus || 'pending',
-        image_url: imageUrl || null,
-        notes: notes || null,
-        created_by: user.id
+      const statusLabels = {
+        draft: { label: 'Brouillon', class: 'secondary' },
+        active: { label: 'En ligne', class: 'success' },
+        paused: { label: 'En pause', class: 'warning' },
+        archived: { label: 'Archivé', class: 'dark' }
       };
+
+      const categoryLabels = {
+        clothing: 'Vêtements',
+        accessories: 'Accessoires',
+        shoes: 'Chaussures',
+        equipment: 'Équipement'
+      };
+
+      let html = '<div class="row g-3">';
+      
+      filtered.forEach(item => {
+        const statusInfo = statusLabels[item.status] || { label: item.status, class: 'secondary' };
+        const categoryLabel = categoryLabels[item.category] || item.category;
+
+        html += `
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100" onclick="showEditMerchModal('${item.id}')" style="cursor:pointer;">
+              ${item.image_url ? `
+                <img src="${item.image_url}" class="card-img-top" style="height:200px;object-fit:cover;" alt="${escapeHtml(item.name)}">
+              ` : `
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:200px;">
+                  <i data-lucide="image" style="width:48px;height:48px;opacity:0.3;"></i>
+                </div>
+              `}
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h6 class="card-title mb-0">${escapeHtml(item.name)}</h6>
+                  <span class="badge bg-${statusInfo.class}">${statusInfo.label}</span>
+                </div>
+                ${item.sku ? `<div class="text-secondary small mb-2">SKU: ${escapeHtml(item.sku)}</div>` : ''}
+                ${item.description ? `<p class="card-text small text-secondary">${escapeHtml(item.description).substring(0, 100)}${item.description.length > 100 ? '...' : ''}</p>` : ''}
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                  <div>
+                    <div class="fw-bold text-primary">${item.price ? `${item.price} €` : '-'}</div>
+                    <div class="small text-secondary">Stock: ${item.stock_quantity || 0}</div>
+                  </div>
+                  <span class="badge bg-light text-dark">${categoryLabel}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+      container.innerHTML = html;
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function showCreateMerchModal() {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour créer des produits.\n\nCliquez sur "Se connecter" en haut à droite.');
+        return;
+      }
+      
+      currentEditingMerchId = null;
+      
+      document.getElementById('merchModalTitle').textContent = 'Nouveau produit';
+      document.getElementById('merchModalId').value = '';
+      document.getElementById('merchModalName').value = '';
+      document.getElementById('merchModalSku').value = '';
+      document.getElementById('merchModalDescription').value = '';
+      document.getElementById('merchModalCategory').value = 'clothing';
+      document.getElementById('merchModalStatus').value = 'draft';
+      document.getElementById('merchModalPrice').value = '';
+      document.getElementById('merchModalStock').value = '';
+      document.getElementById('merchModalImageUrl').value = '';
+      document.getElementById('merchModalUrl').value = '';
+      document.getElementById('merchModalNotes').value = '';
+      
+      // Hide delete button for new product
+      document.getElementById('merchModalDeleteBtn').style.display = 'none';
+      
+      hide(document.getElementById('merchModalError'));
+      
+      if (!merchModal) {
+        const modalEl = document.getElementById('merchModal');
+        merchModal = new bootstrap.Modal(modalEl);
+      }
+      merchModal.show();
+    }
+
+    function showEditMerchModal(merchId) {
+      if (isGuestMode) {
+        alert('🔒 Vous devez vous connecter pour modifier des produits.\n\nCliquez sur "Se connecter" en haut à droite.');
+        return;
+      }
+      
+      const item = merchItems.find(m => m.id === merchId);
+      if (!item) return;
+
+      currentEditingMerchId = merchId;
+      
+      document.getElementById('merchModalTitle').textContent = 'Modifier le produit';
+      document.getElementById('merchModalId').value = item.id;
+      document.getElementById('merchModalName').value = item.name || '';
+      document.getElementById('merchModalSku').value = item.sku || '';
+      document.getElementById('merchModalDescription').value = item.description || '';
+      document.getElementById('merchModalCategory').value = item.category || 'clothing';
+      document.getElementById('merchModalStatus').value = item.status || 'draft';
+      document.getElementById('merchModalPrice').value = item.price || '';
+      document.getElementById('merchModalStock').value = item.stock_quantity || '';
+      document.getElementById('merchModalImageUrl').value = item.image_url || '';
+      document.getElementById('merchModalUrl').value = item.url || '';
+      document.getElementById('merchModalNotes').value = item.notes || '';
+      
+      // Show delete button for existing product
+      document.getElementById('merchModalDeleteBtn').style.display = 'inline-block';
+      
+      hide(document.getElementById('merchModalError'));
+      
+      if (!merchModal) {
+        const modalEl = document.getElementById('merchModal');
+        merchModal = new bootstrap.Modal(modalEl);
+      }
+      merchModal.show();
+    }
+
+    async function saveMerchFromModal() {
+      const name = document.getElementById('merchModalName').value.trim();
+      const sku = document.getElementById('merchModalSku').value.trim();
+      const description = document.getElementById('merchModalDescription').value.trim();
+      const category = document.getElementById('merchModalCategory').value;
+      const status = document.getElementById('merchModalStatus').value;
+      const price = document.getElementById('merchModalPrice').value;
+      const stock = document.getElementById('merchModalStock').value;
+      const imageUrl = document.getElementById('merchModalImageUrl').value.trim();
+      const url = document.getElementById('merchModalUrl').value.trim();
+      const notes = document.getElementById('merchModalNotes').value.trim();
+
+      // Validation
+      if (!name) {
+        const errorEl = document.getElementById('merchModalError');
+        errorEl.textContent = 'Le nom du produit est requis';
+        show(errorEl);
+        return;
+      }
+
+      const merchData = {
+        name,
+        sku: sku || null,
+        description: description || null,
+        category,
+        status,
+        price: price ? parseFloat(price) : null,
+        stock_quantity: stock ? parseInt(stock) : 0,
+        image_url: imageUrl || null,
+        url: url || null,
+        notes: notes || null,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        if (currentEditingMerchId) {
+          // Update existing
+          const { error } = await supabaseClient
+            .from('merch')
+            .update(merchData)
+            .eq('id', currentEditingMerchId);
+
+          if (error) throw error;
+        } else {
+          // Create new
+          merchData.created_by = user.id;
+          const { error } = await supabaseClient
+            .from('merch')
+            .insert([merchData]);
+
+          if (error) throw error;
+        }
+
+        // Reload data
+        await loadMerch();
+        renderMerchList();
+
+        // Close modal
+        if (merchModal) merchModal.hide();
+
+        alert('✅ Produit enregistré !');
+      } catch (error) {
+        const errorEl = document.getElementById('merchModalError');
+        errorEl.textContent = error.message || 'Erreur lors de l\'enregistrement';
+        show(errorEl);
+        console.error('Erreur sauvegarde merch:', error);
+      }
+    }
+
+    async function deleteMerchFromModal() {
+      if (!currentEditingMerchId) return;
+
+      if (!confirm('❌ Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
 
       try {
         const { error } = await supabaseClient
           .from('merch')
-          .insert([collectionData]);
-        
+          .delete()
+          .eq('id', currentEditingMerchId);
+
         if (error) throw error;
-        imported++;
-      } catch (e) {
-        console.error('Erreur import collection:', e);
-        errorDetails.push(`Ligne ${i + 1}: "${name}" - ${e.message}`);
-        errors++;
+
+        // Reload data
+        await loadMerch();
+        renderMerchList();
+
+        // Close modal
+        if (merchModal) merchModal.hide();
+
+        alert('✅ Produit supprimé !');
+      } catch (error) {
+        alert('❌ Erreur: ' + error.message);
+        console.error('Erreur suppression merch:', error);
       }
     }
-
-    await loadMerch();
-    renderMerchList();
-    
-    let message = `✅ Import terminé!\n${imported} collection(s) importée(s)\n${errors} erreur(s)`;
-    
-    if (errorDetails.length > 0) {
-      message += '\n\n⚠️ Détails des erreurs:\n' + errorDetails.slice(0, 5).join('\n');
-      if (errorDetails.length > 5) {
-        message += `\n... et ${errorDetails.length - 5} autres erreurs`;
-      }
-    }
-    
-    alert(message);
-    event.target.value = '';
-  };
-  reader.readAsText(file);
-}
-
-// Update showImportCollectionsModal
-function showImportCollectionsModal() {
-  if (isGuestMode) {
-    alert('🔒 Vous devez vous connecter pour importer des collections.\n\nCliquez sur "Se connecter" en haut à droite.');
-    return;
-  }
-  
-  // Show options
-  const choice = confirm('📥 Import de collections\n\n✅ OK = Importer un fichier TXT\n❌ Annuler = Télécharger le modèle');
-  
-  if (choice) {
-    // Import
-    document.getElementById('importMerchFile').click();
-  } else {
-    // Download template
-    downloadMerchTemplate();
-  }
-}
-
-    function renderMerchList() {
-  const container = document.getElementById('merchListView');
-  if (!container) return;
-
-  const statusFilter = document.getElementById('merchStatusFilter')?.value || '';
-  const priorityFilter = document.getElementById('merchPriorityFilter')?.value || '';
-  const responsableFilter = document.getElementById('merchResponsableFilter')?.value || '';
-
-  let filtered = merchItems;
-  if (statusFilter) filtered = filtered.filter(m => m.status === statusFilter);
-  if (priorityFilter) filtered = filtered.filter(m => m.priority === priorityFilter);
-  if (responsableFilter) filtered = filtered.filter(m => m.responsable === responsableFilter);
-
-  if (filtered.length === 0) {
-    container.innerHTML = `
-      <div class="text-center text-secondary py-5">
-        <i data-lucide="shopping-bag" style="width:48px;height:48px;opacity:0.3;"></i>
-        <p class="mt-3">Aucune collection</p>
-      </div>
-    `;
-    if (window.lucide) lucide.createIcons();
-    return;
-  }
-
-  const statusLabels = {
-    todo: { label: '📋 À faire', class: 'secondary' },
-    in_progress: { label: '🔄 En cours', class: 'primary' },
-    review: { label: '👀 Validation', class: 'warning' },
-    done: { label: '✅ Terminé', class: 'success' }
-  };
-
-  const priorityLabels = {
-    urgent: { label: '🔴', emoji: '🔴' },
-    high: { label: '🟠', emoji: '🟠' },
-    medium: { label: '🟡', emoji: '🟡' },
-    low: { label: '🟢', emoji: '🟢' }
-  };
-
-  // Calculate workflow progress
-  function getWorkflowProgress(item) {
-    let completed = 0;
-    let total = 4;
-    if (item.design_status === 'done') completed++;
-    if (item.content_status === 'done') completed++;
-    if (item.photo_status === 'done') completed++;
-    if (item.integration_status === 'done') completed++;
-    return Math.round((completed / total) * 100);
-  }
-
-  let html = '<div class="row g-3">';
-  
-  filtered.forEach(item => {
-    const statusInfo = statusLabels[item.status] || { label: item.status, class: 'secondary' };
-    const priorityInfo = priorityLabels[item.priority] || { emoji: '' };
-    const progress = getWorkflowProgress(item);
-
-    html += `
-      <div class="col-md-6 col-lg-4">
-        <div class="card h-100" onclick="showEditMerchModal('${item.id}')" style="cursor:pointer;">
-          ${item.image_url ? `
-            <div style="height:140px;overflow:hidden;border-radius:8px 8px 0 0;">
-              <img src="${item.image_url}" class="card-img-top" style="height:100%;width:100%;object-fit:cover;" alt="${escapeHtml(item.collection_name)}">
-            </div>
-          ` : ''}
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <h6 class="card-title mb-0 flex-grow-1">${priorityInfo.emoji} ${escapeHtml(item.collection_name)}</h6>
-              <span class="badge bg-${statusInfo.class} ms-2">${statusInfo.label}</span>
-            </div>
-            
-            ${item.brand ? `<div class="text-primary small fw-semibold mb-2">${escapeHtml(item.brand)}</div>` : ''}
-            ${item.description ? `<p class="card-text small text-secondary mb-2">${escapeHtml(item.description).substring(0, 80)}${item.description.length > 80 ? '...' : ''}</p>` : ''}
-            
-            <!-- Workflow Progress -->
-            <div class="mb-2">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <small class="text-secondary">Avancement</small>
-                <small class="fw-semibold">${progress}%</small>
-              </div>
-              <div class="progress" style="height:6px;">
-                <div class="progress-bar bg-success" style="width:${progress}%"></div>
-              </div>
-            </div>
-
-            <!-- Workflow Icons -->
-            <div class="d-flex gap-2 mb-2">
-              <span title="Design" style="font-size:1.2rem;">${item.design_status === 'done' ? '✅' : item.design_status === 'in_progress' ? '🔄' : '⭕'}</span>
-              <span title="Contenu" style="font-size:1.2rem;">${item.content_status === 'done' ? '✅' : item.content_status === 'in_progress' ? '🔄' : '⭕'}</span>
-              <span title="Photo" style="font-size:1.2rem;">${item.photo_status === 'done' ? '✅' : item.photo_status === 'in_progress' ? '🔄' : '⭕'}</span>
-              <span title="Intégration" style="font-size:1.2rem;">${item.integration_status === 'done' ? '✅' : item.integration_status === 'in_progress' ? '🔄' : '⭕'}</span>
-            </div>
-
-            ${item.date_dernier_merch || item.personne_dernier_merch ? `
-              <div class="small text-secondary mb-2" style="background:#f8f9fa;padding:4px 8px;border-radius:4px;">
-                📅 Dernier merch: ${item.date_dernier_merch ? new Date(item.date_dernier_merch).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : '-'}
-                ${item.personne_dernier_merch ? ` • ${escapeHtml(item.personne_dernier_merch)}` : ''}
-              </div>
-            ` : ''}
-
-            <div class="d-flex justify-content-between align-items-center">${item.responsable ? `<small class="text-secondary">👤 ${escapeHtml(item.responsable)}</small>` : '<span></span>'}
-              ${item.launch_date ? `<small class="text-secondary">🚀 ${new Date(item.launch_date).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})}</small>` : ''}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += '</div>';
-  container.innerHTML = html;
-
-  if (window.lucide) lucide.createIcons();
-  
-  // Populate responsable filter
-  populateMerchResponsableFilter();
-}
-
-function populateMerchResponsableFilter() {
-  const filter = document.getElementById('merchResponsableFilter');
-  if (!filter) return;
-  
-  const responsables = [...new Set(merchItems.map(m => m.responsable).filter(Boolean))];
-  const currentValue = filter.value;
-  
-  filter.innerHTML = '<option value="">Tous les responsables</option>';
-  responsables.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r;
-    opt.textContent = r;
-    if (r === currentValue) opt.selected = true;
-    filter.appendChild(opt);
-  });
-}
-
-// Modal functions
-function showCreateMerchModal() {
-  if (isGuestMode) {
-    alert('🔒 Vous devez vous connecter pour créer des collections.
-
-Cliquez sur "Se connecter" en haut à droite.');
-    return;
-  }
-  
-  currentEditingMerchId = null;
-  
-  document.getElementById('merchModalTitle').textContent = 'Nouvelle collection';
-  document.getElementById('merchModalId').value = '';
-  document.getElementById('merchModalName').value = '';
-  document.getElementById('merchModalBrand').value = '';
-  document.getElementById('merchModalDescription').value = '';
-  document.getElementById('merchModalStatus').value = 'todo';
-  document.getElementById('merchModalPriority').value = 'medium';
-  document.getElementById('merchModalResponsable').value = '';
-  document.getElementById('merchModalLaunchDate').value = '';
-  document.getElementById('merchModalDeadline').value = '';
-  document.getElementById('merchModalDateDernierMerch').value = '';
-  document.getElementById('merchModalPersonneDernierMerch').value = '';
-  document.getElementById('merchModalDesign').value = 'pending';
-  document.getElementById('merchModalContent').value = 'pending';
-  document.getElementById('merchModalPhoto').value = 'pending';
-  document.getElementById('merchModalIntegration').value = 'pending';
-  document.getElementById('merchModalImageUrl').value = '';
-  document.getElementById('merchModalNotes').value = '';
-  
-  document.getElementById('merchModalDeleteBtn').style.display = 'none';
-  hide(document.getElementById('merchModalError'));
-  
-  // Populate responsable dropdown
-  populateMerchResponsableDropdown();
-  
-  if (!merchModal) {
-    const modalEl = document.getElementById('merchModal');
-    merchModal = new bootstrap.Modal(modalEl);
-  }
-  merchModal.show();
-}
-
-function showEditMerchModal(merchId) {
-  if (isGuestMode) {
-    alert('🔒 Vous devez vous connecter pour modifier des collections.
-
-Cliquez sur "Se connecter" en haut à droite.');
-    return;
-  }
-  
-  const item = merchItems.find(m => m.id === merchId);
-  if (!item) return;
-
-  currentEditingMerchId = merchId;
-  
-  document.getElementById('merchModalTitle').textContent = 'Modifier la collection';
-  document.getElementById('merchModalId').value = item.id;
-  document.getElementById('merchModalName').value = item.collection_name || '';
-  document.getElementById('merchModalBrand').value = item.brand || '';
-  document.getElementById('merchModalDescription').value = item.description || '';
-  document.getElementById('merchModalStatus').value = item.status || 'todo';
-  document.getElementById('merchModalPriority').value = item.priority || 'medium';
-  document.getElementById('merchModalResponsable').value = item.responsable || '';
-  document.getElementById('merchModalLaunchDate').value = item.launch_date || '';
-  document.getElementById('merchModalDeadline').value = item.deadline || '';
-  document.getElementById('merchModalDateDernierMerch').value = item.date_dernier_merch || '';
-  document.getElementById('merchModalPersonneDernierMerch').value = item.personne_dernier_merch || '';
-  document.getElementById('merchModalDesign').value = item.design_status || 'pending';
-  document.getElementById('merchModalContent').value = item.content_status || 'pending';
-  document.getElementById('merchModalPhoto').value = item.photo_status || 'pending';
-  document.getElementById('merchModalIntegration').value = item.integration_status || 'pending';
-  document.getElementById('merchModalImageUrl').value = item.image_url || '';
-  document.getElementById('merchModalNotes').value = item.notes || '';
-  
-  document.getElementById('merchModalDeleteBtn').style.display = 'inline-block';
-  hide(document.getElementById('merchModalError'));
-  
-  // Populate responsable dropdown
-  populateMerchResponsableDropdown();
-  
-  if (!merchModal) {
-    const modalEl = document.getElementById('merchModal');
-    merchModal = new bootstrap.Modal(modalEl);
-  }
-  merchModal.show();
-}
-
-let teamMemberModal = null;
-let currentEditingTeamMemberId = null;
-
-// Render team members grid
-function renderMerchTeamGrid() {
-  const container = document.getElementById('merchTeamGrid');
-  if (!container) return;
-
-  if (merchTeamMembers.length === 0) {
-    container.innerHTML = `
-      <div class="text-center text-secondary py-5">
-        <i data-lucide="users" style="width:48px;height:48px;opacity:0.3;"></i>
-        <p class="mt-3">Aucun membre d'équipe</p>
-        <p class="small">Cliquez sur "Ajouter membre" pour commencer</p>
-      </div>
-    `;
-    if (window.lucide) lucide.createIcons();
-    return;
-  }
-
-  // Calculate stats for each member
-  const memberStats = merchTeamMembers.map(member => {
-    const assigned = merchItems.filter(m => m.responsable === member.name).length;
-    const completed = merchItems.filter(m => m.responsable === member.name && m.status === 'done').length;
-    const inProgress = merchItems.filter(m => m.responsable === member.name && m.status === 'in_progress').length;
-    
-    return {
-      ...member,
-      assigned,
-      completed,
-      inProgress
-    };
-  });
-
-  let html = '<div class="row g-3">';
-  
-  memberStats.forEach(member => {
-    const completionRate = member.assigned > 0 ? Math.round((member.completed / member.assigned) * 100) : 0;
-    
-    html += `
-      <div class="col-md-6 col-lg-4">
-        <div class="card h-100" onclick="showEditTeamMemberModal('${member.id}')" style="cursor:pointer;">
-          <div class="card-body">
-            <div class="d-flex align-items-start mb-3">
-              ${member.avatar_url ? `
-                <img src="${member.avatar_url}" class="rounded-circle me-3" style="width:48px;height:48px;object-fit:cover;" alt="${escapeHtml(member.name)}">
-              ` : `
-                <div class="rounded-circle me-3 bg-light d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
-                  <i data-lucide="user" style="width:24px;height:24px;opacity:0.5;"></i>
-                </div>
-              `}
-              <div class="flex-grow-1">
-                <h6 class="mb-0">${escapeHtml(member.name)}</h6>
-                ${member.role ? `<small class="text-secondary">${escapeHtml(member.role)}</small>` : ''}
-              </div>
-            </div>
-            
-            <div class="row g-2 text-center mb-3">
-              <div class="col-4">
-                <div class="fw-bold text-primary">${member.assigned}</div>
-                <small class="text-secondary">Assignées</small>
-              </div>
-              <div class="col-4">
-                <div class="fw-bold text-warning">${member.inProgress}</div>
-                <small class="text-secondary">En cours</small>
-              </div>
-              <div class="col-4">
-                <div class="fw-bold text-success">${member.completed}</div>
-                <small class="text-secondary">Terminées</small>
-              </div>
-            </div>
-            
-            <div class="mb-2">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <small class="text-secondary">Taux de complétion</small>
-                <small class="fw-semibold">${completionRate}%</small>
-              </div>
-              <div class="progress" style="height:6px;">
-                <div class="progress-bar bg-success" style="width:${completionRate}%"></div>
-              </div>
-            </div>
-            
-            ${member.email ? `<small class="text-secondary">📧 ${escapeHtml(member.email)}</small>` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += '</div>';
-  container.innerHTML = html;
-
-  if (window.lucide) lucide.createIcons();
-}
-
-// Populate responsable dropdown with team members
-function populateMerchResponsableDropdown() {
-  const dropdown = document.getElementById('merchModalResponsable');
-  if (!dropdown) return;
-
-  // Convert to datalist for autocomplete
-  const currentValue = dropdown.value;
-  
-  // Create datalist if not exists
-  let datalistId = 'merchResponsableList';
-  let datalist = document.getElementById(datalistId);
-  
-  if (!datalist) {
-    datalist = document.createElement('datalist');
-    datalist.id = datalistId;
-    dropdown.setAttribute('list', datalistId);
-    dropdown.parentNode.appendChild(datalist);
-  }
-  
-  datalist.innerHTML = '';
-  merchTeamMembers.forEach(member => {
-    const option = document.createElement('option');
-    option.value = member.name;
-    datalist.appendChild(option);
-  });
-  
-  dropdown.value = currentValue;
-}
-
-// Show add team member modal
-function showAddTeamMemberModal() {
-  if (isGuestMode) {
-    alert('🔒 Vous devez vous connecter pour ajouter des membres.\n\nCliquez sur "Se connecter" en haut à droite.');
-    return;
-  }
-  
-  currentEditingTeamMemberId = null;
-  
-  document.getElementById('teamMemberModalTitle').textContent = 'Nouveau membre';
-  document.getElementById('teamMemberModalId').value = '';
-  document.getElementById('teamMemberModalName').value = '';
-  document.getElementById('teamMemberModalRole').value = '';
-  document.getElementById('teamMemberModalEmail').value = '';
-  document.getElementById('teamMemberModalAvatar').value = '';
-  document.getElementById('teamMemberModalActive').checked = true;
-  
-  document.getElementById('teamMemberModalDeleteBtn').style.display = 'none';
-  hide(document.getElementById('teamMemberModalError'));
-  
-  if (!teamMemberModal) {
-    const modalEl = document.getElementById('teamMemberModal');
-    teamMemberModal = new bootstrap.Modal(modalEl);
-  }
-  teamMemberModal.show();
-}
-
-// Show edit team member modal
-function showEditTeamMemberModal(memberId) {
-  if (isGuestMode) {
-    alert('🔒 Vous devez vous connecter pour modifier des membres.\n\nCliquez sur "Se connecter" en haut à droite.');
-    return;
-  }
-  
-  const member = merchTeamMembers.find(m => m.id === memberId);
-  if (!member) return;
-
-  currentEditingTeamMemberId = memberId;
-  
-  document.getElementById('teamMemberModalTitle').textContent = 'Modifier le membre';
-  document.getElementById('teamMemberModalId').value = member.id;
-  document.getElementById('teamMemberModalName').value = member.name || '';
-  document.getElementById('teamMemberModalRole').value = member.role || '';
-  document.getElementById('teamMemberModalEmail').value = member.email || '';
-  document.getElementById('teamMemberModalAvatar').value = member.avatar_url || '';
-  document.getElementById('teamMemberModalActive').checked = member.active !== false;
-  
-  document.getElementById('teamMemberModalDeleteBtn').style.display = 'inline-block';
-  hide(document.getElementById('teamMemberModalError'));
-  
-  if (!teamMemberModal) {
-    const modalEl = document.getElementById('teamMemberModal');
-    teamMemberModal = new bootstrap.Modal(modalEl);
-  }
-  teamMemberModal.show();
-}
-
-// Save team member from modal
-async function saveTeamMemberFromModal() {
-  const name = document.getElementById('teamMemberModalName').value.trim();
-  const role = document.getElementById('teamMemberModalRole').value.trim();
-  const email = document.getElementById('teamMemberModalEmail').value.trim();
-  const avatarUrl = document.getElementById('teamMemberModalAvatar').value.trim();
-  const active = document.getElementById('teamMemberModalActive').checked;
-
-  if (!name) {
-    const errorEl = document.getElementById('teamMemberModalError');
-    errorEl.textContent = 'Le nom est requis';
-    show(errorEl);
-    return;
-  }
-
-  const memberData = {
-    name,
-    role: role || null,
-    email: email || null,
-    avatar_url: avatarUrl || null,
-    active,
-    updated_at: new Date().toISOString()
-  };
-
-  try {
-    if (currentEditingTeamMemberId) {
-      const { error } = await supabaseClient
-        .from('merch_team_members')
-        .update(memberData)
-        .eq('id', currentEditingTeamMemberId);
-
-      if (error) throw error;
-    } else {
-      const { error } = await supabaseClient
-        .from('merch_team_members')
-        .insert([memberData]);
-
-      if (error) throw error;
-    }
-
-    await loadMerchTeamMembers();
-    renderMerchTeamGrid();
-    populateMerchResponsableDropdown();
-
-    if (teamMemberModal) teamMemberModal.hide();
-
-    alert('✅ Membre enregistré !');
-  } catch (error) {
-    const errorEl = document.getElementById('teamMemberModalError');
-    errorEl.textContent = error.message || 'Erreur lors de l\'enregistrement';
-    show(errorEl);
-    console.error('Erreur sauvegarde membre:', error);
-  }
-}
-
-// Delete team member from modal
-async function deleteTeamMemberFromModal() {
-  if (!currentEditingTeamMemberId) return;
-
-  if (!confirm('❌ Êtes-vous sûr de vouloir supprimer ce membre ?\n\nLes collections assignées ne seront pas supprimées.')) return;
-
-  try {
-    const { error } = await supabaseClient
-      .from('merch_team_members')
-      .delete()
-      .eq('id', currentEditingTeamMemberId);
-
-    if (error) throw error;
-
-    await loadMerchTeamMembers();
-    renderMerchTeamGrid();
-    populateMerchResponsableDropdown();
-
-    if (teamMemberModal) teamMemberModal.hide();
-
-    alert('✅ Membre supprimé !');
-  } catch (error) {
-    alert('❌ Erreur: ' + error.message);
-    console.error('Erreur suppression membre:', error);
-  }
-}
-
-    async function saveMerchFromModal() {
-  const name = document.getElementById('merchModalName').value.trim();
-  const brand = document.getElementById('merchModalBrand').value.trim();
-  const description = document.getElementById('merchModalDescription').value.trim();
-  const status = document.getElementById('merchModalStatus').value;
-  const priority = document.getElementById('merchModalPriority').value;
-  const responsable = document.getElementById('merchModalResponsable').value.trim();
-  const launchDate = document.getElementById('merchModalLaunchDate').value;
-  const deadline = document.getElementById('merchModalDeadline').value;
-  const dateDernierMerch = document.getElementById('merchModalDateDernierMerch').value;
-  const personneDernierMerch = document.getElementById('merchModalPersonneDernierMerch').value.trim();
-  const designStatus = document.getElementById('merchModalDesign').value;
-  const contentStatus = document.getElementById('merchModalContent').value;
-  const photoStatus = document.getElementById('merchModalPhoto').value;
-  const integrationStatus = document.getElementById('merchModalIntegration').value;
-  const imageUrl = document.getElementById('merchModalImageUrl').value.trim();
-  const notes = document.getElementById('merchModalNotes').value.trim();
-
-  if (!name) {
-    const errorEl = document.getElementById('merchModalError');
-    errorEl.textContent = 'Le nom de la collection est requis';
-    show(errorEl);
-    return;
-  }
-
-  const merchData = {
-    collection_name: name,
-    brand: brand || null,
-    description: description || null,
-    status,
-    priority,
-    responsable: responsable || null,
-    launch_date: launchDate || null,
-    deadline: deadline || null,
-    date_dernier_merch: dateDernierMerch || null,
-    personne_dernier_merch: personneDernierMerch || null,
-    design_status: designStatus,
-    content_status: contentStatus,
-    photo_status: photoStatus,
-    integration_status: integrationStatus,
-    image_url: imageUrl || null,
-    notes: notes || null,
-    updated_at: new Date().toISOString()
-  };
-
-  // Auto-set completed_date when status becomes done
-  if (status === 'done' && !currentEditingMerchId) {
-    merchData.completed_date = new Date().toISOString().split('T')[0];
-  }
-
-  try {
-    if (currentEditingMerchId) {
-      const { error } = await supabaseClient
-        .from('merch')
-        .update(merchData)
-        .eq('id', currentEditingMerchId);
-
-      if (error) throw error;
-    } else {
-      merchData.created_by = user.id;
-      const { error } = await supabaseClient
-        .from('merch')
-        .insert([merchData]);
-
-      if (error) throw error;
-    }
-
-    await loadMerch();
-    renderMerchList();
-
-    if (merchModal) merchModal.hide();
-
-    alert('✅ Collection enregistrée !');
-  } catch (error) {
-    const errorEl = document.getElementById('merchModalError');
-    errorEl.textContent = error.message || 'Erreur lors de l\'enregistrement';
-    show(errorEl);
-    console.error('Erreur sauvegarde merch:', error);
-  }
-}
-
-async function deleteMerchFromModal() {
-  if (!currentEditingMerchId) return;
-
-  if (!confirm('❌ Êtes-vous sûr de vouloir supprimer cette collection ?')) return;
-
-  try {
-    const { error } = await supabaseClient
-      .from('merch')
-      .delete()
-      .eq('id', currentEditingMerchId);
-
-    if (error) throw error;
-
-    await loadMerch();
-    renderMerchList();
-
-    if (merchModal) merchModal.hide();
-
-    alert('✅ Collection supprimée !');
-  } catch (error) {
-    alert('❌ Erreur: ' + error.message);
-    console.error('Erreur suppression merch:', error);
-  }
-}
 
     // =========================
     // DASHBOARD
