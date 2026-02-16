@@ -2057,12 +2057,12 @@
     </div>
   </div>
 
-  <!-- MODAL: CREATE/EDIT MERCH PRODUCT -->
+  <!-- MODAL: CREATE/EDIT MERCH COLLECTION -->
   <div class="modal fade" id="merchModal" tabindex="-1" aria-labelledby="merchModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="merchModalTitle">Nouveau produit</h5>
+          <h5 class="modal-title" id="merchModalTitle">Nouvelle collection</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -2071,70 +2071,107 @@
             
             <div class="row">
               <div class="col-md-8 mb-3">
-                <label class="form-label" for="merchModalName">Nom du produit *</label>
-                <input type="text" class="form-control" id="merchModalName" required placeholder="Maillot Domicile 2026">
+                <label class="form-label" for="merchModalName">Nom de la collection *</label>
+                <input type="text" class="form-control" id="merchModalName" required placeholder="BESTSELLERS - Ils reviennent !">
               </div>
 
               <div class="col-md-4 mb-3">
-                <label class="form-label" for="merchModalSku">SKU / Référence</label>
-                <input type="text" class="form-control" id="merchModalSku" placeholder="FK-HOME-001">
+                <label class="form-label" for="merchModalBrand">Marque</label>
+                <input type="text" class="form-control" id="merchModalBrand" placeholder="Nike">
               </div>
             </div>
 
             <div class="mb-3">
               <label class="form-label" for="merchModalDescription">Description</label>
-              <textarea class="form-control" id="merchModalDescription" rows="3" placeholder="Description du produit..."></textarea>
+              <textarea class="form-control" id="merchModalDescription" rows="2" placeholder="Description de la collection..."></textarea>
             </div>
 
             <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label" for="merchModalCategory">Catégorie *</label>
-                <select class="form-select" id="merchModalCategory" required>
-                  <option value="clothing">Vêtements</option>
-                  <option value="accessories">Accessoires</option>
-                  <option value="shoes">Chaussures</option>
-                  <option value="equipment">Équipement</option>
-                </select>
-              </div>
-
-              <div class="col-md-6 mb-3">
+              <div class="col-md-4 mb-3">
                 <label class="form-label" for="merchModalStatus">Statut *</label>
                 <select class="form-select" id="merchModalStatus" required>
-                  <option value="draft">Brouillon</option>
-                  <option value="active">En ligne</option>
-                  <option value="paused">En pause</option>
-                  <option value="archived">Archivé</option>
+                  <option value="todo">À faire</option>
+                  <option value="in_progress">En cours</option>
+                  <option value="review">En validation</option>
+                  <option value="done">Terminé</option>
                 </select>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <label class="form-label" for="merchModalPriority">Priorité *</label>
+                <select class="form-select" id="merchModalPriority" required>
+                  <option value="urgent">🔴 Urgent</option>
+                  <option value="high">🟠 Haute</option>
+                  <option value="medium" selected>🟡 Moyenne</option>
+                  <option value="low">🟢 Basse</option>
+                </select>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <label class="form-label" for="merchModalResponsable">Responsable</label>
+                <input type="text" class="form-control" id="merchModalResponsable" placeholder="Anthony">
               </div>
             </div>
 
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label" for="merchModalPrice">Prix (€)</label>
-                <input type="number" class="form-control" id="merchModalPrice" step="0.01" min="0" placeholder="79.99">
+                <label class="form-label" for="merchModalLaunchDate">Date de lancement</label>
+                <input type="date" class="form-control" id="merchModalLaunchDate">
               </div>
 
               <div class="col-md-6 mb-3">
-                <label class="form-label" for="merchModalStock">Stock</label>
-                <input type="number" class="form-control" id="merchModalStock" min="0" placeholder="150">
+                <label class="form-label" for="merchModalDeadline">Deadline</label>
+                <input type="date" class="form-control" id="merchModalDeadline">
               </div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label" for="merchModalImageUrl">URL de l'image</label>
-              <input type="url" class="form-control" id="merchModalImageUrl" placeholder="https://exemple.com/image.jpg">
-              <div class="form-text">Collez l'URL de l'image du produit (Imgur, Cloudinary, etc.)</div>
+              <label class="form-label">Avancement du workflow</label>
+              <div class="row g-2">
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">🎨 Design</label>
+                  <select class="form-select form-select-sm" id="merchModalDesign">
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">✓ Fait</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">📝 Contenu</label>
+                  <select class="form-select form-select-sm" id="merchModalContent">
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">✓ Fait</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">📸 Photo</label>
+                  <select class="form-select form-select-sm" id="merchModalPhoto">
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">✓ Fait</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small">🔗 Intégration</label>
+                  <select class="form-select form-select-sm" id="merchModalIntegration">
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="done">✓ Fait</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label" for="merchModalUrl">Lien produit</label>
-              <input type="url" class="form-control" id="merchModalUrl" placeholder="https://shop.example.com/produit">
-              <div class="form-text">Lien vers la page du produit sur votre boutique</div>
+              <label class="form-label" for="merchModalImageUrl">URL de l'image / visuel</label>
+              <input type="url" class="form-control" id="merchModalImageUrl" placeholder="https://exemple.com/visuel.jpg">
+              <div class="form-text">Image de la collection ou du visuel newsletter</div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label" for="merchModalNotes">Notes internes</label>
-              <textarea class="form-control" id="merchModalNotes" rows="2" placeholder="Notes pour l'équipe..."></textarea>
+              <label class="form-label" for="merchModalNotes">Notes</label>
+              <textarea class="form-control" id="merchModalNotes" rows="2" placeholder="Notes internes..."></textarea>
             </div>
 
             <div class="alert alert-danger hidden" id="merchModalError"></div>
@@ -3042,6 +3079,40 @@
     // =========================
     let merchModal = null;
     let currentEditingMerchId = null;
+    let currentMerchTab = 'dashboard';
+
+    // Switch between tabs
+    function switchMerchTab(tabName) {
+      currentMerchTab = tabName;
+      
+      // Update tab buttons
+      document.querySelectorAll('.merch-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.closest('.merch-tab').classList.add('active');
+      
+      // Update tab content
+      document.querySelectorAll('.merch-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`merchTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+      
+      // Render content based on tab
+      if (tabName === 'collections') {
+        renderMerchList();
+      }
+      
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Quick actions placeholders
+    function showImportCollectionsModal() {
+      alert('🚧 Import de collections\n\nFonctionnalité à venir :\n- Import CSV/TXT\n- Ajout manuel multiple');
+    }
+
+    function showValidateTodayModal() {
+      alert('🚧 Validation quotidienne\n\nFonctionnalité à venir :\n- Assigner collections aux membres\n- Validation en masse');
+    }
 
     function renderMerchList() {
       const container = document.getElementById('merchListView');
