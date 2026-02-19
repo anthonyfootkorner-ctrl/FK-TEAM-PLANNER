@@ -4024,8 +4024,7 @@
               .from('tasks')
               .update({
                 start_date: newStartDate,
-                end_date: newEndDate,
-                updated_at: new Date().toISOString()
+                end_date: newEndDate
               })
               .eq('id', draggedTaskId)
               .select();
