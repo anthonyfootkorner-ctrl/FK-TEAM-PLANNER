@@ -3940,14 +3940,25 @@
       document.querySelectorAll('[data-draggable="true"]').forEach(taskEl => {
         const taskId = taskEl.getAttribute('data-task-id');
         const task = tasks.find(t => t.id === taskId);
-        if (!task) return;
+        if (!task) {
+          console.warn('Task not found for draggable element:', taskId);
+          return;
+        }
 
         taskEl.addEventListener('dragstart', (e) => {
           draggedTaskId = taskId;
-          draggedTask = task;
+          // Clone only essential properties (avoid nested objects like 'teams')
+          draggedTask = {
+            id: task.id,
+            start_date: task.start_date,
+            end_date: task.end_date,
+            title: task.title,
+            team_id: task.team_id
+          };
           taskEl.style.opacity = '0.5';
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', taskId);
+          console.log('Drag started:', { taskId, start: draggedTask.start_date, end: draggedTask.end_date });
         });
 
         taskEl.addEventListener('dragend', (e) => {
@@ -3976,7 +3987,17 @@
           e.stopPropagation();
           dateEl.classList.remove('drag-over');
 
-          if (!draggedTaskId || !draggedTask) return;
+          if (!draggedTaskId || !draggedTask) {
+            console.warn('No task being dragged');
+            return;
+          }
+
+          if (isGuestMode) {
+            showToast('🔒 Connexion requise pour déplacer des tâches');
+            draggedTaskId = null;
+            draggedTask = null;
+            return;
+          }
 
           // Calculate new dates
           const oldStartDate = new Date(draggedTask.start_date);
@@ -3988,18 +4009,33 @@
           newEndDateObj.setDate(newEndDateObj.getDate() + duration);
           const newEndDate = ymd(newEndDateObj);
 
+          console.log('Moving task:', {
+            taskId: draggedTaskId,
+            oldStart: draggedTask.start_date,
+            oldEnd: draggedTask.end_date,
+            newStart: newStartDate,
+            newEnd: newEndDate,
+            duration: duration
+          });
+
           // Update task
           try {
-            const { error } = await supabaseClient
+            const { data, error } = await supabaseClient
               .from('tasks')
               .update({
                 start_date: newStartDate,
                 end_date: newEndDate,
                 updated_at: new Date().toISOString()
               })
-              .eq('id', draggedTaskId);
+              .eq('id', draggedTaskId)
+              .select();
 
-            if (error) throw error;
+            if (error) {
+              console.error('Supabase error:', error);
+              throw error;
+            }
+
+            console.log('Task updated successfully:', data);
 
             // Reload and re-render
             await loadTasks();
@@ -4009,7 +4045,7 @@
             showToast(`✅ Tâche déplacée au ${new Date(newStartDate).toLocaleDateString('fr-FR')}`);
           } catch (err) {
             console.error('Error moving task:', err);
-            showToast('❌ Erreur lors du déplacement');
+            showToast('❌ Erreur: ' + (err.message || 'Impossible de déplacer'));
           }
 
           draggedTaskId = null;
