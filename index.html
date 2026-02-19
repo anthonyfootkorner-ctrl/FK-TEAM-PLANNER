@@ -1309,6 +1309,25 @@
         padding: 0.75rem;
       }
     }
+    /* Drag & Drop */
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(400px); opacity: 0; }
+    }
+    [draggable="true"] {
+      cursor: grab !important;
+    }
+    [draggable="true"]:active {
+      cursor: grabbing !important;
+    }
+    .drag-over {
+      background: rgba(59, 130, 246, 0.1) !important;
+      border: 2px dashed #3B82F6 !important;
+    }
   </style>
 </head>
 
@@ -2843,7 +2862,7 @@
     // =========================
     function switchView(viewName) {
       // Hide all views
-      const views = ['dashboardView', 'calendarView', 'tasksView', 'teamsView', 'eventsView'];
+      const views = ['dashboardView', 'calendarView', 'tasksView', 'teamsView', 'eventsView', 'merchView'];
       views.forEach(v => {
         const el = document.getElementById(v);
         if (el) hide(el);
@@ -3883,6 +3902,122 @@
     // =========================
     const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
+    // Drag & Drop variables
+    let draggedTaskId = null;
+    let draggedTask = null;
+
+    function showToast(message) {
+      const existingToast = document.getElementById('dragDropToast');
+      if (existingToast) existingToast.remove();
+      
+      const toast = document.createElement('div');
+      toast.id = 'dragDropToast';
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #1f2937;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    function activateDragDrop() {
+      // Make tasks draggable
+      document.querySelectorAll('[data-draggable="true"]').forEach(taskEl => {
+        const taskId = taskEl.getAttribute('data-task-id');
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        taskEl.addEventListener('dragstart', (e) => {
+          draggedTaskId = taskId;
+          draggedTask = task;
+          taskEl.style.opacity = '0.5';
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', taskId);
+        });
+
+        taskEl.addEventListener('dragend', (e) => {
+          taskEl.style.opacity = '1';
+        });
+      });
+
+      // Make date columns droppable
+      document.querySelectorAll('[data-droppable="true"]').forEach(dateEl => {
+        const dateStr = dateEl.getAttribute('data-date');
+
+        dateEl.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          dateEl.classList.add('drag-over');
+        });
+
+        dateEl.addEventListener('dragleave', (e) => {
+          if (e.target === dateEl) {
+            dateEl.classList.remove('drag-over');
+          }
+        });
+
+        dateEl.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dateEl.classList.remove('drag-over');
+
+          if (!draggedTaskId || !draggedTask) return;
+
+          // Calculate new dates
+          const oldStartDate = new Date(draggedTask.start_date);
+          const oldEndDate = new Date(draggedTask.end_date);
+          const duration = Math.floor((oldEndDate - oldStartDate) / (1000 * 60 * 60 * 24));
+
+          const newStartDate = dateStr;
+          const newEndDateObj = new Date(dateStr);
+          newEndDateObj.setDate(newEndDateObj.getDate() + duration);
+          const newEndDate = ymd(newEndDateObj);
+
+          // Update task
+          try {
+            const { error } = await supabaseClient
+              .from('tasks')
+              .update({
+                start_date: newStartDate,
+                end_date: newEndDate,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', draggedTaskId);
+
+            if (error) throw error;
+
+            // Reload and re-render
+            await loadTasks();
+            renderCalendar();
+
+            // Show success feedback
+            showToast(`✅ Tâche déplacée au ${new Date(newStartDate).toLocaleDateString('fr-FR')}`);
+          } catch (err) {
+            console.error('Error moving task:', err);
+            showToast('❌ Erreur lors du déplacement');
+          }
+
+          draggedTaskId = null;
+          draggedTask = null;
+        });
+      });
+    }
+
     function renderCalendar() {
       if (calendarDesktopView === 'day') {
         renderDayView();
@@ -3995,7 +4130,7 @@
         <div class="week-view-container">
           <div class="week-view-content">
             <div class="week-view-grid">
-              ${weekDays.map(day => {
+              ${weekDays.map((day, dayIndex) => {
                 const dateStr = ymd(day);
                 const isToday = dateStr === today;
                 
@@ -4009,7 +4144,7 @@
                 const allItems = [...dayTasks, ...dayEvents];
 
                 return `
-                  <div class="week-day-column ${isToday ? 'today' : ''}">
+                  <div class="week-day-column ${isToday ? 'today' : ''}" data-date="${dateStr}" data-droppable="true">
                     <div class="week-day-header">
                       ${dayNamesShort[day.getDay()]}
                       <div class="week-day-number">${day.getDate()}</div>
@@ -4023,6 +4158,7 @@
                       return `
                         <div class="week-task-item ${isEvent ? '' : 'pointer'}" 
                              style="background:${color}15;border-left-color:${color};"
+                             ${!isEvent && !isGuestMode ? `draggable="true" data-task-id="${item.id}" data-draggable="true"` : ''}
                              ${isEvent ? '' : `onclick="showEditTaskModal('${item.id}')"`}>
                           ${imgSrc ? `
                             <div style="width:100px;height:100px;margin:0 auto 8px;overflow:hidden;border-radius:8px;">
@@ -4048,6 +4184,11 @@
       `;
 
       if (window.lucide) lucide.createIcons();
+      
+      // Activate drag & drop
+      if (!isGuestMode) {
+        setTimeout(() => activateDragDrop(), 100);
+      }
     }
 
     function renderMonthView() {
@@ -4095,6 +4236,8 @@
 
         const cell = document.createElement("div");
         cell.className = "cal-cell";
+        cell.setAttribute('data-date', dStr);
+        cell.setAttribute('data-droppable', 'true');
         if (dStr === today) cell.setAttribute('data-today', 'true');
 
         // Highlight today
@@ -4124,7 +4267,7 @@
         for (const t of dayTasks) {
           const teamName = (t.teams && t.teams.name) ? t.teams.name : "";
           const taskColor = t.color || '#FF6B35';
-          html += `<div class="task-pill mb-1 pointer" onclick="showEditTaskModal('${t.id}')" title="Cliquer pour modifier" style="background:${taskColor} !important;">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
+          html += `<div class="task-pill mb-1 pointer" ${!isGuestMode ? `draggable="true" data-task-id="${t.id}" data-draggable="true"` : ''} onclick="showEditTaskModal('${t.id}')" title="Cliquer pour modifier" style="background:${taskColor} !important;">${escapeHtml(t.title)}<br><small>${escapeHtml(teamName)}</small></div>`;
         }
 
         for (const e of dayEvents) {
@@ -4141,6 +4284,11 @@
 
       // Refresh icons
       if (window.lucide) lucide.createIcons();
+      
+      // Activate drag & drop
+      if (!isGuestMode) {
+        setTimeout(() => activateDragDrop(), 100);
+      }
 
       // Auto-scroll to today on first load
       setTimeout(() => {
