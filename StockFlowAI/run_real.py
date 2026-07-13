@@ -37,6 +37,9 @@ def main(argv=None) -> int:
     p.add_argument("--config", default=str(ROOT / "config" / "parametres.xlsx"))
     p.add_argument("--today", default="2026-07-13")
     p.add_argument("--export", default=str(ROOT / "exports" / "stockflow_reel.xlsx"))
+    p.add_argument("--push", action="store_true", help="pousse les resultats vers Supabase")
+    p.add_argument("--push-dry-run", action="store_true",
+                   help="ecrit le payload Supabase en JSON sans envoyer")
     args = p.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s",
@@ -78,6 +81,21 @@ def main(argv=None) -> int:
         fiche_path = Path(args.export).with_name("fiche_revue_" + Path(args.export).name)
     write_fiche_revue(fiche_path, result.transfers, marque_map=marque_map)
     log.info("Fiche de revue : %s", fiche_path)
+
+    # --- Push Supabase (optionnel) ---
+    if args.push or args.push_dry_run:
+        from stockflow import push_supabase
+        meta = {"runid": Path(args.export).stem, "date": args.today,
+                "perimetre": f"{datasets['stocks']['magasin'].nunique()} magasins",
+                "cible": params.get("couverture_cible_magasin"),
+                "parametres": params.snapshot(), "marque_map": marque_map}
+        if args.push_dry_run:
+            info = push_supabase.dry_run(result, meta, Path(args.export).with_name("supabase_payload.json"))
+            log.info("Payload Supabase (dry-run) : %d transferts -> %s",
+                     info["nb_transferts"], Path(args.export).with_name("supabase_payload.json"))
+        else:
+            run_id = push_supabase.push(result, meta)
+            log.info("Pousse vers Supabase. run_id = %s", run_id)
     print("\n=== Simulation avant/apres ===")
     print(result.simulation_global.to_string(index=False))
     if not result.transfers.empty:
