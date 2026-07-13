@@ -101,29 +101,32 @@ HTML_TEMPLATE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>StockFlow AI — Recommandations de transferts</title>
 <style>
+/*__FONTFACE__*/
 :root{
+  /* Police d'affichage : Horizon (bold, majuscules) une fois le fichier fourni */
+  --font-display:'Horizon','Arial Narrow','Oswald',ui-sans-serif,system-ui,sans-serif;
+  --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  /* DARK = identite primaire (facon FK.RESIZING) */
+  --bg:#0a0a0b; --card:#141416; --card2:#1a1a1d; --line:#2a2a2f;
+  --text:#f4f4f5; --muted:#8a8a92;
+  --orange:#FF6B35; --orange-dark:#E85528; --orange-soft:rgba(255,107,53,.12);
+  --sidebar-bg:#101012; --sidebar-hover:#1c1c20; --sidebar-text:#8a8a92;
+  --green:#37d67a; --green-bg:rgba(55,214,122,.15);
+  --amber:#f5a623; --amber-bg:rgba(245,166,35,.15);
+  --red:#ff5a5f; --red-bg:rgba(255,90,95,.15);
+  --blue:#4aa3ff; --blue-bg:rgba(74,163,255,.15);
+  --shadow:0 1px 2px rgba(0,0,0,.5);
+}
+:root[data-theme="light"]{
+  --bg:#f0f2f5; --card:#ffffff; --card2:#f7f8fa; --line:#e5e7eb;
+  --text:#111827; --muted:#6b7280; --orange-soft:rgba(255,107,53,.10);
   --sidebar-bg:#1a1d29; --sidebar-hover:#252836; --sidebar-text:#9ca3af;
-  --orange:#FF6B35; --orange-dark:#E85528;
-  --bg:#f0f2f5; --card:#ffffff; --line:#e5e7eb;
-  --text:#111827; --muted:#6b7280;
   --green:#16a34a; --green-bg:#dcfce7; --amber:#d97706; --amber-bg:#fef3c7;
   --red:#dc2626; --red-bg:#fee2e2; --blue:#2563eb; --blue-bg:#dbeafe;
-  --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
-}
-:root[data-theme="dark"]{
-  --bg:#0f1117; --card:#171a23; --line:#252a36; --text:#e5e7eb; --muted:#9aa4b2;
-  --green-bg:#0f2a1b; --amber-bg:#2a220f; --red-bg:#2a1414; --blue-bg:#12203a;
-  --shadow:0 1px 3px rgba(0,0,0,.4);
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#0f1117; --card:#171a23; --line:#252a36; --text:#e5e7eb; --muted:#9aa4b2;
-    --green-bg:#0f2a1b; --amber-bg:#2a220f; --red-bg:#2a1414; --blue-bg:#12203a;
-    --shadow:0 1px 3px rgba(0,0,0,.4);
-  }
+  --shadow:0 1px 3px rgba(16,24,40,.08);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+body{font-family:var(--font-body);
   background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px}
 /* Sidebar */
 .sidebar{width:230px;background:var(--sidebar-bg);color:#fff;display:flex;flex-direction:column;
@@ -131,10 +134,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .brand{padding:20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ffffff14}
 .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--orange),var(--orange-dark));
   display:grid;place-items:center;font-size:18px}
-.brand b{font-size:15px;letter-spacing:.2px}.brand span{display:block;font-size:11px;color:var(--sidebar-text)}
+.brand b{font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.08em;white-space:nowrap;line-height:1.1}
+.brand span{display:block;font-size:10.5px;letter-spacing:.03em;color:var(--sidebar-text)}
 .nav{padding:12px 10px;display:flex;flex-direction:column;gap:2px;flex:1}
 .nav button{all:unset;display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;
-  color:var(--sidebar-text);cursor:pointer;font-weight:500;font-size:13.5px}
+  color:var(--sidebar-text);cursor:pointer;font-family:var(--font-display);font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;font-size:13px}
 .nav button .ico{width:18px;text-align:center}
 .nav button:hover{background:var(--sidebar-hover);color:#fff}
 .nav button.active{background:var(--orange);color:#fff}
@@ -145,7 +151,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:14px 24px;
   display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:5}
-.topbar h1{font-size:17px;font-weight:700}
+.topbar h1{font-family:var(--font-display);font-size:20px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em}
 .topbar .sub{font-size:12px;color:var(--muted)}
 .spacer{flex:1}
 .theme-btn{all:unset;cursor:pointer;padding:7px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px}
@@ -155,9 +162,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .section{display:none}.section.active{display:block}
 /* KPI */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
-.kpi .label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.kpi .val{font-size:24px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;font-weight:600}
+.kpi .val{font-family:var(--font-display);font-size:30px;font-weight:800;margin-top:8px;
+  letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1}
 .kpi .delta{font-size:12px;margin-top:3px;font-variant-numeric:tabular-nums}
 .delta.good{color:var(--green)}.delta.bad{color:var(--red)}
 /* Toolbar */
@@ -166,9 +174,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:var(--card);color:var(--text);font-size:13px}
 .toolbar input[type=search]{min-width:230px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{all:unset;cursor:pointer;padding:6px 12px;border-radius:20px;border:1px solid var(--line);
-  font-size:12.5px;color:var(--muted);background:var(--card)}
-.chip.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+.chip{all:unset;cursor:pointer;padding:7px 13px;border-radius:20px;border:1px solid var(--line);
+  font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-weight:600;
+  font-size:11.5px;color:var(--muted);background:transparent}
+.chip:hover{border-color:var(--orange);color:var(--orange)}
+.chip.on{background:var(--orange-soft);color:var(--orange);border-color:var(--orange)}
 .btn{all:unset;cursor:pointer;padding:9px 14px;border-radius:9px;background:var(--orange);color:#fff;
   font-weight:600;font-size:13px}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
@@ -176,11 +186,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto;box-shadow:var(--shadow)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
-th{position:sticky;top:0;background:var(--card);font-size:11.5px;text-transform:uppercase;
-  letter-spacing:.3px;color:var(--muted);z-index:1}
+th{position:sticky;top:0;background:var(--card);font-family:var(--font-display);font-size:11px;
+  text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--muted);z-index:1}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tr:hover td{background:color-mix(in srgb,var(--orange) 5%,transparent)}
-.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-family:var(--font-display);
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border:1px solid transparent}
 .p-Prioritaire{background:var(--green-bg);color:var(--green)}
 .p-Fortement{background:var(--green-bg);color:var(--green)}
 .p-Recommande{background:var(--amber-bg);color:var(--amber)}
@@ -197,7 +208,8 @@ tr.reviewed-ok{background:color-mix(in srgb,var(--green) 6%,transparent)}
 tr.reviewed-no{opacity:.55}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-.panel h3{font-size:13.5px;padding:13px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.panel h3{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
 .panel .badge{margin-left:auto;font-size:12px;color:var(--muted)}
 .empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
 .note{font-size:12px;color:var(--muted);margin:10px 2px}
@@ -442,14 +454,33 @@ function render(){
 }
 
 document.getElementById('theme').onclick=()=>{
-  const r=document.documentElement; const cur=r.getAttribute('data-theme');
-  const next = cur==='dark'?'light':cur==='light'?'dark':(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
-  r.setAttribute('data-theme',next);
+  const r=document.documentElement; const cur=r.getAttribute('data-theme')||'dark';
+  r.setAttribute('data-theme', cur==='light'?'dark':'light');
 };
 render();
 </script>
 </body>
 </html>"""
+
+
+def font_face_css() -> str:
+    """Genere le @font-face Horizon si un fichier est depose dans webapp/.
+
+    Deposez webapp/horizon.woff2 (ou .ttf / .otf) et relancez : la police est
+    embarquee en data-URI (la CSP interdit le chargement depuis un CDN).
+    """
+    import base64
+    for name, fmt in [("horizon.woff2", "woff2"), ("horizon.woff", "woff"),
+                      ("horizon.ttf", "truetype"), ("horizon.otf", "opentype")]:
+        p = ROOT / name
+        if p.exists():
+            b64 = base64.b64encode(p.read_bytes()).decode()
+            return (f"@font-face{{font-family:'Horizon';"
+                    f"src:url('data:font/{fmt};base64,{b64}') format('{fmt}');"
+                    f"font-weight:400 900;font-style:normal;font-display:swap}}")
+    return ("/* Police Horizon non fournie : deposez webapp/horizon.woff2 puis "
+            "relancez build_prototype.py. Les titres utilisent une police de "
+            "remplacement (bold, majuscules) en attendant. */")
 
 
 def main():
@@ -459,7 +490,9 @@ def main():
             "cible": 14, "date": "12/07/2026"}
     data = build_data(export, fiche, meta)
     payload = json.dumps(data, ensure_ascii=False)
-    html = HTML_TEMPLATE.replace("/*__DATA__*/", payload)
+    html = (HTML_TEMPLATE
+            .replace("/*__FONTFACE__*/", font_face_css())
+            .replace("/*__DATA__*/", payload))
     out = ROOT / "stockflow_prototype.html"
     out.write_text(html, encoding="utf-8")
 
