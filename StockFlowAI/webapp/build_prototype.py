@@ -253,17 +253,15 @@ tr.reviewed-no{opacity:.55}
 </div>
 <script id="data" type="application/json">/*__DATA__*/</script>
 <script>
-const DATA = JSON.parse(document.getElementById('data').textContent);
-const C = {}; DATA.cols.forEach((c,i)=>C[c]=i);
-const RUNID = DATA.meta.runid || 'run';
-const BRAND = DATA.meta.brand || 'StockFlow AI';
-document.querySelector('.brand b').textContent = BRAND;
-document.querySelector('.brand span').textContent = DATA.meta.tagline || 'Recommandations';
-document.getElementById('tbBrand').textContent = BRAND;
-document.title = BRAND + ' — Recommandations de transferts';
-const store = { get(){try{return JSON.parse(localStorage.getItem('sf_'+RUNID)||'{}')}catch(e){return {}}},
-  set(o){localStorage.setItem('sf_'+RUNID,JSON.stringify(o))} };
-let reviews = store.get();
+// DATA et la persistance de revue sont fournis par le "shell" (prototype ou
+// Supabase). Par defaut : donnees inlinees + revue en localStorage.
+let DATA = null, C = {}, reviews = {};
+window.bootData = window.bootData || (async () =>
+  JSON.parse(document.getElementById('data').textContent));
+window.ReviewStore = window.ReviewStore || {
+  async load(){ try{return JSON.parse(localStorage.getItem('sf_'+(DATA.meta.runid||'run'))||'{}')}catch(e){return {}} },
+  async set(n,val){ localStorage.setItem('sf_'+(DATA.meta.runid||'run'), JSON.stringify(reviews)); }
+};
 const fmt = n => (typeof n==='number'? n.toLocaleString('fr-FR'):n);
 const pcls = p => 'p-'+String(p).replace(/[^A-Za-z]/g,'').slice(0,10).replace('Fortementrecommande','Fortement').replace('Avalider','Avalider');
 
@@ -353,7 +351,7 @@ function bindReview(root){
   root.querySelectorAll('tr[data-n] .rev button').forEach(b=>{
     b.onclick=()=>{ const tr=b.closest('tr'); const n=tr.dataset.n; const a=b.dataset.a;
       reviews[n]= reviews[n]===a? undefined : a; if(!reviews[n]) delete reviews[n];
-      store.set(reviews); const st=reviews[n]||'todo';
+      window.ReviewStore.set(n, reviews[n]); const st=reviews[n]||'todo';
       tr.className = st==='ok'?'reviewed-ok':st==='no'?'reviewed-no':'';
       tr.querySelectorAll('.rev button').forEach(x=>x.classList.toggle('on', reviews[n]===x.dataset.a));
       reviewSummary();
@@ -378,7 +376,7 @@ function renderTransferts(){
     <div class="spacer"></div>
     <button class="btn" id="exp">⬇️ Exporter les validés (CSV)</button>
   </div>
-  <div class="note">${rows.length} transfert(s) affiché(s) sur ${DATA.transfers.length}. Cliquez ✓ / ✕ pour valider ou refuser — la revue est mémorisée dans ce navigateur.</div>
+  <div class="note">${rows.length} transfert(s) affiché(s) sur ${DATA.transfers.length}. Cliquez ✓ / ✕ pour valider ou refuser — la revue est enregistrée.</div>
   <div class="tablewrap"><table><thead><tr>
     <th class="num">N°</th><th>Priorité</th><th class="num">Score</th><th>Marque</th>
     <th>Flux</th><th>Réf. (code-barre)</th><th>Taille</th><th class="num">Qté</th>
@@ -485,7 +483,19 @@ document.getElementById('theme').onclick=()=>{
   const r=document.documentElement; const cur=r.getAttribute('data-theme')||'dark';
   r.setAttribute('data-theme', cur==='light'?'dark':'light');
 };
-render();
+
+window.boot = async function(){
+  DATA = await window.bootData();
+  C = {}; DATA.cols.forEach((c,i)=>C[c]=i);
+  const BRAND = DATA.meta.brand || 'StockFlow AI';
+  document.querySelector('.brand b').textContent = BRAND;
+  document.querySelector('.brand span').textContent = DATA.meta.tagline || 'Recommandations';
+  document.getElementById('tbBrand').textContent = BRAND;
+  document.title = BRAND + ' — Recommandations de transferts';
+  reviews = await window.ReviewStore.load();
+  render();
+};
+if(window.AUTO_BOOT !== false) window.boot();
 </script>
 </body>
 </html>"""

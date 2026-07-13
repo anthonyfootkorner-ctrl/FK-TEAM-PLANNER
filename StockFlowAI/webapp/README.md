@@ -43,10 +43,19 @@ python run_real.py ... --push-dry-run   # ecrit exports/supabase_payload.json
 La cle `service_role` contourne les RLS pour l'insertion ; elle reste **cote
 serveur** (script d'execution / cron hebdomadaire), jamais dans la page web.
 
-### Étape C — frontend hebergé (a venir)
-Le prototype sera branche sur Supabase : lecture des transferts via
-`supabase-js` (clé publishable + auth), revue OK/NON ecrite dans
-`stockflow_reviews` (partagee entre utilisateurs). Meme UI, meme identite.
+### Étape C — frontend hebergé
+```bash
+python webapp/build_supabase_app.py    # genere webapp/app_supabase.html
+```
+Fichier statique **a heberger** (il charge supabase-js depuis un CDN, donc il ne
+peut pas etre publie comme Artifact). Ecran de connexion (Supabase Auth,
+email/mot de passe), puis lecture du dernier run + ses transferts, meme UI que
+le prototype, et revue OK/NON ecrite dans `stockflow_reviews` (**partagee entre
+utilisateurs**). N'utilise que les cles PUBLIQUES (publishable + auth), les
+memes que le FK Team Planner.
+
+Hebergement possible : votre hebergeur actuel, Supabase Storage, GitHub Pages,
+Netlify… (un seul fichier HTML autonome).
 
 ## Fichiers
 
