@@ -64,6 +64,20 @@ def main(argv=None) -> int:
     log.info("Transferts retenus : %d (%d iterations)", len(result.transfers),
              result.journal.get("nb_iterations"))
     log.info("Export : %s", result.export_path)
+
+    # Fiche de revue epuree (pour validation par les equipes)
+    from stockflow.exports import write_fiche_revue
+    marque_map = {}
+    st = datasets.get("stocks")
+    if st is not None and not st.empty and "marque" in st.columns:
+        marque_map = (st.drop_duplicates(["reference", "couleur"])
+                        .set_index(["reference", "couleur"])["marque"].to_dict())
+    fiche_path = Path(args.export).with_name(
+        Path(args.export).stem.replace("stockflow", "fiche_revue") + ".xlsx")
+    if "fiche_revue" not in fiche_path.name:
+        fiche_path = Path(args.export).with_name("fiche_revue_" + Path(args.export).name)
+    write_fiche_revue(fiche_path, result.transfers, marque_map=marque_map)
+    log.info("Fiche de revue : %s", fiche_path)
     print("\n=== Simulation avant/apres ===")
     print(result.simulation_global.to_string(index=False))
     if not result.transfers.empty:

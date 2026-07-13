@@ -208,6 +208,92 @@ def _write_sheet(writer, sheet_name: str, df: pd.DataFrame, prio_col: str | None
                 ws.cell(row=r + 2, column=pcol).fill = fill
 
 
+def write_fiche_revue(path: str | Path, transfers: pd.DataFrame,
+                      marque_map: dict | None = None, top: int | None = None) -> Path:
+    """Genere une 'fiche de revue' epuree pour validation par les equipes.
+
+    Tableau simple trie par score, avec deux colonnes vides a remplir :
+    « OK ? » (menu deroulant OK/NON/?) et « Commentaire ».
+    """
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    t = transfers.copy() if transfers is not None else pd.DataFrame()
+
+    if not t.empty:
+        t = t.sort_values("score", ascending=False).reset_index(drop=True)
+        if top:
+            t = t.head(top)
+        if marque_map:
+            key = list(zip(t["reference"].astype(str), t["couleur"].astype(str)))
+            t["marque"] = [marque_map.get(k, "") for k in key]
+        fiche = pd.DataFrame({
+            "N0": range(1, len(t) + 1),
+            "Priorite": t.get("priorite"),
+            "Score": t.get("score"),
+            "Marque": t.get("marque", ""),
+            "Expediteur": t.get("expediteur"),
+            "Destinataire": t.get("destinataire"),
+            "Reference": t.get("reference"),
+            "Couleur": t.get("couleur"),
+            "Taille": t.get("taille"),
+            "Quantite": t.get("quantite"),
+            "Couv. dest. avant": t.get("cov_dest_avant"),
+            "Couv. dest. apres": t.get("cov_dest_apres"),
+            "Grille avant": t.get("grille_avant"),
+            "Grille apres": t.get("grille_apres"),
+            "Reassort Picking prevu": t.get("picking_prevu"),
+            "Motif": t.get("motif"),
+            "OK ?": "",
+            "Commentaire": "",
+        })
+    else:
+        fiche = pd.DataFrame({"Info": ["Aucun transfert a revoir"]})
+
+    # mode d'emploi
+    guide = pd.DataFrame({
+        "Fiche de revue - mode d'emploi": [
+            "Objectif : valider les transferts recommandes par StockFlow AI.",
+            "1. Parcourez les lignes (deja triees du plus prioritaire au moins prioritaire).",
+            "2. Colonne « OK ? » : choisissez OK / NON / ? (menu deroulant).",
+            "3. Colonne « Commentaire » : precisez la raison d'un refus ou un ajustement.",
+            "4. La colonne « Motif » explique pourquoi chaque transfert est propose.",
+            "",
+            "Critere de validation (brief) : au moins 80% des 50 premieres lignes",
+            "doivent etre jugees pertinentes par le metier.",
+            "",
+            "Rappel : aucun transfert n'est execute automatiquement - vous gardez la main.",
+        ]
+    })
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        _write_sheet(writer, "Revue", fiche, prio_col="Priorite")
+        guide.to_excel(writer, sheet_name="Mode d'emploi", index=False)
+        # habillage colonnes a remplir + menu deroulant
+        if not fiche.empty and "OK ?" in fiche.columns:
+            ws = writer.sheets["Revue"]
+            cols = list(fiche.columns)
+            n = len(fiche)
+            fill = PatternFill("solid", fgColor="FFF2CC")
+            for name in ("OK ?", "Commentaire"):
+                ci = cols.index(name) + 1
+                letter = get_column_letter(ci)
+                ws.column_dimensions[letter].width = 16 if name == "OK ?" else 40
+                for r in range(2, n + 2):
+                    ws.cell(row=r, column=ci).fill = fill
+            ci = cols.index("OK ?") + 1
+            letter = get_column_letter(ci)
+            dv = DataValidation(type="list", formula1='"OK,NON,?"', allow_blank=True)
+            ws.add_data_validation(dv)
+            dv.add(f"{letter}2:{letter}{n + 1}")
+        # mise en forme feuille guide
+        gws = writer.sheets["Mode d'emploi"]
+        gws.column_dimensions["A"].width = 80
+        gws.cell(row=1, column=1).font = Font(bold=True, size=12)
+    return path
+
+
 def export_excel(path: str | Path, *, transfers: pd.DataFrame, flux: pd.DataFrame,
                  simulation_global: pd.DataFrame, simulation_stores: pd.DataFrame,
                  implantations: pd.DataFrame, cas_non_traites: pd.DataFrame,

@@ -78,6 +78,24 @@ def test_load_real_dataset(tmp_path):
     assert (stores.loc[stores.code_magasin == "WEB", "type_magasin"] == "WEB").all()
 
 
+def test_fiche_revue(tmp_path):
+    from stockflow.exports import write_fiche_revue
+    transfers = pd.DataFrame({
+        "priorite": ["Recommande", "A valider"], "score": [72.0, 63.0],
+        "expediteur": ["A", "B"], "destinataire": ["C", "D"],
+        "reference": ["R1", "R2"], "couleur": ["N", "B"], "taille": ["M", "L"],
+        "quantite": [3, 1], "cov_dest_avant": [2, 5], "cov_dest_apres": [12, 15],
+        "grille_avant": ["S", "L"], "grille_apres": ["S/M", "L/M"],
+        "picking_prevu": [0, 2], "motif": ["m1", "m2"],
+    })
+    out = write_fiche_revue(tmp_path / "fiche.xlsx", transfers,
+                            marque_map={("R1", "N"): "NIKE"})
+    f = pd.read_excel(out, sheet_name="Revue")
+    assert "OK ?" in f.columns and "Commentaire" in f.columns
+    assert f["Marque"].iloc[0] == "NIKE"           # marque jointe
+    assert f["Score"].iloc[0] == 72.0              # trie par score desc
+
+
 def test_app_service(tmp_path):
     import io
     from stockflow.app_service import build_params, run_analysis
