@@ -62,8 +62,8 @@ python run_real.py --stock STOCK.csv --ventes VENTESTOCKFLOW.csv \
 ```
 
 Choix d'adaptation (reversibles, a valider avec le metier) :
-- `reference`/`couleur` derives de `BarCode V2` (`779229-04` -> ref `779229`,
-  couleur `04`) ;
+- `reference` = **code-barre complet** (`BarCode V2` non decoupe : un code-barre
+  = un produit, retrouvable tel quel dans le systeme source) ;
 - tailles standardisees en familles (LETTRE / CHAUSSURE / ENFANT) qui pilotent
   les tailles coeur ;
 - `prix_vente` recupere depuis le fichier de ventes ;

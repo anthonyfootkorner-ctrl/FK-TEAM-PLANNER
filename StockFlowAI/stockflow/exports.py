@@ -29,7 +29,7 @@ TRANSFER_LABELS = {
     "score": "Score",
     "expediteur": "Expediteur",
     "destinataire": "Destinataire",
-    "reference": "Reference",
+    "reference": "Reference (code-barre)",
     "couleur": "Couleur",
     "taille": "Taille",
     "quantite": "Quantite",
@@ -235,8 +235,7 @@ def write_fiche_revue(path: str | Path, transfers: pd.DataFrame,
             "Marque": t.get("marque", ""),
             "Expediteur": t.get("expediteur"),
             "Destinataire": t.get("destinataire"),
-            "Reference": t.get("reference"),
-            "Couleur": t.get("couleur"),
+            "Reference (code-barre)": t.get("reference"),
             "Taille": t.get("taille"),
             "Quantite": t.get("quantite"),
             "Couv. dest. avant": t.get("cov_dest_avant"),
@@ -306,6 +305,10 @@ def export_excel(path: str | Path, *, transfers: pd.DataFrame, flux: pd.DataFram
     # onglet transferts : renommage lisible
     t = transfers.copy() if transfers is not None else pd.DataFrame()
     if not t.empty:
+        # couleur embarquee dans le code-barre => colonne vide : on la retire
+        if "couleur" in t.columns and t["couleur"].astype(str).str.strip().replace(
+                {"nan": "", "None": ""}).eq("").all():
+            t = t.drop(columns=["couleur"])
         ordered = [c for c in TRANSFER_LABELS if c in t.columns]
         extra = [c for c in t.columns if c not in TRANSFER_LABELS]
         t = t[ordered + extra].rename(columns=TRANSFER_LABELS)

@@ -131,7 +131,7 @@ L'adaptateur les convertit automatiquement.
 |---|---|
 | `Code_Origine` | -> `magasin` (et `ville` = code, referentiel minimal) |
 | `Marque Gp` | -> `marque` |
-| `BarCode V2` | -> `reference` (modele) + `couleur` (suffixe apres `-`) |
+| `BarCode V2` | -> `reference` = **code-barre COMPLET** (identifiant produit fiable ; la couleur/le type sont embarques dedans, on ne decoupe pas) |
 | `Taille` | -> `taille` standardisee + `categorie` = famille de taille |
 | `PrixAchat` | -> `prix_achat` |
 | `Total Stock` | -> `stock_physique` (doublons agreges) |
@@ -164,7 +164,10 @@ Objectifs et trafic (tickets) par magasin ; réserve pour la criticité magasin.
 - **Fichiers manquants** : Picking, Magasins (ville/region/flagship) et
   Historique ne sont pas dans les exports fournis => regles associees neutres
   (mode degrade, reversible).
-- **BarCode sans tiret** (~17%) : couleur = `UNI`.
+- **Reference = code-barre complet** : un code-barre = un produit (decline en
+  tailles). On ne decoupe plus sur les tirets (les code-barres a plusieurs
+  segments comme `LL061074-BLANC-SHORT` etaient tronques a tort). La reference
+  affichee correspond exactement au code source, retrouvable tel quel.
 
 ## Controles de l'Etape 1
 

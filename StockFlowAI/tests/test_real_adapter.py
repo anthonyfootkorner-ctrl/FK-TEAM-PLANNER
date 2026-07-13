@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from stockflow.sizes import normalize_size, LETTRE, CHAUSSURE, ENFANT, AUTRE
-from stockflow.ingest_real import split_barcode, load_real_dataset
+from stockflow.ingest_real import split_barcode, barcode_reference, load_real_dataset
 
 
 def test_normalize_size_familles():
@@ -19,10 +19,10 @@ def test_normalize_size_familles():
     assert normalize_size("")[0] == "?"
 
 
-def test_split_barcode():
-    ref, coul = split_barcode(pd.Series(["779229-04", "36N074-A9Y", "SANSDASH"]))
-    assert list(ref) == ["779229", "36N074", "SANSDASH"]
-    assert list(coul) == ["04", "A9Y", "UNI"]
+def test_barcode_reference_complet():
+    # la reference = code-barre COMPLET, sans decoupage (plus d'invention)
+    ref = barcode_reference(pd.Series(["779229-04", "LL061074-BLANC-SHORT", " X "]))
+    assert list(ref) == ["779229-04", "LL061074-BLANC-SHORT", "X"]
 
 
 def _write(tmp_path):
@@ -57,9 +57,9 @@ def test_load_real_dataset(tmp_path):
     ds = load_real_dataset(sp, vp, today=pd.Timestamp("2026-07-13"))
     stocks, ventes, stores = ds["stocks"], ds["ventes"], ds["magasins"]
 
-    # reference/couleur derives du barcode
-    assert (stocks["reference"] == "779229").all()
-    assert set(stocks["couleur"]) == {"04"}
+    # reference = code-barre complet (plus de decoupage), couleur vide
+    assert (stocks["reference"] == "779229-04").all()
+    assert set(stocks["couleur"]) == {""}
 
     # prix de vente recupere depuis les ventes (60), pas seulement prix_achat
     assert (stocks["prix_vente"] == 60).all()

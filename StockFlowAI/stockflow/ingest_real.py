@@ -47,8 +47,22 @@ def _num(series: pd.Series) -> pd.Series:
     ).fillna(0.0)
 
 
+def barcode_reference(bc: pd.Series) -> pd.Series:
+    """Reference = code-barre COMPLET (un code-barre = un produit).
+
+    On n'invente plus de reference/couleur en decoupant sur les tirets : les
+    code-barres a plusieurs segments (ex. LL061074-BLANC-SHORT) etaient tronques
+    a tort. Le code-barre entier est l'identifiant fiable, retrouvable tel quel
+    dans le systeme source. La couleur/le type restent embarques dedans.
+    """
+    return bc.astype(str).str.strip()
+
+
 def split_barcode(bc: pd.Series) -> Tuple[pd.Series, pd.Series]:
-    """(reference, couleur) a partir de BarCode V2 = MODELE-COULEUR."""
+    """[obsolete] Ancien decoupage MODELE-COULEUR, conserve pour reference.
+
+    Ne plus utiliser pour identifier un produit : voir barcode_reference.
+    """
     s = bc.astype(str).str.strip()
     has_dash = s.str.contains("-", regex=False)
     ref = np.where(has_dash, s.str.rsplit("-", n=1).str[0], s)
@@ -80,12 +94,12 @@ def load_reassort(reassort_xlsx) -> pd.DataFrame:
         return pd.DataFrame()
     if tt.empty or "Boutique" not in tt.columns:
         return pd.DataFrame()
-    ref, coul = split_barcode(tt["Barcode"])
+    ref = barcode_reference(tt["Barcode"])
     taille, _ = _norm_sizes(tt["Taille"])
     qte = _num(tt.get("Qté proposée", tt.get("Qte proposee", 0)))
     pick = pd.DataFrame({
         "magasin": tt["Boutique"].astype(str).str.strip(),
-        "reference": ref, "couleur": coul, "taille": taille,
+        "reference": ref, "couleur": "", "taille": taille,
         "quantite_prevue": qte,
         "statut_reassort": "PROPOSE",          # non receptionne => en transit
         "id_mouvement": [f"RE{i:05d}" for i in range(len(tt))],
@@ -106,11 +120,11 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
 
     # ---------------- VENTES (grain jour x magasin x barcode x taille) --------
     vraw = _read_csv(sales_csv)
-    vref, vcoul = split_barcode(vraw["BarCode V2"])
+    vref = barcode_reference(vraw["BarCode V2"])
     vtaille, vfam = _norm_sizes(vraw["Taille"])
     v = pd.DataFrame({
         "magasin": vraw["Code_Origine"].str.strip(),
-        "reference": vref, "couleur": vcoul, "taille": vtaille, "famille": vfam,
+        "reference": vref, "couleur": "", "taille": vtaille, "famille": vfam,
         "marque": vraw["Marque Gp"].str.strip(),
         "saison": vraw.get("Saison", pd.Series([""] * len(vraw))).astype(str).str.strip(),
         "prix_vente": _num(vraw["PrixVente"]),
@@ -142,11 +156,11 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
 
     # ---------------- STOCK (grain magasin x barcode x taille) ----------------
     sraw = _read_csv(stock_csv)
-    sref, scoul = split_barcode(sraw["BarCode V2"])
+    sref = barcode_reference(sraw["BarCode V2"])
     staille, sfam = _norm_sizes(sraw["Taille"])
     st = pd.DataFrame({
         "magasin": sraw["Code_Origine"].str.strip(),
-        "reference": sref, "couleur": scoul, "taille": staille, "famille": sfam,
+        "reference": sref, "couleur": "", "taille": staille, "famille": sfam,
         "marque": sraw["Marque Gp"].str.strip(),
         "prix_achat": _num(sraw["PrixAchat"]),
         "stock_physique": _num(sraw["Total Stock"]),
