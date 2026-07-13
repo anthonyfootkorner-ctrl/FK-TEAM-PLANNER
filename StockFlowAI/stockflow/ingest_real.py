@@ -62,7 +62,41 @@ def _norm_sizes(series: pd.Series) -> Tuple[pd.Series, pd.Series]:
     return tn, fam
 
 
+def load_reassort(reassort_xlsx) -> pd.DataFrame:
+    """Charge le fichier de reassorts programmes (sortie de l'agent existant).
+
+    La feuille "Tous transferts" liste les reassorts CENTRAL -> boutique deja
+    proposes. On les traite comme du stock EN TRANSIT vers la boutique
+    destinataire (brief 2.4 / 5.1) : StockFlow n'a pas a les doubler, il calcule
+    un besoin residuel net de ces reassorts.
+    """
+    try:
+        tt = pd.read_excel(reassort_xlsx, sheet_name="Tous transferts")
+    except Exception:
+        return pd.DataFrame()
+    if tt.empty or "Boutique" not in tt.columns:
+        return pd.DataFrame()
+    ref, coul = split_barcode(tt["Barcode"])
+    taille, _ = _norm_sizes(tt["Taille"])
+    qte = _num(tt.get("Qté proposée", tt.get("Qte proposee", 0)))
+    pick = pd.DataFrame({
+        "magasin": tt["Boutique"].astype(str).str.strip(),
+        "reference": ref, "couleur": coul, "taille": taille,
+        "quantite_prevue": qte,
+        "statut_reassort": "PROPOSE",          # non receptionne => en transit
+        "id_mouvement": [f"RE{i:05d}" for i in range(len(tt))],
+    })
+    pick = pick[pick["quantite_prevue"] > 0]
+    # agregation si doublons apres normalisation des tailles
+    pick = pick.groupby(["magasin", "reference", "couleur", "taille"], as_index=False).agg(
+        quantite_prevue=("quantite_prevue", "sum"),
+        statut_reassort=("statut_reassort", "first"),
+        id_mouvement=("id_mouvement", "first"))
+    return pick
+
+
 def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
+                      reassort_xlsx=None,
                       today: pd.Timestamp | None = None) -> Dict[str, pd.DataFrame]:
     today = pd.Timestamp(today) if today is not None else pd.Timestamp("2026-07-13")
 
@@ -180,10 +214,12 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
         "priorite": 0.0,
     })
 
+    picking = load_reassort(reassort_xlsx) if reassort_xlsx else pd.DataFrame()
+
     return {
         "stocks": stocks,
         "ventes": sales_out,
-        "picking": pd.DataFrame(),
+        "picking": picking,
         "magasins": stores,
         "historique": pd.DataFrame(),
     }

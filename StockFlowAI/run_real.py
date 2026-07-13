@@ -33,6 +33,7 @@ def main(argv=None) -> int:
     p.add_argument("--stock", required=True)
     p.add_argument("--ventes", required=True)
     p.add_argument("--objectif", default=None)
+    p.add_argument("--reassort", default=None, help="fichier de reassorts programmes (xlsx)")
     p.add_argument("--config", default=str(ROOT / "config" / "parametres.xlsx"))
     p.add_argument("--today", default="2026-07-13")
     p.add_argument("--export", default=str(ROOT / "exports" / "stockflow_reel.xlsx"))
@@ -45,7 +46,8 @@ def main(argv=None) -> int:
 
     today = pd.Timestamp(args.today)
     log.info("Adaptation des exports reels...")
-    datasets = load_real_dataset(args.stock, args.ventes, args.objectif, today=today)
+    datasets = load_real_dataset(args.stock, args.ventes, args.objectif,
+                                 reassort_xlsx=args.reassort, today=today)
     for k, v in datasets.items():
         log.info("  %-11s : %d lignes", k, len(v))
 
