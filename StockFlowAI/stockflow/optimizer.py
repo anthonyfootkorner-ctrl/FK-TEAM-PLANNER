@@ -63,9 +63,9 @@ class Optimizer:
         self.grid = grid_index
         self.distance = distance
         self.scorer = TransferScorer(params)
-        # magasins exclus des flux (ni donneur ni receveur), ex. reserve CENTRAL
-        self.exclus_flux = {str(x).strip().upper()
-                            for x in params.get("magasins_exclus_flux", []) or []}
+        # magasins hors flux (ni donneur ni receveur) : reserve externe (CENTRAL)
+        # ou magasins fermes/inactifs.
+        self.exclus_flux = params.excluded_stores()
 
         # --- etat vivant : stock et daily par ligne ---
         self.stock: Dict[LineKey, float] = {}

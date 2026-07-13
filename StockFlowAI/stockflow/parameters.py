@@ -142,6 +142,19 @@ class Parameters:
     def set(self, key: str, value: Any) -> None:
         self.values[key] = value
 
+    # -- magasins hors flux ---------------------------------------------------
+    def excluded_stores(self) -> set:
+        """Codes magasins (majuscules) exclus des flux : ni donneur ni receveur.
+
+        Regroupe les reserves gerees par un autre outil (``magasins_exclus_flux``,
+        ex. CENTRAL) et les magasins fermes/inactifs (``magasins_inactifs``).
+        """
+        out = set()
+        for key in ("magasins_exclus_flux", "magasins_inactifs"):
+            for x in self.values.get(key, []) or []:
+                out.add(str(x).strip().upper())
+        return out
+
     # -- tailles coeur --------------------------------------------------------
     def tailles_coeur_for(self, categorie: str | None) -> List[str]:
         table = self.values.get("tailles_coeur", {})

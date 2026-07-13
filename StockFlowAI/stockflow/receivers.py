@@ -32,8 +32,8 @@ def detect_receivers(df: pd.DataFrame, index: GridIndex, params: Parameters,
     cible = float(params.get("couverture_cible_magasin", 30))
     is_web = df["is_web"] if "is_web" in df else df["magasin"].astype(str).str.upper().isin(web_codes)
     physiques = df[~is_web].copy()
-    # magasins exclus des flux (reserve externe, ex. CENTRAL) : pas receveurs
-    exclus_flux = {str(x).strip().upper() for x in params.get("magasins_exclus_flux", []) or []}
+    # magasins hors flux (reserve externe ou ferme/inactif) : pas receveurs
+    exclus_flux = params.excluded_stores()
     if exclus_flux:
         physiques = physiques[~physiques["magasin"].astype(str).str.upper().isin(exclus_flux)]
 
