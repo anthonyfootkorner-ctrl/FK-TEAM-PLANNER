@@ -32,7 +32,11 @@ WEB_NAMES = {"WEB", "WEB_RETOUR", "ECOMMERCE", "ECOM"}
 
 
 def _read_csv(path) -> pd.DataFrame:
-    return pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[""])
+    # utf-8-sig : neutralise le BOM present dans les exports (sinon il colle a
+    # l'intitule de la premiere colonne). Accepte un chemin ou un fichier-memoire
+    # (upload navigateur).
+    return pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[""],
+                       encoding="utf-8-sig")
 
 
 def _num(series: pd.Series) -> pd.Series:

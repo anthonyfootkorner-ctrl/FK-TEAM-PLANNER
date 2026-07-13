@@ -77,6 +77,27 @@ ruptures **-3 982**, stock dormant **-7 181**, couverture moyenne **+3,2 j**,
 score de sante reseau **+5,2**, stock total conserve, calcul ~2 min. Voir
 `documentation/mapping_donnees.md` (section « Donnees reelles »).
 
+## Mini-site local (glisser-deposer)
+
+Pour lancer StockFlow AI sans ligne de commande :
+
+- **Windows** : double-cliquez `lancer_stockflow.bat`
+- **macOS / Linux** : double-cliquez `lancer_stockflow.command`
+  (Mac, 1re fois : clic droit > Ouvrir)
+
+Une page s'ouvre dans le navigateur : deposez vos fichiers (STOCK, VENTES, et si
+disponibles REASSORT / OBJECTIF), reglez la cible de couverture, cliquez sur
+**Lancer l'analyse**, consultez les indicateurs avant/apres et telechargez
+l'Excel complet. Equivalent manuel :
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Le moteur est strictement le meme qu'en ligne de commande — l'appli n'est que
+l'habillage (voir `app.py` / `stockflow/app_service.py`).
+
 ## Structure
 
 ```

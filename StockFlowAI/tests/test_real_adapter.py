@@ -78,6 +78,21 @@ def test_load_real_dataset(tmp_path):
     assert (stores.loc[stores.code_magasin == "WEB", "type_magasin"] == "WEB").all()
 
 
+def test_app_service(tmp_path):
+    import io
+    from stockflow.app_service import build_params, run_analysis
+    sp, vp = _write(tmp_path)
+    params = build_params(cible=14, min_expediteur=10, min_web=14)
+    assert params.get("couverture_cible_magasin") == 14
+    # via buffers memoire (comme un upload navigateur)
+    stock = io.BytesIO(open(sp, "rb").read())
+    ventes = io.BytesIO(open(vp, "rb").read())
+    res, ds = run_analysis(stock=stock, ventes=ventes, params=params,
+                           today=pd.Timestamp("2026-07-13"))
+    assert not res.blocked
+    assert "stocks" in ds and not ds["stocks"].empty
+
+
 def test_pipeline_sur_donnees_reelles(tmp_path):
     from stockflow.pipeline import run_pipeline
     from stockflow.parameters import Parameters
