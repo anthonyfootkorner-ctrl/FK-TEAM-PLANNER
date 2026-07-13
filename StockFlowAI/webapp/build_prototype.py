@@ -103,8 +103,8 @@ HTML_TEMPLATE = r"""<!doctype html>
 <style>
 /*__FONTFACE__*/
 :root{
-  /* Police d'affichage : Horizon (bold, majuscules) une fois le fichier fourni */
-  --font-display:'Horizon','Arial Narrow','Oswald',ui-sans-serif,system-ui,sans-serif;
+  /* Police d'affichage des titres : Montserrat ExtraBold (embarquee) */
+  --font-display:'FKDisplay','Montserrat','Arial Narrow',ui-sans-serif,system-ui,sans-serif;
   --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   /* DARK = identite primaire (facon FK.RESIZING) */
   --bg:#0a0a0b; --card:#141416; --card2:#1a1a1d; --line:#2a2a2f;
@@ -467,23 +467,23 @@ render();
 
 
 def font_face_css() -> str:
-    """Genere le @font-face Horizon si un fichier est depose dans webapp/.
+    """Embarque la police d'affichage (titres) en data-URI.
 
-    Deposez webapp/horizon.woff2 (ou .ttf / .otf) et relancez : la police est
-    embarquee en data-URI (la CSP interdit le chargement depuis un CDN).
+    Cherche webapp/display.woff2 (ou .woff/.ttf/.otf) et l'embarque sous la
+    famille 'FKDisplay' (la CSP interdit le chargement depuis un CDN). Ici :
+    Montserrat ExtraBold. En l'absence de fichier, repli bold/majuscules.
     """
     import base64
-    for name, fmt in [("horizon.woff2", "woff2"), ("horizon.woff", "woff"),
-                      ("horizon.ttf", "truetype"), ("horizon.otf", "opentype")]:
+    for name, fmt in [("display.woff2", "woff2"), ("display.woff", "woff"),
+                      ("display.ttf", "truetype"), ("display.otf", "opentype")]:
         p = ROOT / name
         if p.exists():
             b64 = base64.b64encode(p.read_bytes()).decode()
-            return (f"@font-face{{font-family:'Horizon';"
+            return (f"@font-face{{font-family:'FKDisplay';"
                     f"src:url('data:font/{fmt};base64,{b64}') format('{fmt}');"
                     f"font-weight:400 900;font-style:normal;font-display:swap}}")
-    return ("/* Police Horizon non fournie : deposez webapp/horizon.woff2 puis "
-            "relancez build_prototype.py. Les titres utilisent une police de "
-            "remplacement (bold, majuscules) en attendant. */")
+    return ("/* Police d'affichage non fournie : deposez webapp/display.woff2 "
+            "puis relancez build_prototype.py. */")
 
 
 def main():
