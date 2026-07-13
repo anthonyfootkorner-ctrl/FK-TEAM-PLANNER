@@ -158,6 +158,11 @@ body{font-family:var(--font-body);
 .theme-btn{all:unset;cursor:pointer;padding:7px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px}
 .review-pill{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
 .review-pill b{color:var(--text)}
+.tb-brand{display:none;align-items:center;gap:8px}
+.tb-brand .tb-logo{width:26px;height:26px;border-radius:7px;
+  background:linear-gradient(135deg,var(--orange),var(--orange-dark));display:grid;place-items:center;font-size:15px}
+.tb-brand b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:16px}
+.mnav{display:none}
 .content{padding:22px 24px;flex:1}
 .section{display:none}.section.active{display:block}
 /* KPI */
@@ -213,7 +218,20 @@ tr.reviewed-no{opacity:.55}
 .panel .badge{margin-left:auto;font-size:12px;color:var(--muted)}
 .empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
 .note{font-size:12px;color:var(--muted);margin:10px 2px}
-@media(max-width:820px){.sidebar{display:none}.grid2{grid-template-columns:1fr}}
+.mnav button{all:unset;cursor:pointer;padding:8px 13px;border-radius:8px;white-space:nowrap;
+  font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-weight:600;
+  font-size:12px;color:var(--muted);border:1px solid var(--line)}
+.mnav button.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+@media(max-width:820px){
+  .sidebar{display:none}
+  .grid2{grid-template-columns:1fr}
+  .tb-brand{display:flex}
+  .topbar h1{font-size:15px}
+  .topbar .sub{display:none}
+  .mnav{display:flex;gap:7px;overflow-x:auto;padding:10px 16px;background:var(--card);
+    border-bottom:1px solid var(--line);position:sticky;top:57px;z-index:4}
+  .content{padding:16px}
+}
 </style>
 </head>
 <body>
@@ -224,11 +242,13 @@ tr.reviewed-no{opacity:.55}
 </aside>
 <div class="main">
   <div class="topbar">
+    <div class="tb-brand"><span class="tb-logo">📦</span><b id="tbBrand"></b></div>
     <div><h1 id="ttl">Transferts recommandes</h1><div class="sub" id="sub"></div></div>
     <div class="spacer"></div>
     <div class="review-pill" id="revsum"></div>
     <button class="theme-btn" id="theme">◐ Theme</button>
   </div>
+  <nav class="mnav" id="mnav"></nav>
   <div class="content" id="content"></div>
 </div>
 <script id="data" type="application/json">/*__DATA__*/</script>
@@ -236,9 +256,11 @@ tr.reviewed-no{opacity:.55}
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const C = {}; DATA.cols.forEach((c,i)=>C[c]=i);
 const RUNID = DATA.meta.runid || 'run';
-document.querySelector('.brand b').textContent = DATA.meta.brand || 'StockFlow AI';
+const BRAND = DATA.meta.brand || 'StockFlow AI';
+document.querySelector('.brand b').textContent = BRAND;
 document.querySelector('.brand span').textContent = DATA.meta.tagline || 'Recommandations';
-document.title = (DATA.meta.brand || 'StockFlow AI') + ' — Recommandations de transferts';
+document.getElementById('tbBrand').textContent = BRAND;
+document.title = BRAND + ' — Recommandations de transferts';
 const store = { get(){try{return JSON.parse(localStorage.getItem('sf_'+RUNID)||'{}')}catch(e){return {}}},
   set(o){localStorage.setItem('sf_'+RUNID,JSON.stringify(o))} };
 let reviews = store.get();
@@ -261,7 +283,10 @@ function nav(){
       <span class="ico">${t.ico}</span>${t.label}
       ${t.id==='transferts'?`<span class="count">${DATA.transfers.length}</span>`:''}
     </button>`).join('');
-  document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
+  document.getElementById('mnav').innerHTML = TABS.map(t=>`
+    <button data-tab="${t.id}" class="${t.id===tab?'active':''}">${t.ico} ${t.label}</button>`).join('');
+  document.querySelectorAll('#nav button, #mnav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();
+    document.getElementById('content').scrollIntoView({block:'start'});});
   document.getElementById('foot').innerHTML =
     `Perimetre : ${DATA.meta.perimetre||'-'}<br>Cible ${DATA.meta.cible||'-'} j · ${DATA.meta.date||''}`;
 }
