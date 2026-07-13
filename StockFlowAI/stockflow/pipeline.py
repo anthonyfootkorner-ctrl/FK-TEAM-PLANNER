@@ -164,6 +164,8 @@ def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores
     fast = len(base) > 20000 or len(needs) > 3000
     result = opt.run(fast=fast)
     journal["mode_optimisation"] = "rapide" if fast else "iteratif"
+    # disponibilite par taille chez le destinataire (avant / apres)
+    result.transfers = exports.enrich_dispo(result.transfers, base, result.stock_final)
     journal["nb_iterations"] = result.iterations
     journal["nb_transferts_retenus"] = 0 if result.transfers is None else len(result.transfers)
 

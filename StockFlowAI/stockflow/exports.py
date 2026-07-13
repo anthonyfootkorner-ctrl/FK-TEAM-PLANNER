@@ -18,6 +18,49 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 from openpyxl.styles import Alignment, Font, PatternFill
+
+_LETTER_ORDER = {"XXS": 0, "XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5,
+                 "XXL": 6, "XXXL": 7, "3XL": 7, "TU": 9}
+
+
+def _size_sort_key(t: str):
+    t = str(t).strip().upper()
+    if t in _LETTER_ORDER:
+        return (0, _LETTER_ORDER[t], t)
+    try:
+        return (1, float(t.replace(",", ".")), t)
+    except ValueError:
+        return (2, 0.0, t)
+
+
+def _fmt_dispo(sizes: Dict[str, float]) -> str:
+    """Formate {taille: qte} trie logiquement : 'S:3 · M:5 · L:2'."""
+    items = sorted(sizes.items(), key=lambda kv: _size_sort_key(kv[0]))
+    return " · ".join(f"{t}:{int(round(q))}" for t, q in items) if items else "-"
+
+
+def enrich_dispo(transfers: pd.DataFrame, base: pd.DataFrame, stock_final: dict) -> pd.DataFrame:
+    """Ajoute aux transferts la disponibilite par taille chez le destinataire,
+    avant (stock initial) et apres (stock final, tous transferts appliques),
+    pour la reference concernee. Donne une vue complete de la courbe de tailles.
+    """
+    if transfers is None or transfers.empty:
+        return transfers
+    avant: Dict[tuple, Dict[str, float]] = {}
+    for r in base.itertuples(index=False):
+        q = float(getattr(r, "stock_actuel", 0) or 0)
+        if q > 0:
+            avant.setdefault((str(r.magasin), str(r.reference)), {})[str(r.taille)] = q
+    apres: Dict[tuple, Dict[str, float]] = {}
+    for (mag, ref, coul, taille), q in stock_final.items():
+        if q > 0:
+            apres.setdefault((str(mag), str(ref)), {})[str(taille)] = q
+    t = transfers.copy()
+    t["dispo_avant_dest"] = [_fmt_dispo(avant.get((str(r.destinataire), str(r.reference)), {}))
+                             for r in t.itertuples(index=False)]
+    t["dispo_finale_dest"] = [_fmt_dispo(apres.get((str(r.destinataire), str(r.reference)), {}))
+                              for r in t.itertuples(index=False)]
+    return t
 from openpyxl.utils import get_column_letter
 
 from .parameters import Parameters
@@ -43,6 +86,8 @@ TRANSFER_LABELS = {
     "cov_dest_apres": "Couv. destinataire apres",
     "grille_avant": "Grille avant",
     "grille_apres": "Grille apres",
+    "dispo_avant_dest": "Dispo destinataire avant (par taille)",
+    "dispo_finale_dest": "Dispo destinataire finale (par taille)",
     "picking_prevu": "Reassort Picking prevu",
     "besoin_residuel": "Besoin residuel",
     "motif": "Motif du transfert",
@@ -242,6 +287,8 @@ def write_fiche_revue(path: str | Path, transfers: pd.DataFrame,
             "Couv. dest. apres": t.get("cov_dest_apres"),
             "Grille avant": t.get("grille_avant"),
             "Grille apres": t.get("grille_apres"),
+            "Dispo dest. avant (par taille)": t.get("dispo_avant_dest"),
+            "Dispo dest. finale (par taille)": t.get("dispo_finale_dest"),
             "Reassort Picking prevu": t.get("picking_prevu"),
             "Motif": t.get("motif"),
             "OK ?": "",
