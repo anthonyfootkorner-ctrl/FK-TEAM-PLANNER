@@ -42,9 +42,14 @@ DEFAULTS: Dict[str, Any] = {
     "couverture_dormant": 999,          # convention brief (module 3)
     # Grilles de tailles
     "tailles_coeur": {
-        # categorie -> liste de tailles coeur (module 2.6)
+        # categorie / famille de taille -> liste de tailles coeur (module 2.6)
         "TEXTILE_HOMME": ["S", "M", "L"],
         "TEXTILE_FEMME": ["36", "38", "40"],
+        # familles issues de la standardisation des tailles reelles (sizes.py)
+        "LETTRE": ["S", "M", "L"],
+        "CHAUSSURE": ["42", "43", "44"],
+        "ENFANT": [],
+        "AUTRE": [],
         "DEFAUT": ["S", "M", "L"],
     },
     "min_tailles_coeur_receveur": 2,    # au moins 2 tailles coeur apres reassort

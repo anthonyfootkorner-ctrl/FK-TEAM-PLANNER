@@ -50,6 +50,33 @@ python main.py --stocks data/stocks --ventes data/ventes \
 L'export est genere dans `exports/` et date. Le journal d'execution est ecrit
 dans `logs/stockflow.log` et dans l'onglet **7-Journal** du classeur.
 
+### Sur les exports reels (Fastmag)
+
+Les exports reels (STOCK, VENTESTOCKFLOW, OBJECTIF) ont un format different du
+modele theorique. L'adaptateur `stockflow/ingest_real.py` les transforme sans
+toucher au moteur :
+
+```bash
+python run_real.py --stock STOCK.csv --ventes VENTESTOCKFLOW.csv \
+                   --objectif OBJECTIF.csv --today 2026-07-13
+```
+
+Choix d'adaptation (reversibles, a valider avec le metier) :
+- `reference`/`couleur` derives de `BarCode V2` (`779229-04` -> ref `779229`,
+  couleur `04`) ;
+- tailles standardisees en familles (LETTRE / CHAUSSURE / ENFANT) qui pilotent
+  les tailles coeur ;
+- `prix_vente` recupere depuis le fichier de ventes ;
+- **recuperation des ruptures** : les tailles vendues mais en stock 0 (absentes
+  du fichier stock) sont materialisees pour redevenir des cibles de reassort ;
+- referentiel magasins minimal deduit des codes (ville = code, `WEB` detecte) ;
+- Picking / historique absents => regles associees neutres jusqu'a fourniture.
+
+Sur le jeu reel fourni (89 magasins, 305k lignes stock, 35 j de ventes) :
+ruptures **-3 982**, stock dormant **-7 181**, couverture moyenne **+3,2 j**,
+score de sante reseau **+5,2**, stock total conserve, calcul ~2 min. Voir
+`documentation/mapping_donnees.md` (section « Donnees reelles »).
+
 ## Structure
 
 ```

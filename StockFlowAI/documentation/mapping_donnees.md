@@ -120,6 +120,52 @@ Un magasin est considere « Web » si : son code figure dans le parametre
 `WEB`. Le Web alimente tous les magasins, recoit reliquats et grilles
 incompletes, et reste protege par sa couverture minimale.
 
+## Donnees reelles (exports Fastmag) — adaptateur `ingest_real.py`
+
+Les exports reels ne suivent pas exactement le modele theorique ci-dessus.
+L'adaptateur les convertit automatiquement.
+
+### STOCK (`STOCK_13.csv`) — grain magasin × marque × code-barre × taille
+
+| Colonne export | Traitement |
+|---|---|
+| `Code_Origine` | -> `magasin` (et `ville` = code, referentiel minimal) |
+| `Marque Gp` | -> `marque` |
+| `BarCode V2` | -> `reference` (modele) + `couleur` (suffixe apres `-`) |
+| `Taille` | -> `taille` standardisee + `categorie` = famille de taille |
+| `PrixAchat` | -> `prix_achat` |
+| `Total Stock` | -> `stock_physique` (doublons agreges) |
+
+### VENTES (`VENTESTOCKFLOW.csv`) — grain magasin × code-barre × taille × jour
+
+| Colonne export | Traitement |
+|---|---|
+| `Jours dans Date` | agregation 35 j (base) et 7 j (tendance) |
+| `Code_Origine` | -> `magasin` |
+| `BarCode V2` | -> `reference` + `couleur` |
+| `Taille` | -> `taille` standardisee |
+| `PrixVente` | -> enrichit `prix_vente` du stock (absent du fichier stock) |
+| `Saison` | disponible pour les exclusions saison |
+| `Total QteVenteRetail` | -> `ventes_35j` / `ventes_7j` |
+| `Total MtVenteRetailTTC` | -> `ca_35j` / `ca_7j` |
+
+### OBJECTIF (`OBJECTIF_4.csv`) — grain magasin × jour
+
+Objectifs et trafic (tickets) par magasin ; réserve pour la criticité magasin.
+
+### Points d'attention (exports reels)
+
+- **Ruptures recuperees** : le fichier stock ne liste que du stock positif ; les
+  tailles vendues mais en rupture (stock 0) sont recreees a 0 par l'adaptateur
+  pour rester des cibles de reassort.
+- **Tailles** : 728 variantes standardisees en familles (LETTRE / CHAUSSURE /
+  ENFANT / AUTRE). La regle « 2 tailles coeur » ne s'applique qu'aux lettres
+  adultes ; pour chaussures/enfant elle est neutre.
+- **Fichiers manquants** : Picking, Magasins (ville/region/flagship) et
+  Historique ne sont pas dans les exports fournis => regles associees neutres
+  (mode degrade, reversible).
+- **BarCode sans tiret** (~17%) : couleur = `UNI`.
+
 ## Controles de l'Etape 1
 
 - aucune colonne essentielle manquante (sinon **blocage**) ;

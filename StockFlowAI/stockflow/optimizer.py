@@ -84,6 +84,14 @@ class Optimizer:
         self.needs = needs.reset_index(drop=True).copy()
         if "qte_restante" not in self.needs:
             self.needs["qte_restante"] = self.needs["qte_besoin"]
+        # suivi O(1) du besoin restant + acces au besoin par cle (perf grand volume)
+        self.need_rows = list(self.needs.itertuples(index=False))
+        self.remaining: Dict[LineKey, float] = {}
+        self.need_by_key: Dict[LineKey, object] = {}
+        for row in self.need_rows:
+            key = (str(row.magasin), str(row.reference), str(row.couleur), str(row.taille))
+            self.remaining[key] = float(getattr(row, "qte_restante", getattr(row, "qte_besoin", 0)))
+            self.need_by_key[key] = row
 
         # top30 set + criticite + flagship
         self.top_set: Set[Tuple[str, str]] = set(
@@ -143,7 +151,10 @@ class Optimizer:
         })
 
     # --- construction d'un candidat -----------------------------------------
-    def _build_candidate(self, need_row, donor_mag: str, qte: float) -> Candidate | None:
+    def _build_candidate(self, need_row, donor_mag: str, qte: float,
+                         reste: float | None = None) -> Candidate | None:
+        if reste is None:
+            reste = float(getattr(need_row, "qte_restante", 0))
         ref, coul, taille = str(need_row.reference), str(need_row.couleur), str(need_row.taille)
         rec = str(need_row.magasin)
         don_key: LineKey = (donor_mag, ref, coul, taille)
@@ -234,40 +245,43 @@ class Optimizer:
             penalite_historique=penalite,
             stock_don_avant=stock_don_avant, stock_don_apres=stock_don_apres,
             stock_rec_avant=stock_rec_avant, stock_rec_apres=stock_rec_apres,
-            besoin_residuel=float(getattr(need_row, "qte_restante", 0)),
+            besoin_residuel=float(reste),
             picking_prevu=self.picking.get(rec_key, 0.0),
         )
 
-    # --- generation de tous les candidats de l'iteration --------------------
-    def _generate(self) -> List[ScoredTransfer]:
-        # index donneurs par sku (live)
-        sku_to_donors: Dict[Tuple[str, str, str], List[str]] = {}
+    def _sku_donor_index(self) -> Dict[Tuple[str, str, str], List[str]]:
+        """Index (live) sku -> magasins pouvant ceder (un scan du stock)."""
+        idx: Dict[Tuple[str, str, str], List[str]] = {}
         for (mag, ref, coul, taille), stock in self.stock.items():
             if stock <= 0:
                 continue
             if self._cessible((mag, ref, coul, taille)) >= self.qte_min:
-                sku_to_donors.setdefault((ref, coul, taille), []).append(mag)
+                idx.setdefault((ref, coul, taille), []).append(mag)
+        return idx
 
+    # --- generation de tous les candidats sur l'etat courant ----------------
+    def _generate(self, record_blocked: bool = True) -> List[ScoredTransfer]:
+        sku_to_donors = self._sku_donor_index()
         scored: List[ScoredTransfer] = []
-        for need_row in self.needs.itertuples(index=False):
-            reste = float(getattr(need_row, "qte_restante", 0))
+        for need_row in self.need_rows:
+            key = (str(need_row.magasin), str(need_row.reference),
+                   str(need_row.couleur), str(need_row.taille))
+            reste = self.remaining.get(key, 0.0)
             if reste < self.qte_min:
                 continue
             sku = (str(need_row.reference), str(need_row.couleur), str(need_row.taille))
             donors = sku_to_donors.get(sku, [])
             if not donors:
-                self._record_blocked(need_row, "Aucun donneur disponible pour ce besoin")
+                if record_blocked:
+                    self._record_blocked(need_row, "Aucun donneur disponible pour ce besoin")
                 continue
             for donor_mag in donors:
-                cessible = self._cessible((donor_mag, *sku))
-                qte = min(reste, cessible)
-                qte = math.floor(qte)
+                qte = math.floor(min(reste, self._cessible((donor_mag, *sku))))
                 if qte < self.qte_min:
                     continue
-                cand = self._build_candidate(need_row, donor_mag, qte)
-                if cand is None:
-                    continue
-                scored.append(self.scorer.score(cand))
+                cand = self._build_candidate(need_row, donor_mag, qte, reste)
+                if cand is not None:
+                    scored.append(self.scorer.score(cand))
         return scored
 
     # --- application d'un transfert -----------------------------------------
@@ -283,14 +297,8 @@ class Optimizer:
         self.pairs_open.add((exp, rec))
         self.received_lines.add(rec_key)
 
-        # reduire le besoin correspondant
-        mask = (
-            (self.needs["magasin"].astype(str) == rec)
-            & (self.needs["reference"].astype(str) == c.reference)
-            & (self.needs["couleur"].astype(str) == c.couleur)
-            & (self.needs["taille"].astype(str) == c.taille)
-        )
-        self.needs.loc[mask, "qte_restante"] = (self.needs.loc[mask, "qte_restante"] - c.qte).clip(lower=0)
+        # reduire le besoin correspondant (O(1))
+        self.remaining[rec_key] = max(0.0, self.remaining.get(rec_key, 0.0) - c.qte)
 
         self.transfers.append({
             "score": st.score,
@@ -319,8 +327,10 @@ class Optimizer:
             "is_web_don": c.is_web_don,
         })
 
-    # --- boucle principale --------------------------------------------------
-    def run(self) -> OptimizerResult:
+    # --- boucle principale (iteratif fidele au brief, module 10) ------------
+    def run(self, fast: bool = False) -> OptimizerResult:
+        if fast:
+            return self._run_fast()
         iterations = 0
         while iterations < self.max_iter:
             candidates = self._generate()
@@ -332,6 +342,52 @@ class Optimizer:
                 break
             self._apply(best)
             iterations += 1
+        return self._finalize(iterations)
+
+    # --- variante grand volume : pre-scoring + une passe de faisabilite -----
+    def _run_fast(self) -> OptimizerResult:
+        """Scoring de tous les candidats une fois, puis application dans l'ordre
+        de score en re-validant chaque transfert sur l'etat courant (stocks,
+        grilles, limite 4 destinations, anti-croise). Adapte aux gros volumes :
+        evite de re-scanner tout le stock a chaque transfert."""
+        candidates = self._generate()
+        candidates.sort(key=lambda s: s.score, reverse=True)
+        applied = 0
+        for st in candidates:
+            if applied >= self.max_iter:
+                break
+            c = st.candidate
+            rec_key = (c.destinataire, c.reference, c.couleur, c.taille)
+            reste = self.remaining.get(rec_key, 0.0)
+            if reste < self.qte_min:
+                continue
+            qte = math.floor(min(reste, self._cessible(
+                (c.expediteur, c.reference, c.couleur, c.taille))))
+            if qte < self.qte_min:
+                continue
+            need_row = self.need_by_key.get(rec_key)
+            if need_row is None:
+                continue
+            live = self._build_candidate(need_row, c.expediteur, qte, reste)
+            if live is None:
+                continue
+            st_live = self.scorer.score(live)
+            if st_live.score < self.seuil_score:
+                continue
+            self._apply(st_live)
+            applied += 1
+        return self._finalize(applied)
+
+    # --- finalisation partagee ----------------------------------------------
+    def _finalize(self, iterations: int) -> OptimizerResult:
+        # synchronise le besoin restant pour l'onglet "cas non traites"
+        if "qte_restante" in self.needs.columns and self.remaining:
+            self.needs["qte_restante"] = [
+                self.remaining.get((str(r.magasin), str(r.reference),
+                                    str(r.couleur), str(r.taille)),
+                                   getattr(r, "qte_restante", 0))
+                for r in self.needs.itertuples(index=False)
+            ]
 
         # destinations numerotees pour chaque expediteur
         dest_rank: Dict[str, Dict[str, int]] = {}

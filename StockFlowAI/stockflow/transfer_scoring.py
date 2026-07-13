@@ -79,9 +79,15 @@ class TransferScorer:
     def _components(self, c: Candidate) -> Dict[str, float]:
         comp: Dict[str, float] = {}
 
-        # gain de couverture du receveur (borne a la cible)
-        gain = max(0.0, c.cov_rec_apres - c.cov_rec_avant)
-        comp["gain_couverture_receveur"] = min(1.0, gain / self.cible)
+        # gain de couverture du receveur (borne a la cible).
+        # Une taille qui ne se vend pas (daily=0) a une "couverture" de 999 par
+        # convention : elle ne doit PAS compter comme un gain de couverture,
+        # sinon on remplirait des tailles mortes. On neutralise donc ce cas.
+        if c.daily_rec > 0:
+            gain = max(0.0, c.cov_rec_apres - c.cov_rec_avant)
+            comp["gain_couverture_receveur"] = min(1.0, gain / self.cible)
+        else:
+            comp["gain_couverture_receveur"] = 0.0
 
         # reduction du surstock donneur (au-dela de la cible) - utile surtout Web/dormant
         exces_avant = max(0.0, c.cov_don_avant - self.cible)
@@ -101,8 +107,11 @@ class TransferScorer:
         # tendance 7j
         comp["tendance_7j"] = {"hausse": 1.0, "stable": 0.5, "baisse": 0.0}.get(c.tendance_rec, 0.5)
 
-        # risque de rupture receveur (couverture avant faible = urgent)
-        if c.cov_rec_avant <= 0:
+        # risque de rupture receveur (couverture avant faible = urgent).
+        # Sans vente (daily=0) il n'y a pas de risque de rupture reel.
+        if c.daily_rec <= 0:
+            comp["risque_rupture"] = 0.0
+        elif c.cov_rec_avant <= 0:
             comp["risque_rupture"] = 1.0
         elif c.cov_rec_avant < 7:
             comp["risque_rupture"] = 0.9

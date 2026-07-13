@@ -81,12 +81,17 @@ class GridIndex:
         coeur_dispo = [t for t in dispo if t.upper() in core]
         nb_coeur = len(coeur_dispo)
         nb_tailles = len(dispo)
-        denom_core = max(1, len(core))
-        # qualite : 70% couverture coeur + 30% largeur de gamme
         network = self._network_sizes.get((ref, coul), set(dispo))
         largeur = nb_tailles / max(1, len(network))
-        qualite = round(0.7 * (nb_coeur / denom_core) + 0.3 * largeur, 3)
-        valide = nb_coeur >= self.min_coeur
+        if not core:
+            # aucune taille coeur definie pour cette famille (chaussures/enfant) :
+            # la regle de grille S/M/L ne s'applique pas -> non bloquante.
+            qualite = round(largeur, 3)
+            valide = True
+        else:
+            # qualite : 70% couverture coeur + 30% largeur de gamme
+            qualite = round(0.7 * (nb_coeur / len(core)) + 0.3 * largeur, 3)
+            valide = nb_coeur >= self.min_coeur
         return GridState(dispo, coeur_dispo, nb_coeur, nb_tailles, qualite, valide)
 
     def state(self, mag: str, ref: str, coul: str) -> GridState:

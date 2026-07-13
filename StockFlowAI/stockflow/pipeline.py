@@ -20,6 +20,7 @@ import pandas as pd
 
 from . import (
     MOTEUR_VERSION,
+    schema,
     import_data,
     quality_checks as qc,
     projected_stock,
@@ -57,10 +58,10 @@ class PipelineResult:
     message: str = ""
 
 
-def run_pipeline(*, stocks_path, sales_path, picking_path=None, stores_path=None,
+def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores_path=None,
                  history_path=None, params: Optional[Parameters] = None,
                  distances_path=None, today: Optional[pd.Timestamp] = None,
-                 export_path=None) -> PipelineResult:
+                 export_path=None, preloaded: Optional[Dict[str, pd.DataFrame]] = None) -> PipelineResult:
     t0 = time.time()
     params = params or Parameters()
     today = pd.Timestamp(today) if today is not None else pd.Timestamp("2026-07-13")
@@ -72,12 +73,22 @@ def run_pipeline(*, stocks_path, sales_path, picking_path=None, stores_path=None
     }
 
     # --- Module 1 : import ---
-    logger.info("Import des fichiers...")
-    stocks = import_data.load_stocks(stocks_path)
-    sales = import_data.load_sales(sales_path)
-    picking = import_data.load_picking(picking_path) if picking_path else pd.DataFrame()
-    stores = import_data.load_stores(stores_path) if stores_path else pd.DataFrame()
-    history = import_data.load_history(history_path) if history_path else pd.DataFrame()
+    if preloaded is not None:
+        # donnees deja standardisees (ex. adaptateur ingest_real) : on saute la
+        # lecture Excel mais on garde le controle qualite.
+        logger.info("Donnees pre-chargees (adaptateur).")
+        stocks = schema.map_columns(preloaded.get("stocks", pd.DataFrame()))
+        sales = schema.map_columns(preloaded.get("ventes", pd.DataFrame()))
+        picking = schema.map_columns(preloaded.get("picking", pd.DataFrame()))
+        stores = schema.map_columns(preloaded.get("magasins", pd.DataFrame()))
+        history = schema.map_columns(preloaded.get("historique", pd.DataFrame()))
+    else:
+        logger.info("Import des fichiers...")
+        stocks = import_data.load_stocks(stocks_path)
+        sales = import_data.load_sales(sales_path)
+        picking = import_data.load_picking(picking_path) if picking_path else pd.DataFrame()
+        stores = import_data.load_stores(stores_path) if stores_path else pd.DataFrame()
+        history = import_data.load_history(history_path) if history_path else pd.DataFrame()
 
     report = qc.QualityReport()
     stocks = qc.check_stocks(stocks, report)
@@ -131,7 +142,11 @@ def run_pipeline(*, stocks_path, sales_path, picking_path=None, stores_path=None
     distance = DistanceMatrix.load(params, distances_path)
     opt = optimizer_mod.Optimizer(base, needs, donors, top, criticite, stores,
                                   grid_index, distance, params, history, today)
-    result = opt.run()
+    # gros volume : passe rapide (pre-scoring + faisabilite) pour rester dans
+    # des temps de calcul acceptables ; petit volume : boucle iterative fidele.
+    fast = len(base) > 20000 or len(needs) > 3000
+    result = opt.run(fast=fast)
+    journal["mode_optimisation"] = "rapide" if fast else "iteratif"
     journal["nb_iterations"] = result.iterations
     journal["nb_transferts_retenus"] = 0 if result.transfers is None else len(result.transfers)
 

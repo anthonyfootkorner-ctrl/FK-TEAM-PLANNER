@@ -54,13 +54,21 @@ def detect_receivers(df: pd.DataFrame, index: GridIndex, params: Parameters,
 
     # 2) Besoins de grille : taille coeur manquante sur une reference implantee
     #    On parcourt chaque (magasin, reference, couleur) physique implante.
-    grp_keys = ["magasin", "reference", "couleur"]
+    #    IMPORTANT : on ne complete la grille que pour des references REELLEMENT
+    #    vendues dans le magasin (ventes actives), sinon on gonflerait le stock
+    #    dormant des magasins sans rotation.
+    ventes_grp = (
+        physiques.groupby(["magasin", "reference", "couleur"])["moyenne_quotidienne"]
+        .sum()
+    )
     seen = set()
     for row in physiques.itertuples(index=False):
         key = (str(row.magasin), str(row.reference), str(row.couleur))
         if key in seen:
             continue
         seen.add(key)
+        if float(ventes_grp.get(key, 0.0)) <= 0:
+            continue  # reference sans vente dans ce magasin -> pas de completion
         state = index.state(*key)
         core = [c.upper() for c in index.core_sizes(str(row.reference), str(row.couleur))]
         present = {t.upper() for t in state.tailles_dispo}
