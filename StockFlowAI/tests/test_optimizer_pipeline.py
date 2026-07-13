@@ -115,6 +115,22 @@ def test_magasins_exclus_flux(tmp_path):
         assert (r.transfers["destinataire"] != "LYO").all()
 
 
+def test_magasins_inactifs_retires(tmp_path):
+    # un magasin ferme/inactif est retire ENTIEREMENT (stock + ventes), pas
+    # seulement des flux : il ne doit plus apparaitre dans la base.
+    paths = sample_data.write_all(tmp_path)
+    params = Parameters()
+    params.set("magasins_inactifs", ["LYO"])
+    r = run_pipeline(
+        stocks_path=paths["stocks"].parent, sales_path=paths["ventes"].parent,
+        picking_path=paths["picking"].parent, stores_path=paths["magasins"].parent,
+        history_path=paths["historique"].parent, params=params,
+        today=pd.Timestamp("2026-07-13"),
+    )
+    assert not r.blocked
+    assert "LYO" not in set(r.base["magasin"].astype(str))
+
+
 def test_blocage_donnees_incoherentes(tmp_path):
     # fichier stock sans colonne magasin => traitement bloque
     bad = tmp_path / "stocks"

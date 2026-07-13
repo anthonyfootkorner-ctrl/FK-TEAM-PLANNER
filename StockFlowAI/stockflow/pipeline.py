@@ -90,6 +90,23 @@ def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores
         stores = import_data.load_stores(stores_path) if stores_path else pd.DataFrame()
         history = import_data.load_history(history_path) if history_path else pd.DataFrame()
 
+    # Magasins fermes/inactifs : retires ENTIEREMENT du jeu de donnees (stock,
+    # ventes, etc.). Utile quand l'export contient des lignes fantomes pour un
+    # magasin ferme. Les reserves externes (magasins_exclus_flux, ex. CENTRAL)
+    # ne sont PAS retirees ici : elles restent dans les donnees mais hors flux.
+    inactifs = {str(x).strip().upper() for x in params.get("magasins_inactifs", []) or []}
+    if inactifs:
+        def _drop(df, col):
+            if df is not None and not df.empty and col in df.columns:
+                return df[~df[col].astype(str).str.upper().isin(inactifs)].copy()
+            return df
+        stocks = _drop(stocks, "magasin")
+        sales = _drop(sales, "magasin")
+        picking = _drop(picking, "magasin")
+        history = _drop(_drop(history, "expediteur"), "destinataire")
+        stores = _drop(stores, "code_magasin")
+        journal["magasins_inactifs_retires"] = ", ".join(sorted(inactifs))
+
     report = qc.QualityReport()
     stocks = qc.check_stocks(stocks, report)
     sales = qc.check_sales(sales, report)
