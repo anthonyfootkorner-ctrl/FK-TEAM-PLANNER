@@ -236,6 +236,9 @@ tr.reviewed-no{opacity:.55}
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const C = {}; DATA.cols.forEach((c,i)=>C[c]=i);
 const RUNID = DATA.meta.runid || 'run';
+document.querySelector('.brand b').textContent = DATA.meta.brand || 'StockFlow AI';
+document.querySelector('.brand span').textContent = DATA.meta.tagline || 'Recommandations';
+document.title = (DATA.meta.brand || 'StockFlow AI') + ' — Recommandations de transferts';
 const store = { get(){try{return JSON.parse(localStorage.getItem('sf_'+RUNID)||'{}')}catch(e){return {}}},
   set(o){localStorage.setItem('sf_'+RUNID,JSON.stringify(o))} };
 let reviews = store.get();
@@ -486,8 +489,9 @@ def font_face_css() -> str:
 def main():
     export = EXPORTS / "stockflow_dispo.xlsx"
     fiche = EXPORTS / "fiche_revue_dispo.xlsx"
-    meta = {"runid": "perimetre_14j", "perimetre": "24 boutiques actives",
-            "cible": 14, "date": "12/07/2026"}
+    meta = {"runid": "perimetre_14j", "brand": "FK.STOCKFLOW",
+            "tagline": "Répartition des stocks",
+            "perimetre": "24 boutiques actives", "cible": 14, "date": "12/07/2026"}
     data = build_data(export, fiche, meta)
     payload = json.dumps(data, ensure_ascii=False)
     html = (HTML_TEMPLATE
@@ -500,7 +504,7 @@ def main():
     # <!doctype>/<head>/<body> est ajoute a la publication)
     style = html[html.find("<style>"):html.find("</style>") + 8]
     body = html[html.find("<body>") + 6:html.rfind("</body>")]
-    artifact = ("<title>StockFlow AI — Recommandations de transferts</title>\n"
+    artifact = (f"<title>{meta['brand']} — Répartition des stocks</title>\n"
                 + style + "\n" + body)
     art = ROOT / "stockflow_artifact.html"
     art.write_text(artifact, encoding="utf-8")
