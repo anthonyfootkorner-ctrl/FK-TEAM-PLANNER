@@ -185,6 +185,11 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
     keys = ["magasin", "reference", "couleur", "taille"]
     miss = sales.merge(st[keys].drop_duplicates(), on=keys, how="left", indicator=True)
     miss = miss[miss["_merge"] == "left_only"].drop(columns="_merge").copy()
+    # Perimetre : on ne recupere les ruptures que pour les magasins presents dans
+    # le fichier stock (les ventes de magasins hors perimetre, ex. PRESTA, sont
+    # ignorees pour ne pas creer de faux receveurs).
+    perimetre = set(st["magasin"].unique())
+    miss = miss[miss["magasin"].isin(perimetre)]
     if not miss.empty:
         miss = miss.merge(prix_cc.rename("pv_cc"), on=["reference", "couleur"], how="left")
         miss = miss.merge(prix_ref.rename("pv_ref"), on="reference", how="left")

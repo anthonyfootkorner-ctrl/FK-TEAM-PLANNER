@@ -63,6 +63,9 @@ class Optimizer:
         self.grid = grid_index
         self.distance = distance
         self.scorer = TransferScorer(params)
+        # magasins exclus des flux (ni donneur ni receveur), ex. reserve CENTRAL
+        self.exclus_flux = {str(x).strip().upper()
+                            for x in params.get("magasins_exclus_flux", []) or []}
 
         # --- etat vivant : stock et daily par ligne ---
         self.stock: Dict[LineKey, float] = {}
@@ -254,6 +257,8 @@ class Optimizer:
         idx: Dict[Tuple[str, str, str], List[str]] = {}
         for (mag, ref, coul, taille), stock in self.stock.items():
             if stock <= 0:
+                continue
+            if mag.upper() in self.exclus_flux:      # reserve externe : pas donneur
                 continue
             if self._cessible((mag, ref, coul, taille)) >= self.qte_min:
                 idx.setdefault((ref, coul, taille), []).append(mag)

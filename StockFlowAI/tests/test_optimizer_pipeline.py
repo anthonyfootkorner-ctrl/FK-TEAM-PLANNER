@@ -97,6 +97,24 @@ def test_cas_non_traites_present(demo):
     assert demo.cas_non_traites is not None
 
 
+def test_magasins_exclus_flux(tmp_path):
+    # un magasin exclu des flux ne doit etre ni expediteur ni destinataire,
+    # mais le traitement doit rester valide.
+    paths = sample_data.write_all(tmp_path)
+    params = Parameters()
+    params.set("magasins_exclus_flux", ["LYO"])
+    r = run_pipeline(
+        stocks_path=paths["stocks"].parent, sales_path=paths["ventes"].parent,
+        picking_path=paths["picking"].parent, stores_path=paths["magasins"].parent,
+        history_path=paths["historique"].parent, params=params,
+        today=pd.Timestamp("2026-07-13"),
+    )
+    assert not r.blocked
+    if not r.transfers.empty:
+        assert (r.transfers["expediteur"] != "LYO").all()
+        assert (r.transfers["destinataire"] != "LYO").all()
+
+
 def test_blocage_donnees_incoherentes(tmp_path):
     # fichier stock sans colonne magasin => traitement bloque
     bad = tmp_path / "stocks"

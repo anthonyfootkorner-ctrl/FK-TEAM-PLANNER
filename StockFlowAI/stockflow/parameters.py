@@ -94,6 +94,11 @@ DEFAULTS: Dict[str, Any] = {
     "exclusions_reference": [],
     # Magasins inactifs (codes) - complete par le fichier magasins
     "magasins_inactifs": [],
+    # Magasins exclus des FLUX StockFlow (ni donneur ni receveur) : typiquement
+    # une reserve/entrepot pilote par un autre outil (ex. CENTRAL). Ses
+    # reassorts programmes restent comptes comme stock en transit, mais
+    # StockFlow n'y puise pas et ne l'alimente pas (evite le double comptage).
+    "magasins_exclus_flux": ["CENTRAL"],
     # Top N references par magasin pour la criticite
     "top_n_references": 30,
     # Anti-boucle du moteur

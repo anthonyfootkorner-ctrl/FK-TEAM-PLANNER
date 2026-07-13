@@ -62,6 +62,10 @@ def detect_donors(df: pd.DataFrame, params: Parameters, web_codes: Set[str],
     df = df.copy()
 
     exclu = _excluded_mask(df, params)
+    # magasins exclus des flux (reserve geree par un autre outil, ex. CENTRAL)
+    exclus_flux = {str(x).strip().upper() for x in params.get("magasins_exclus_flux", []) or []}
+    if exclus_flux:
+        exclu = exclu | df["magasin"].astype(str).str.upper().isin(exclus_flux)
     protege = _recently_moved(df, history, params, today)
 
     is_web = df["is_web"] if "is_web" in df else df["magasin"].astype(str).str.upper().isin(web_codes)
