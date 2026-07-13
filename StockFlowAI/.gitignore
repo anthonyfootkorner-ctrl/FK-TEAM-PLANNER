@@ -14,3 +14,7 @@ venv/
 
 # On conserve la structure des dossiers
 !**/.gitkeep
+
+# webapp : fichiers generes (regenerables via build_prototype.py)
+webapp/*.html
+webapp/*.png
