@@ -489,7 +489,7 @@ def font_face_css() -> str:
 def main():
     export = EXPORTS / "stockflow_dispo.xlsx"
     fiche = EXPORTS / "fiche_revue_dispo.xlsx"
-    meta = {"runid": "perimetre_14j", "brand": "FK.STOCKFLOW",
+    meta = {"runid": "perimetre_14j", "brand": "STOCKFLOW.AI",
             "tagline": "Répartition des stocks",
             "perimetre": "24 boutiques actives", "cible": 14, "date": "12/07/2026"}
     data = build_data(export, fiche, meta)
