@@ -41,3 +41,15 @@ def test_load_from_xlsx(tmp_path):
 def test_absence_fichier_ne_bloque_pas(tmp_path):
     p = Parameters.load(tmp_path / "inexistant.xlsx")
     assert p.get("couverture_cible_magasin") == 30
+
+
+def test_roundtrip_preserve_familles_vides(tmp_path):
+    # regression : save_template + load ne doit pas perdre les familles de
+    # tailles a liste vide (ENFANT / AUTRE), sinon elles retombent sur S/M/L.
+    path = tmp_path / "parametres.xlsx"
+    Parameters().save_template(path)
+    p = Parameters.load(path)
+    assert p.tailles_coeur_for("ENFANT") == []
+    assert p.tailles_coeur_for("AUTRE") == []
+    assert p.tailles_coeur_for("CHAUSSURE") == ["42", "43", "44"]
+    assert p.tailles_coeur_for("LETTRE") == ["S", "M", "L"]

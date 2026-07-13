@@ -177,10 +177,15 @@ class Parameters:
                         continue
                     params.values[key] = _coerce(row["valeur"])
 
-        # Feuille dediee aux tailles coeur (config/tailles_coeur.xlsx style)
+        # Feuille dediee aux tailles coeur (config/tailles_coeur.xlsx style).
+        # On FUSIONNE dans les defauts : les familles a liste vide (ENFANT,
+        # AUTRE) n'ont pas de ligne dans la feuille et doivent etre preservees,
+        # sinon elles retomberaient a tort sur la regle S/M/L par defaut.
         if "tailles_coeur" in xls.sheet_names:
             df = xls.parse("tailles_coeur")
-            params.values["tailles_coeur"] = _parse_tailles_coeur(df)
+            merged = dict(params.values.get("tailles_coeur", {}))
+            merged.update(_parse_tailles_coeur(df))
+            params.values["tailles_coeur"] = merged
 
         params.source = str(path)
         return params
