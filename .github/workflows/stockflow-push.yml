@@ -1,0 +1,32 @@
+name: StockFlow — envoyer un run vers Supabase
+
+# Pousse le paquet de resultats (webapp/supabase_payload.json) dans Supabase.
+# La cle secrete vient d'un GitHub Secret nomme SUPABASE_SERVICE_KEY :
+#   Repo > Settings > Secrets and variables > Actions > New repository secret
+#     Name  : SUPABASE_SERVICE_KEY
+#     Value : votre cle secrete Supabase (sb_secret_...)  <- jamais dans le code
+# Puis : onglet Actions > "StockFlow — envoyer un run vers Supabase" > Run workflow.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Installer les dependances
+        run: pip install --quiet requests
+      - name: Pousser le payload vers Supabase
+        env:
+          SUPABASE_URL: https://yeusqubxgxchigssobma.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_KEY" ]; then
+            echo "::error::Le secret SUPABASE_SERVICE_KEY n'est pas defini (Settings > Secrets > Actions)."
+            exit 1
+          fi
+          python StockFlowAI/scripts/push_payload.py StockFlowAI/webapp/supabase_payload.json

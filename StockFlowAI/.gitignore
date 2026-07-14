@@ -1,0 +1,22 @@
+# Donnees d'entree reelles et fichiers generes (ne pas versionner)
+data/**/*.xlsx
+data/**/*.xls
+data/**/*.csv
+exports/*.xlsx
+exports/*.sql
+exports/*.json
+logs/*.log
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# On conserve la structure des dossiers
+!**/.gitkeep
+
+# webapp : fichiers generes (regenerables via build_prototype.py)
+webapp/*.html
+webapp/*.png
