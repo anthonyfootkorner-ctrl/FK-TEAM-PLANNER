@@ -67,9 +67,9 @@ def build_payload(result, meta: Dict) -> Tuple[Dict, List[Dict]]:
     return run, transfers
 
 
-def push(result, meta: Dict, *, url: Optional[str] = None, service_key: Optional[str] = None,
-         chunk: int = 500) -> str:
-    """Insere le run puis ses transferts dans Supabase. Renvoie l'id du run."""
+def push_payload(run: Dict, transfers: List[Dict], *, url: Optional[str] = None,
+                 service_key: Optional[str] = None, chunk: int = 500) -> str:
+    """Insere un run + ses transferts (deja construits). Renvoie l'id du run."""
     import requests
 
     url = (url or os.environ.get("SUPABASE_URL", "")).rstrip("/")
@@ -77,8 +77,6 @@ def push(result, meta: Dict, *, url: Optional[str] = None, service_key: Optional
     if not url or not service_key:
         raise RuntimeError("SUPABASE_URL et SUPABASE_SERVICE_KEY requis "
                            "(variables d'environnement ou arguments).")
-
-    run, transfers = build_payload(result, meta)
     base = f"{url}/rest/v1"
     headers = {
         "apikey": service_key,
@@ -86,14 +84,10 @@ def push(result, meta: Dict, *, url: Optional[str] = None, service_key: Optional
         "Content-Type": "application/json",
         "Prefer": "return=representation",
     }
-
-    # 1) inserer le run
     resp = requests.post(f"{base}/stockflow_runs", headers=headers,
                          data=json.dumps(run), timeout=30)
     resp.raise_for_status()
     run_id = resp.json()[0]["id"]
-
-    # 2) inserer les transferts par lots
     for i in range(0, len(transfers), chunk):
         batch = [{**row, "run_id": run_id} for row in transfers[i:i + chunk]]
         r = requests.post(f"{base}/stockflow_transfers",
@@ -101,6 +95,13 @@ def push(result, meta: Dict, *, url: Optional[str] = None, service_key: Optional
                           data=json.dumps(batch), timeout=60)
         r.raise_for_status()
     return run_id
+
+
+def push(result, meta: Dict, *, url: Optional[str] = None, service_key: Optional[str] = None,
+         chunk: int = 500) -> str:
+    """Insere le run puis ses transferts dans Supabase. Renvoie l'id du run."""
+    run, transfers = build_payload(result, meta)
+    return push_payload(run, transfers, url=url, service_key=service_key, chunk=chunk)
 
 
 def dry_run(result, meta: Dict, out_path) -> Dict:
