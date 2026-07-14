@@ -114,7 +114,7 @@ def load_reassort(reassort_xlsx) -> pd.DataFrame:
 
 
 def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
-                      reassort_xlsx=None,
+                      reassort_xlsx=None, ratio_prix_min: float = 0.25,
                       today: pd.Timestamp | None = None) -> Dict[str, pd.DataFrame]:
     today = pd.Timestamp(today) if today is not None else pd.Timestamp("2026-07-13")
 
@@ -132,6 +132,18 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
         "ca": _num(vraw["Total MtVenteRetailTTC"]),
         "date": pd.to_datetime(vraw["Jours dans Date"], dayfirst=True, errors="coerce"),
     })
+    # --- Garde-fou anti-erreur de saisie -----------------------------------
+    # Une ligne de vente dont le prix unitaire REEL (CA / quantite) est tres
+    # inferieur au prix de vente de base est suspecte : typiquement une quantite
+    # saisie a tort (ex. 20 pieces au lieu d'1), ou un article "offert" a 0 €.
+    # On neutralise sa quantite pour ne pas gonfler la demande (le transfert ne
+    # doit pas etre declenche par une erreur de caisse). Seuil parametrable.
+    pu_reel = v["ca"] / v["qte"].replace(0, np.nan)
+    suspect = (v["qte"] > 1) & (v["prix_vente"] > 0) & (pu_reel < ratio_prix_min * v["prix_vente"])
+    v_suspect = v[suspect].copy()
+    if not v_suspect.empty:
+        v.loc[suspect, ["qte", "ca"]] = 0.0
+
     anchor = v["date"].max()
     if pd.isna(anchor):
         anchor = today

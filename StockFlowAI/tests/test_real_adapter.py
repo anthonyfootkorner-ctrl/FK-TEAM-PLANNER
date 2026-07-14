@@ -96,6 +96,31 @@ def test_fiche_revue(tmp_path):
     assert f["Score"].iloc[0] == 72.0              # trie par score desc
 
 
+def test_garde_fou_prix_anormal(tmp_path):
+    # une ligne au prix unitaire aberrant (20 pieces pour 20€, base 45€) est
+    # neutralisee : elle ne doit pas gonfler la demande.
+    stock = pd.DataFrame({
+        "Code_Origine": ["PARIS"], "Marque Gp": ["FK"], "BarCode V2": ["SP-100"],
+        "Taille": ["L"], "PrixAchat": ["20"], "Total Stock": ["1"],
+    })
+    sales = pd.DataFrame({
+        "Jours dans Date": ["10/07/2026", "10/07/2026"],
+        "Code_Origine": ["PARIS", "PARIS"],
+        "BarCode V2": ["SP-100", "SP-100"], "Taille": ["L", "M"],
+        "Marque Gp": ["FK", "FK"], "Saison": ["26 Q3", "26 Q3"],
+        "PrixVente": ["45", "45"],
+        "Total QteVenteRetail": ["20", "3"],           # 20 = erreur ; 3 = normal
+        "Total MtVenteRetailTTC": ["20", "135"],        # 20/20=1€ suspect ; 135/3=45€ ok
+        "valeur prix d'achat": ["9", "27"],
+    })
+    sp = tmp_path / "stock.csv"; vp = tmp_path / "ventes.csv"
+    stock.to_csv(sp, index=False); sales.to_csv(vp, index=False)
+    ds = load_real_dataset(sp, vp, today=pd.Timestamp("2026-07-13"))
+    ventes = ds["ventes"].set_index("taille")["ventes_35j"]
+    assert ventes.get("L", 0) == 0     # ligne suspecte neutralisee
+    assert ventes.get("M", 0) == 3     # ligne normale conservee
+
+
 def test_app_service(tmp_path):
     import io
     from stockflow.app_service import build_params, run_analysis
