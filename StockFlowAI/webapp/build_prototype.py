@@ -185,6 +185,11 @@ body{font-family:var(--font-body);
 .ufield input,.ufield textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);
   border-radius:9px;background:var(--bg);color:var(--text);font-size:15px;font-family:var(--font-body)}
 .urow{display:flex;gap:10px}.urow .ufield{flex:1}
+/* Switcher de magasin (comptes multi-magasins) */
+.storeswitch{display:flex;align-items:center;gap:10px;margin:0 0 16px}
+.storeswitch label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.storeswitch select{flex:1;max-width:280px;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);
+  border-radius:9px;background:var(--card);color:var(--text);font-size:15px;font-weight:600}
 /* Selecteur de previsualisation magasin (pied de sidebar admin) */
 .foot-sel{width:100%;box-sizing:border-box;margin-top:10px;padding:8px 10px;border:1px solid #ffffff26;
   border-radius:8px;background:var(--sidebar-hover);color:#fff;font-size:12px;cursor:pointer}
@@ -433,8 +438,8 @@ const TABS = [
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
 ];
 let tab='transferts';
-// Role & vue magasin
-let MODE='admin', STORE=null, PREVIEW=false, stab='expedier';
+// Role & vue magasin (STORES = magasins accessibles ; STORE = celui affiche)
+let MODE='admin', STORE=null, STORES=[], PREVIEW=false, stab='expedier';
 const F={q:'',prio:'',boutique:'',etat:''};
 
 function nav(){
@@ -852,7 +857,10 @@ function renderStore(){
   document.getElementById('ttl').textContent = T.label;
   document.getElementById('sub').textContent = 'Magasin '+STORE;
   const c=document.getElementById('content'); c.className='content';
-  c.innerHTML = {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, urgent:renderUrgent}[stab]();
+  const switcher = STORES.length>1 ? `<div class="storeswitch"><label>Magasin</label>
+    <select id="storeSel">${STORES.map(s=>`<option ${s===STORE?'selected':''}>${s}</option>`).join('')}</select></div>` : '';
+  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, urgent:renderUrgent}[stab]();
+  const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; renderStore(); };
   if(stab==='expedier') bindPrep(c);
   if(stab==='urgent') bindUrgent(c);
   if(PREVIEW){ const ba=document.getElementById('backAdmin'); if(ba) ba.onclick=()=>{PREVIEW=false;MODE='admin';render();}; }
@@ -889,7 +897,9 @@ async function loadDemandes(){
 // La version Supabase remplace roleInfo + UrgentStore.
 window.roleInfo = window.roleInfo || (async ()=>{
   const m=(location.hash||'').match(/store=([^&]+)/);
-  return m? {mode:'store', store:decodeURIComponent(m[1])} : {mode:'admin', store:null};
+  if(m){ const stores=decodeURIComponent(m[1]).split(',').map(s=>s.trim()).filter(Boolean);
+    return {mode:'store', stores}; }
+  return {mode:'admin', stores:[]};
 });
 window.UrgentStore = window.UrgentStore || {
   _k:'sf_urgent',
@@ -916,9 +926,11 @@ window.boot = async function(){
   document.getElementById('tbBrand').textContent = BRAND;
   document.title = BRAND + ' — Recommandations de transferts';
   reviews = await window.ReviewStore.load();
-  const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', store:null});
-  MODE = role.mode; STORE = role.store;
-  if(MODE==='store'){ PREVIEW=false; renderStore(); } else { render(); }
+  const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', stores:[]});
+  MODE = role.mode;
+  STORES = role.stores || (role.store ? [role.store] : []);
+  STORE = STORES[0] || null;
+  if(MODE==='store' && STORE){ PREVIEW=false; renderStore(); } else { MODE='admin'; render(); }
   // bouton de deconnexion : visible seulement si un mecanisme est fourni (Supabase)
   if(window.doLogout){ const lo=document.getElementById('logout');
     if(lo){ lo.style.display=''; lo.onclick=window.doLogout; } }

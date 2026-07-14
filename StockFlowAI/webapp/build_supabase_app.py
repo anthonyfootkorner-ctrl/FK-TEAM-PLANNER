@@ -167,10 +167,12 @@ window.ReviewStore = {{
 window.roleInfo = async function(){{
   try{{
     const {{data, error}} = await sb.from('stockflow_user_stores')
-      .select('magasin').eq('user_id', USER.id).maybeSingle();
-    if(!error && data && data.magasin) return {{mode:'store', store:data.magasin}};
+      .select('magasin').eq('user_id', USER.id).order('magasin');
+    if(!error && data && data.length){{
+      return {{mode:'store', stores:data.map(r=>r.magasin)}};
+    }}
   }}catch(e){{ console.warn('roleInfo', e); }}
-  return {{mode:'admin', store:null}};
+  return {{mode:'admin', stores:[]}};
 }};
 
 // --- Deconnexion ---
