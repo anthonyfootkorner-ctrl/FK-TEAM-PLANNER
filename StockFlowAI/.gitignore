@@ -3,6 +3,8 @@ data/**/*.xlsx
 data/**/*.xls
 data/**/*.csv
 exports/*.xlsx
+exports/*.sql
+exports/*.json
 logs/*.log
 
 # Python
