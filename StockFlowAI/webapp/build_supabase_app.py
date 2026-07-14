@@ -161,6 +161,28 @@ window.ReviewStore = {{
   }}
 }};
 
+// --- Role : magasin (login mappe) vs admin ---
+window.roleInfo = async function(){{
+  const {{data}} = await sb.from('stockflow_user_stores').select('magasin').eq('user_id', USER.id).maybeSingle();
+  if(data && data.magasin) return {{mode:'store', store:data.magasin}};
+  return {{mode:'admin', store:null}};
+}};
+
+// --- Demandes urgentes (magasin -> validation admin) ---
+window.UrgentStore = {{
+  async create(o){{ const {{error}} = await sb.from('stockflow_urgent_requests').insert(
+      {{magasin:o.magasin, reference:o.reference, taille:o.taille||null, quantite:o.quantite||1,
+        motif:o.motif||null, created_by:USER.id}});
+    if(error) throw error; }},
+  async listMine(store){{ const {{data,error}} = await sb.from('stockflow_urgent_requests').select('*')
+      .eq('magasin',store).order('created_at',{{ascending:false}}); if(error) throw error; return data||[]; }},
+  async listAll(){{ const {{data,error}} = await sb.from('stockflow_urgent_requests').select('*')
+      .order('created_at',{{ascending:false}}); if(error) throw error; return data||[]; }},
+  async decide(id,dec){{ const {{error}} = await sb.from('stockflow_urgent_requests')
+      .update({{statut:dec, decided_by:USER.id, decided_at:new Date().toISOString()}}).eq('id',id);
+    if(error) throw error; }}
+}};
+
 // COLS doit correspondre a l'ordre attendu par le rendu
 const COLS=["n","prio","score","marque","exp","dest","ref","taille","qte","covA","covB",
   "gridA","gridB","dispoB","pick","motif"];

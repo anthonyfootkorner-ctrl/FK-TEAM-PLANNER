@@ -175,6 +175,26 @@ body{font-family:var(--font-body);
 .mvqte small{color:var(--muted);font-weight:400;font-size:11px}
 .mvmeta{font-size:12.5px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
 .mvdispo{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+/* Vue magasin (role terrain) : colonne de cartes visible partout */
+.cardcol{display:flex;flex-direction:column;gap:12px}
+.prepbar{height:9px;background:var(--card2);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin:2px 2px 8px}
+.prepbar-fill{height:100%;background:var(--green);width:0;transition:width .3s}
+/* Formulaire de demande urgente */
+.ufield{margin-bottom:11px}
+.ufield label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.ufield input,.ufield textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);
+  border-radius:9px;background:var(--bg);color:var(--text);font-size:15px;font-family:var(--font-body)}
+.urow{display:flex;gap:10px}.urow .ufield{flex:1}
+/* Selecteur de previsualisation magasin (pied de sidebar admin) */
+.foot-sel{width:100%;box-sizing:border-box;margin-top:10px;padding:8px 10px;border:1px solid #ffffff26;
+  border-radius:8px;background:var(--sidebar-hover);color:#fff;font-size:12px;cursor:pointer}
+/* Boutons de decision (admin) sur une demande */
+.dact{display:flex;gap:9px;margin-top:12px}
+.dact button{flex:1;min-height:44px;border-radius:11px;border:1px solid var(--line);background:var(--card2);
+  color:var(--text);font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+  letter-spacing:.04em;font-size:12.5px;cursor:pointer}
+.dact button.val{background:var(--green);color:#fff;border-color:var(--green)}
+.dact button.ref{background:var(--red);color:#fff;border-color:var(--red)}
 .tb-brand{display:none;align-items:center;gap:8px}
 .tb-brand .tb-logo{width:24px;height:30px;display:grid;place-items:center;flex-shrink:0}
 .tb-brand b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:16px}
@@ -359,8 +379,11 @@ const TABS = [
   {id:'flux',ico:'🔀',label:'Synthese flux',short:'Flux'},
   {id:'simulation',ico:'📊',label:'Simulation',short:'Simul.'},
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
+  {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
 ];
 let tab='transferts';
+// Role & vue magasin
+let MODE='admin', STORE=null, PREVIEW=false, stab='expedier';
 const F={q:'',prio:'',boutique:'',etat:''};
 
 function nav(){
@@ -376,7 +399,9 @@ function nav(){
   document.querySelectorAll('#nav button, #mnav button, #botnav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();
     window.scrollTo({top:0});});
   document.getElementById('foot').innerHTML =
-    `Perimetre : ${DATA.meta.perimetre||'-'}<br>Cible ${DATA.meta.cible||'-'} j · ${DATA.meta.date||''}`;
+    `Perimetre : ${DATA.meta.perimetre||'-'}<br>Cible ${DATA.meta.cible||'-'} j · ${DATA.meta.date||''}`
+    + `<select class="foot-sel" id="previewStore"><option value="">👁 Prévisualiser un magasin…</option>`
+    + boutiques().map(b=>`<option>${b}</option>`).join('') + `</select>`;
 }
 
 function reviewSummary(){
@@ -592,14 +617,18 @@ function exportCSV(){
 
 function render(){
   nav(); reviewSummary();
+  const ps=document.getElementById('previewStore');
+  if(ps) ps.onchange=e=>{ if(e.target.value){ STORE=e.target.value; PREVIEW=true; MODE='store'; stab='expedier'; renderStore(); } };
   const T=TABS.find(t=>t.id===tab);
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
-    flux:'Synthèse par flux',simulation:'Simulation avant / après',cas:'Cas non traités'}[tab];
+    flux:'Synthèse par flux',simulation:'Simulation avant / après',cas:'Cas non traités',
+    demandes:'Demandes urgentes'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
-    simulation:renderSimulation,cas:renderCas}[tab]();
+    simulation:renderSimulation,cas:renderCas,demandes:renderDemandes}[tab]();
+  if(tab==='demandes'){ loadDemandes(); }
   if(tab==='transferts'){
     bindReview(c); reviewSummary();
     c.querySelector('#q').oninput=e=>{F.q=e.target.value;const rows=filtered();
@@ -612,6 +641,215 @@ function render(){
   }
   if(tab==='magasin'){ c.querySelector('#boutiqueM').onchange=e=>{F.boutique=e.target.value;render()}; }
 }
+
+// ============================================================
+//  VUE MAGASIN (role terrain) — a expedier / receptions / grilles / urgent
+// ============================================================
+const STORE_TABS = [
+  {id:'expedier', ico:'📤', label:'À expédier',       short:'Expédier'},
+  {id:'recevoir', ico:'📥', label:'Réceptions',       short:'Récept.'},
+  {id:'grilles',  ico:'📐', label:'Mes grilles',      short:'Grilles'},
+  {id:'urgent',   ico:'🚨', label:'Demande urgente',  short:'Urgent'},
+];
+function myOut(){ return DATA.transfers.filter(r=>r[C.exp]===STORE); }
+function myIn(){  return DATA.transfers.filter(r=>r[C.dest]===STORE); }
+
+function navStore(){
+  const cls=id=>id===stab?'active':'';
+  document.getElementById('nav').innerHTML = STORE_TABS.map(t=>`
+    <button data-stab="${t.id}" class="${cls(t.id)}"><span class="ico">${t.ico}</span>${t.label}</button>`).join('');
+  document.getElementById('mnav').innerHTML = STORE_TABS.map(t=>`
+    <button data-stab="${t.id}" class="${cls(t.id)}">${t.ico} ${t.label}</button>`).join('');
+  document.getElementById('botnav').innerHTML = STORE_TABS.map(t=>`
+    <button data-stab="${t.id}" class="${cls(t.id)}"><span class="ico">${t.ico}</span>${t.short}</button>`).join('');
+  document.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{stab=b.dataset.stab;renderStore();window.scrollTo({top:0});});
+  document.getElementById('foot').innerHTML = `Magasin<br><b style="color:var(--text)">${STORE}</b>`
+    + (PREVIEW?`<button class="btn ghost" id="backAdmin" style="margin-top:10px;width:100%;box-sizing:border-box;text-align:center">← Vue admin</button>`:'');
+}
+
+function prepCard(r){
+  const done=reviews[r[C.n]]==='ok';
+  return `<div class="tcard ${done?'reviewed-ok':''}" data-n="${r[C.n]}">
+    <div class="top"><span class="pill ${pcls(r[C.prio])}">${r[C.prio]}</span><span class="score" style="font-size:15px">→ ${r[C.dest]}</span></div>
+    <div class="flux">${r[C.ref]} <span style="color:var(--muted);font-weight:600">· ${r[C.taille]}</span></div>
+    <div class="meta"><span><span class="k">Qté</span>${r[C.qte]}</span>${r[C.marque]?`<span><span class="k">Marque</span>${r[C.marque]}</span>`:''}<span><span class="k">Dispo dest.</span>${r[C.dispoB]||'—'}</span></div>
+    ${r[C.motif]?`<div class="motif">${r[C.motif]}</div>`:''}
+    <div class="rev acts"><button class="ok ${done?'on':''}" data-a="ok">✓ Préparé</button></div>
+  </div>`;
+}
+function renderExpedier(){
+  const rows=myOut();
+  if(!rows.length) return `<div class="empty">Aucun transfert à expédier pour ${STORE}. 🎉</div>`;
+  const done=rows.filter(r=>reviews[r[C.n]]==='ok').length;
+  const byDest={}; rows.forEach(r=>{(byDest[r[C.dest]]=byDest[r[C.dest]]||[]).push(r);});
+  const groups=Object.keys(byDest).sort().map(dest=>{
+    const g=byDest[dest].sort((a,b)=>b[C.score]-a[C.score]);
+    const pc=g.reduce((s,r)=>s+(+r[C.qte]||0),0);
+    return `<div class="panel" style="margin-bottom:14px"><h3>📦 Vers ${dest} <span class="badge">${g.length} réf · ${pc} pièces</span></h3>
+      <div class="cardcol" style="padding:12px">${g.map(prepCard).join('')}</div></div>`;
+  }).join('');
+  return `<div class="prepbar"><div class="prepbar-fill" style="width:${Math.round(done/rows.length*100)}%"></div></div>
+    <div class="note" id="prepnote"><b>${done}/${rows.length}</b> transferts préparés · coche ✓ Préparé au fur et à mesure</div>${groups}`;
+}
+function bindPrep(root){
+  root.querySelectorAll('[data-n] .rev button').forEach(b=>{
+    b.onclick=async()=>{ const host=b.closest('[data-n]'); const n=host.dataset.n;
+      reviews[n]= reviews[n]==='ok'? undefined : 'ok'; if(!reviews[n]) delete reviews[n];
+      await window.ReviewStore.set(n, reviews[n]); const done=reviews[n]==='ok';
+      host.classList.toggle('reviewed-ok', done); b.classList.toggle('on', done);
+      updatePrep();
+    };
+  });
+}
+function updatePrep(){
+  const rows=myOut(); const done=rows.filter(r=>reviews[r[C.n]]==='ok').length;
+  const note=document.getElementById('prepnote'); if(note) note.innerHTML=`<b>${done}/${rows.length}</b> transferts préparés · coche ✓ Préparé au fur et à mesure`;
+  const fill=document.querySelector('.prepbar-fill'); if(fill) fill.style.width=(rows.length?Math.round(done/rows.length*100):0)+'%';
+}
+
+function recCard(r){
+  return `<div class="tcard">
+    <div class="top"><span class="pill ${pcls(r[C.prio])}">${r[C.prio]}</span><span class="score" style="font-size:15px">de ${r[C.exp]}</span></div>
+    <div class="flux">${r[C.ref]} <span style="color:var(--muted);font-weight:600">· ${r[C.taille]}</span></div>
+    <div class="meta"><span><span class="k">Qté</span>${r[C.qte]}</span><span><span class="k">Couv.</span>${r[C.covA]}→${r[C.covB]} j</span>${r[C.marque]?`<span><span class="k">Marque</span>${r[C.marque]}</span>`:''}</div>
+    <div class="dispo"><span class="k">Grille finale</span>${r[C.dispoB]||'—'}</div>
+  </div>`;
+}
+function renderRecevoir(){
+  const rows=myIn();
+  if(!rows.length) return `<div class="empty">Aucune réception prévue pour ${STORE}.</div>`;
+  const bySrc={}; rows.forEach(r=>{(bySrc[r[C.exp]]=bySrc[r[C.exp]]||[]).push(r);});
+  const pcAll=rows.reduce((s,r)=>s+(+r[C.qte]||0),0);
+  const groups=Object.keys(bySrc).sort().map(src=>{
+    const g=bySrc[src].sort((a,b)=>b[C.score]-a[C.score]);
+    const pc=g.reduce((s,r)=>s+(+r[C.qte]||0),0);
+    return `<div class="panel" style="margin-bottom:14px"><h3>🚚 Depuis ${src} <span class="badge">${g.length} réf · ${pc} pièces</span></h3>
+      <div class="cardcol" style="padding:12px">${g.map(recCard).join('')}</div></div>`;
+  }).join('');
+  return `<div class="note"><b>${rows.length}</b> réceptions à venir · <b>${pcAll}</b> pièces au total</div>${groups}`;
+}
+
+function renderGrilles(){
+  const rows=myIn();
+  if(!rows.length) return `<div class="empty">Aucune grille à venir.</div>`;
+  const byRef={}; rows.forEach(r=>{ const ref=r[C.ref];
+    if(!byRef[ref]) byRef[ref]={ref, marque:r[C.marque], dispo:r[C.dispoB], tailles:new Set(), pieces:0};
+    byRef[ref].tailles.add(r[C.taille]); byRef[ref].pieces+=(+r[C.qte]||0);
+    if(r[C.dispoB]) byRef[ref].dispo=r[C.dispoB]; });
+  const cards=Object.values(byRef).map(g=>`<div class="tcard">
+    <div class="flux">${g.ref}${g.marque?` <span style="color:var(--muted);font-weight:600">· ${g.marque}</span>`:''}</div>
+    <div class="dispo" style="margin-top:8px"><span class="k">Grille finale (par taille)</span>${g.dispo||'—'}</div>
+    <div class="meta"><span><span class="k">Tailles reçues</span>${[...g.tailles].join(' · ')}</span><span><span class="k">Pièces</span>${g.pieces}</span></div>
+  </div>`).join('');
+  return `<div class="note">Les grilles de tailles que tu auras après réception des transferts.</div><div class="cardcol">${cards}</div>`;
+}
+
+function statutPill(s){
+  const m={en_attente:['⏳ En attente','amber'],validee:['✅ Validée','green'],refusee:['⛔ Refusée','red']};
+  const v=m[s]||[s,'blue'];
+  return `<span class="pill" style="background:var(--${v[1]}-bg);color:var(--${v[1]})">${v[0]}</span>`;
+}
+function reqCard(r){
+  return `<div class="tcard"><div class="top">${statutPill(r.statut)}<span class="score" style="font-size:12.5px">${(r.created_at||'').slice(0,10)}</span></div>
+    <div class="flux">${r.reference}${r.taille?` <span style="color:var(--muted);font-weight:600">· ${r.taille}</span>`:''}</div>
+    <div class="meta"><span><span class="k">Qté</span>${r.quantite||1}</span></div>
+    ${r.motif?`<div class="motif">${r.motif}</div>`:''}</div>`;
+}
+function renderUrgent(){
+  return `<div class="note">Demande une référence urgente : elle part à l'administrateur, qui la valide ou la refuse.</div>
+    <div class="panel" style="padding:16px;margin-bottom:18px">
+      <div class="ufield"><label>Référence (code-barre)</label><input id="u_ref" placeholder="ex. AR6029-008"></div>
+      <div class="urow">
+        <div class="ufield"><label>Taille</label><input id="u_taille" placeholder="M"></div>
+        <div class="ufield"><label>Quantité</label><input id="u_qte" type="number" min="1" value="1"></div>
+      </div>
+      <div class="ufield"><label>Motif</label><textarea id="u_motif" rows="2" placeholder="Rupture, forte demande…"></textarea></div>
+      <button class="btn" id="u_send" style="margin-top:6px">🚨 Envoyer la demande</button>
+      <div class="auth-err" id="u_err" style="color:var(--red);font-size:12.5px;margin-top:10px;min-height:14px"></div>
+    </div>
+    <h3 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:13px;margin:6px 2px 12px">Mes demandes</h3>
+    <div id="u_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function bindUrgent(root){
+  loadMyRequests();
+  root.querySelector('#u_send').onclick=async()=>{
+    const err=root.querySelector('#u_err'); err.textContent='';
+    const ref=root.querySelector('#u_ref').value.trim();
+    const taille=root.querySelector('#u_taille').value.trim();
+    const qte=parseInt(root.querySelector('#u_qte').value)||1;
+    const motif=root.querySelector('#u_motif').value.trim();
+    if(!ref){ err.textContent='Indique au moins une référence.'; return; }
+    try{ await window.UrgentStore.create({magasin:STORE, reference:ref, taille, quantite:qte, motif});
+      root.querySelector('#u_ref').value=''; root.querySelector('#u_taille').value='';
+      root.querySelector('#u_motif').value=''; root.querySelector('#u_qte').value='1';
+      loadMyRequests();
+    }catch(e){ err.textContent='Erreur : '+(e.message||e); }
+  };
+}
+async function loadMyRequests(){
+  const list=document.getElementById('u_list'); if(!list) return;
+  let reqs=[]; try{ reqs=await window.UrgentStore.listMine(STORE); }catch(e){ list.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  list.innerHTML = reqs.length? reqs.map(reqCard).join('') : `<div class="empty">Aucune demande pour le moment.</div>`;
+}
+
+function renderStore(){
+  navStore();
+  document.querySelector('.brand b').textContent = 'STOCKFLOW.AI';
+  document.querySelector('.brand span').textContent = STORE;
+  document.getElementById('tbBrand').textContent = STORE;
+  const T=STORE_TABS.find(t=>t.id===stab);
+  document.getElementById('ttl').textContent = T.label;
+  document.getElementById('sub').textContent = 'Magasin '+STORE;
+  const c=document.getElementById('content'); c.className='content';
+  c.innerHTML = {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, urgent:renderUrgent}[stab]();
+  if(stab==='expedier') bindPrep(c);
+  if(stab==='urgent') bindUrgent(c);
+  if(PREVIEW){ const ba=document.getElementById('backAdmin'); if(ba) ba.onclick=()=>{PREVIEW=false;MODE='admin';render();}; }
+}
+
+// ============================================================
+//  DEMANDES URGENTES (cote admin)
+// ============================================================
+function renderDemandes(){
+  return `<div class="note">Demandes urgentes des magasins. Valide ou refuse — le magasin voit la décision.</div>
+    <div id="d_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function demandeCard(r){
+  const pend=r.statut==='en_attente';
+  return `<div class="tcard" data-req="${r.id}"><div class="top">${statutPill(r.statut)}
+      <span class="score" style="font-size:15px">${r.magasin||''}</span></div>
+    <div class="flux">${r.reference}${r.taille?` <span style="color:var(--muted);font-weight:600">· ${r.taille}</span>`:''}</div>
+    <div class="meta"><span><span class="k">Qté</span>${r.quantite||1}</span><span><span class="k">Le</span>${(r.created_at||'').slice(0,10)}</span></div>
+    ${r.motif?`<div class="motif">${r.motif}</div>`:''}
+    ${pend?`<div class="dact"><button class="val" data-dec="validee">✓ Valider</button><button class="ref" data-dec="refusee">✕ Refuser</button></div>`:''}
+  </div>`;
+}
+async function loadDemandes(){
+  const box=document.getElementById('d_list'); if(!box) return;
+  let reqs=[]; try{ reqs=await window.UrgentStore.listAll(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  const pend=reqs.filter(r=>r.statut==='en_attente').length;
+  box.innerHTML = (pend?`<div class="note"><b>${pend}</b> demande(s) en attente</div>`:'')
+    + (reqs.length? reqs.map(demandeCard).join('') : `<div class="empty">Aucune demande.</div>`);
+  box.querySelectorAll('[data-req]').forEach(el=>el.querySelectorAll('button[data-dec]').forEach(btn=>
+    btn.onclick=async()=>{ btn.disabled=true; try{ await window.UrgentStore.decide(el.dataset.req, btn.dataset.dec);}catch(e){} loadDemandes(); }));
+}
+
+// Hooks par defaut (prototype/demo) : role via #store=XXX, demandes en localStorage.
+// La version Supabase remplace roleInfo + UrgentStore.
+window.roleInfo = window.roleInfo || (async ()=>{
+  const m=(location.hash||'').match(/store=([^&]+)/);
+  return m? {mode:'store', store:decodeURIComponent(m[1])} : {mode:'admin', store:null};
+});
+window.UrgentStore = window.UrgentStore || {
+  _k:'sf_urgent',
+  _all(){ try{return JSON.parse(localStorage.getItem(this._k)||'[]')}catch(e){return []} },
+  _save(a){ localStorage.setItem(this._k, JSON.stringify(a)); },
+  async create(o){ const a=this._all(); a.unshift({...o, id:'loc'+a.length+'_'+(o.reference||''), statut:'en_attente',
+      created_at:new Date().toISOString()}); this._save(a); },
+  async listMine(store){ return this._all().filter(r=>r.magasin===store); },
+  async listAll(){ return this._all(); },
+  async decide(id,dec){ const a=this._all(); const r=a.find(x=>x.id===id); if(r) r.statut=dec; this._save(a); }
+};
 
 document.getElementById('theme').onclick=()=>{
   const r=document.documentElement; const cur=r.getAttribute('data-theme')||'dark';
@@ -627,7 +865,9 @@ window.boot = async function(){
   document.getElementById('tbBrand').textContent = BRAND;
   document.title = BRAND + ' — Recommandations de transferts';
   reviews = await window.ReviewStore.load();
-  render();
+  const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', store:null});
+  MODE = role.mode; STORE = role.store;
+  if(MODE==='store'){ PREVIEW=false; renderStore(); } else { render(); }
 };
 if(window.AUTO_BOOT !== false) window.boot();
 </script>
