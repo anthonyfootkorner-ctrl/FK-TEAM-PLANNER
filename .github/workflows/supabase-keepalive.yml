@@ -1,0 +1,36 @@
+name: Supabase keep-alive
+
+# Empeche la mise en veille du projet Supabase (pause apres 7 j d'inactivite
+# sur le plan gratuit). Un mini-appel quotidien a l'API REST suffit a garder le
+# projet actif. N'utilise que la cle PUBLIQUE (publishable), deja publique.
+#
+# NB : pour que le declencheur planifie fonctionne, ce fichier doit etre sur la
+# branche par defaut (main). Sur une autre branche, seul le lancement manuel
+# (workflow_dispatch) est disponible.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # tous les jours a 06:17 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase (garde le projet eveille)
+        env:
+          SUPABASE_URL: https://yeusqubxgxchigssobma.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_FkwKSPbHO3CPHdRvt35img__s3HSY5R
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/stockflow_runs?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Reponse Supabase : HTTP $code"
+          # 200 (ok), 404 (table pas encore creee) ou 401 (RLS) => l'appel a
+          # tout de meme touche le projet, ce qui suffit a le maintenir actif.
+          case "$code" in
+            200|401|404) echo "Projet Supabase pingue avec succes." ;;
+            000) echo "Aucune reponse (reseau)."; exit 1 ;;
+            *) echo "Code inattendu : $code" ;;
+          esac
