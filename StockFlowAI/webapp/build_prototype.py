@@ -132,8 +132,8 @@ body{font-family:var(--font-body);
 .sidebar{width:230px;background:var(--sidebar-bg);color:#fff;display:flex;flex-direction:column;
   position:sticky;top:0;height:100vh;flex-shrink:0}
 .brand{padding:20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ffffff14}
-.brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--orange),var(--orange-dark));
-  display:grid;place-items:center;font-size:18px}
+.brand .logo{width:30px;height:36px;display:grid;place-items:center;flex-shrink:0}
+.fklogo{width:100%;height:100%;display:block}
 .brand b{font-family:var(--font-display);font-size:15px;font-weight:800;text-transform:uppercase;
   letter-spacing:.08em;white-space:nowrap;line-height:1.1}
 .brand span{display:block;font-size:10.5px;letter-spacing:.03em;color:var(--sidebar-text)}
@@ -158,9 +158,9 @@ body{font-family:var(--font-body);
 .theme-btn{all:unset;cursor:pointer;padding:7px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px}
 .review-pill{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
 .review-pill b{color:var(--text)}
+.review-pill i.w{font-style:normal}
 .tb-brand{display:none;align-items:center;gap:8px}
-.tb-brand .tb-logo{width:26px;height:26px;border-radius:7px;
-  background:linear-gradient(135deg,var(--orange),var(--orange-dark));display:grid;place-items:center;font-size:15px}
+.tb-brand .tb-logo{width:24px;height:30px;display:grid;place-items:center;flex-shrink:0}
 .tb-brand b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:16px}
 .mnav{display:none}
 .content{padding:22px 24px;flex:1}
@@ -181,7 +181,7 @@ body{font-family:var(--font-body);
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{all:unset;cursor:pointer;padding:7px 13px;border-radius:20px;border:1px solid var(--line);
   font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-weight:600;
-  font-size:11.5px;color:var(--muted);background:transparent}
+  font-size:11.5px;color:var(--muted);background:transparent;white-space:nowrap}
 .chip:hover{border-color:var(--orange);color:var(--orange)}
 .chip.on{background:var(--orange-soft);color:var(--orange);border-color:var(--orange)}
 .btn{all:unset;cursor:pointer;padding:9px 14px;border-radius:9px;background:var(--orange);color:#fff;
@@ -222,6 +222,32 @@ tr.reviewed-no{opacity:.55}
   font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-weight:600;
   font-size:12px;color:var(--muted);border:1px solid var(--line)}
 .mnav button.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+/* Cartes de transfert (affichage mobile) — masquees par defaut (desktop = tableau) */
+.tcards{display:none;flex-direction:column;gap:12px}
+.tcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+.tcard .top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.tcard .score{margin-left:auto;font-family:var(--font-display);font-weight:800;
+  font-variant-numeric:tabular-nums;font-size:19px;letter-spacing:.02em}
+.tcard .score small{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.06em;margin-right:3px}
+.tcard .flux{font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  letter-spacing:.02em;font-size:16px;line-height:1.15;margin-bottom:8px}
+.tcard .flux .arrow{color:var(--orange);margin:0 7px}
+.tcard .meta{display:flex;flex-wrap:wrap;gap:5px 16px;font-size:13.5px;margin-bottom:7px}
+.tcard .meta .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+.tcard .dispo{font-size:13px;margin-bottom:7px;font-variant-numeric:tabular-nums}
+.tcard .dispo .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+.tcard .motif{font-size:12.5px;color:var(--muted);margin-bottom:13px;line-height:1.4}
+.tcard .acts{display:flex;gap:10px}
+.tcard .acts button{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card2);color:var(--text);font-family:var(--font-display);font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;font-size:13.5px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px}
+.tcard .acts button.ok.on{background:var(--green);color:#fff;border-color:var(--green)}
+.tcard .acts button.no.on{background:var(--red);color:#fff;border-color:var(--red)}
+.tcard.reviewed-ok{border-color:var(--green)}
+.tcard.reviewed-no{opacity:.5}
+/* Barre de navigation basse (mobile) facon appli */
+.botnav{display:none}
 @media(max-width:820px){
   .sidebar{display:none}
   .grid2{grid-template-columns:1fr}
@@ -232,25 +258,59 @@ tr.reviewed-no{opacity:.55}
     border-bottom:1px solid var(--line);position:sticky;top:57px;z-index:4}
   .content{padding:16px}
 }
+@media(max-width:640px){
+  /* nav basse a la place des onglets du haut */
+  .mnav{display:none}
+  .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sidebar-bg);
+    border-top:1px solid #ffffff1c;padding:5px 4px calc(5px + env(safe-area-inset-bottom))}
+  .botnav button{all:unset;flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:7px 2px;color:var(--sidebar-text);font-size:9.5px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.02em;cursor:pointer;text-align:center;font-family:var(--font-display)}
+  .botnav button .ico{font-size:19px}
+  .botnav button.active{color:var(--orange)}
+  .content{padding:14px 13px calc(72px + env(safe-area-inset-bottom))}
+  /* transferts : cartes au lieu du tableau */
+  .tbl-only{display:none}
+  .tcards.card-only{display:flex}
+  /* KPI en 2 colonnes compactes */
+  .kpis{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .kpi{padding:13px}
+  .kpi .val{font-size:23px}
+  /* barre d'outils empilee, pleine largeur, cibles tactiles */
+  .toolbar{gap:9px}
+  .toolbar input[type=search]{flex:1 0 100%;min-width:0;width:100%;padding:12px 13px;font-size:15px}
+  .toolbar .chips{flex:1 0 100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .toolbar select{flex:1;min-width:0;padding:11px 12px;font-size:14px}
+  .toolbar .spacer{display:none}
+  .toolbar .btn{flex:1 0 100%;display:block;width:100%;text-align:center;padding:13px;font-size:14px}
+  /* topbar : titre masque (la nav basse indique la section), resume compact */
+  .topbar{padding:11px 15px;gap:10px}
+  .topbar h1{display:none}
+  .review-pill{gap:9px;font-size:12px;white-space:nowrap}
+  .review-pill i.w{display:none}
+  .theme-btn{padding:7px 10px}
+  .theme-btn .tlbl{display:none}
+}
 </style>
 </head>
 <body>
 <aside class="sidebar">
-  <div class="brand"><div class="logo">📦</div><div><b>StockFlow AI</b><span>Recommandations</span></div></div>
+  <div class="brand"><div class="logo"><svg class="fklogo" viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgA)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div><div><b>StockFlow AI</b><span>Recommandations</span></div></div>
   <nav class="nav" id="nav"></nav>
   <div class="side-foot" id="foot"></div>
 </aside>
 <div class="main">
   <div class="topbar">
-    <div class="tb-brand"><span class="tb-logo">📦</span><b id="tbBrand"></b></div>
+    <div class="tb-brand"><span class="tb-logo"><svg class="fklogo" viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgB)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></span><b id="tbBrand"></b></div>
     <div><h1 id="ttl">Transferts recommandes</h1><div class="sub" id="sub"></div></div>
     <div class="spacer"></div>
     <div class="review-pill" id="revsum"></div>
-    <button class="theme-btn" id="theme">◐ Theme</button>
+    <button class="theme-btn" id="theme">◐<span class="tlbl"> Thème</span></button>
   </div>
   <nav class="mnav" id="mnav"></nav>
   <div class="content" id="content"></div>
 </div>
+<nav class="botnav" id="botnav"></nav>
 <script id="data" type="application/json">/*__DATA__*/</script>
 <script>
 // DATA et la persistance de revue sont fournis par le "shell" (prototype ou
@@ -266,11 +326,11 @@ const fmt = n => (typeof n==='number'? n.toLocaleString('fr-FR'):n);
 const pcls = p => 'p-'+String(p).replace(/[^A-Za-z]/g,'').slice(0,10).replace('Fortementrecommande','Fortement').replace('Avalider','Avalider');
 
 const TABS = [
-  {id:'transferts',ico:'📦',label:'Transferts'},
-  {id:'magasin',ico:'🏬',label:'Par magasin'},
-  {id:'flux',ico:'🔀',label:'Synthese flux'},
-  {id:'simulation',ico:'📊',label:'Simulation'},
-  {id:'cas',ico:'⚠️',label:'Cas non traites'},
+  {id:'transferts',ico:'📦',label:'Transferts',short:'Transf.'},
+  {id:'magasin',ico:'🏬',label:'Par magasin',short:'Magasin'},
+  {id:'flux',ico:'🔀',label:'Synthese flux',short:'Flux'},
+  {id:'simulation',ico:'📊',label:'Simulation',short:'Simul.'},
+  {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
 ];
 let tab='transferts';
 const F={q:'',prio:'',boutique:'',etat:''};
@@ -283,8 +343,10 @@ function nav(){
     </button>`).join('');
   document.getElementById('mnav').innerHTML = TABS.map(t=>`
     <button data-tab="${t.id}" class="${t.id===tab?'active':''}">${t.ico} ${t.label}</button>`).join('');
-  document.querySelectorAll('#nav button, #mnav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();
-    document.getElementById('content').scrollIntoView({block:'start'});});
+  document.getElementById('botnav').innerHTML = TABS.map(t=>`
+    <button data-tab="${t.id}" class="${t.id===tab?'active':''}"><span class="ico">${t.ico}</span>${t.short||t.label}</button>`).join('');
+  document.querySelectorAll('#nav button, #mnav button, #botnav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();
+    window.scrollTo({top:0});});
   document.getElementById('foot').innerHTML =
     `Perimetre : ${DATA.meta.perimetre||'-'}<br>Cible ${DATA.meta.cible||'-'} j · ${DATA.meta.date||''}`;
 }
@@ -293,7 +355,7 @@ function reviewSummary(){
   let ok=0,no=0; Object.values(reviews).forEach(v=>{if(v==='ok')ok++;else if(v==='no')no++;});
   const tot=DATA.transfers.length;
   document.getElementById('revsum').innerHTML =
-    `<span>✅ <b>${ok}</b> OK</span><span>⛔ <b>${no}</b> NON</span><span>⏳ <b>${tot-ok-no}</b> a revoir</span>`;
+    `<span>✅ <b>${ok}</b><i class="w"> OK</i></span><span>⛔ <b>${no}</b><i class="w"> NON</i></span><span>⏳ <b>${tot-ok-no}</b><i class="w"> à revoir</i></span>`;
 }
 
 function kpiStrip(){
@@ -347,13 +409,52 @@ function transfersRow(r){
     </div></td></tr>`;
 }
 
+// Carte de transfert (affichage mobile) — memes donnees que la ligne de tableau
+function transfersCard(r){
+  const st=reviews[r[C.n]]||'todo';
+  const cls=st==='ok'?'reviewed-ok':st==='no'?'reviewed-no':'';
+  return `<div class="tcard ${cls}" data-n="${r[C.n]}">
+    <div class="top"><span class="pill ${pcls(r[C.prio])}">${r[C.prio]}</span>
+      <span class="score"><small>SCORE</small>${r[C.score]}</span></div>
+    <div class="flux">${r[C.exp]}<span class="arrow">→</span>${r[C.dest]}</div>
+    <div class="meta">
+      <span><span class="k">Réf</span>${r[C.ref]}</span>
+      <span><span class="k">Taille</span>${r[C.taille]}</span>
+      <span><span class="k">Qté</span>${r[C.qte]}</span>
+      <span><span class="k">Couv</span>${r[C.covA]}→${r[C.covB]} j</span>
+      ${r[C.marque]?`<span><span class="k">Marque</span>${r[C.marque]}</span>`:''}
+    </div>
+    <div class="dispo"><span class="k">Dispo finale</span>${r[C.dispoB]||'—'}</div>
+    ${r[C.motif]?`<div class="motif">${r[C.motif]}</div>`:''}
+    <div class="rev acts">
+      <button class="ok ${st==='ok'?'on':''}" data-a="ok">✓ Valider</button>
+      <button class="no ${st==='no'?'on':''}" data-a="no">✕ Refuser</button>
+    </div></div>`;
+}
+
+// Liste des transferts : tableau (desktop) + cartes (mobile), bascule en CSS
+function listHTML(rows){
+  return `<div class="tablewrap tbl-only"><table><thead><tr>
+    <th class="num">N°</th><th>Priorité</th><th class="num">Score</th><th>Marque</th>
+    <th>Flux</th><th>Réf. (code-barre)</th><th>Taille</th><th class="num">Qté</th>
+    <th class="num">Couv. dest.</th><th>Dispo finale (dest.)</th><th>Motif</th><th>Revue</th>
+  </tr></thead><tbody>${rows.slice(0,1200).map(transfersRow).join('')}</tbody></table></div>
+  <div class="tcards card-only">${rows.slice(0,400).map(transfersCard).join('')}
+    ${rows.length>400?`<div class="note">Affichage limité à 400 cartes — affinez les filtres.</div>`:''}
+  </div>`;
+}
+
 function bindReview(root){
-  root.querySelectorAll('tr[data-n] .rev button').forEach(b=>{
-    b.onclick=()=>{ const tr=b.closest('tr'); const n=tr.dataset.n; const a=b.dataset.a;
+  root.querySelectorAll('[data-n] .rev button').forEach(b=>{
+    b.onclick=()=>{ const host=b.closest('[data-n]'); const n=host.dataset.n; const a=b.dataset.a;
       reviews[n]= reviews[n]===a? undefined : a; if(!reviews[n]) delete reviews[n];
       window.ReviewStore.set(n, reviews[n]); const st=reviews[n]||'todo';
-      tr.className = st==='ok'?'reviewed-ok':st==='no'?'reviewed-no':'';
-      tr.querySelectorAll('.rev button').forEach(x=>x.classList.toggle('on', reviews[n]===x.dataset.a));
+      // synchronise les 2 rendus (ligne + carte) partageant ce data-n
+      document.querySelectorAll('[data-n="'+n+'"]').forEach(el=>{
+        el.classList.remove('reviewed-ok','reviewed-no');
+        if(st!=='todo') el.classList.add(st==='ok'?'reviewed-ok':'reviewed-no');
+        el.querySelectorAll('.rev button').forEach(x=>x.classList.toggle('on', reviews[n]===x.dataset.a));
+      });
       reviewSummary();
     };
   });
@@ -377,12 +478,8 @@ function renderTransferts(){
     <button class="btn" id="exp">⬇️ Exporter les validés (CSV)</button>
   </div>
   <div class="note">${rows.length} transfert(s) affiché(s) sur ${DATA.transfers.length}. Cliquez ✓ / ✕ pour valider ou refuser — la revue est enregistrée.</div>
-  <div class="tablewrap"><table><thead><tr>
-    <th class="num">N°</th><th>Priorité</th><th class="num">Score</th><th>Marque</th>
-    <th>Flux</th><th>Réf. (code-barre)</th><th>Taille</th><th class="num">Qté</th>
-    <th class="num">Couv. dest.</th><th>Dispo finale (dest.)</th><th>Motif</th><th>Revue</th>
-  </tr></thead><tbody>${rows.slice(0,1200).map(transfersRow).join('')}</tbody></table></div>
-  ${rows.length>1200?`<div class="note">Affichage limité à 1200 lignes — affinez les filtres pour voir le reste.</div>`:''}`;
+  <div id="tlist">${listHTML(rows)}</div>
+  ${rows.length>1200?`<div class="note">Tableau limité à 1200 lignes — affinez les filtres pour voir le reste.</div>`:''}`;
 }
 
 function renderMagasin(){
@@ -468,8 +565,8 @@ function render(){
     simulation:renderSimulation,cas:renderCas}[tab]();
   if(tab==='transferts'){
     bindReview(c);
-    c.querySelector('#q').oninput=e=>{F.q=e.target.value;const w=c.querySelector('.tablewrap');
-      const rows=filtered();w.querySelector('tbody').innerHTML=rows.slice(0,1200).map(transfersRow).join('');bindReview(w);
+    c.querySelector('#q').oninput=e=>{F.q=e.target.value;const rows=filtered();
+      const list=document.getElementById('tlist');list.innerHTML=listHTML(rows);bindReview(list);
       c.querySelector('.note').textContent=`${rows.length} transfert(s) affiché(s) sur ${DATA.transfers.length}.`;};
     c.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{F.prio=ch.dataset.prio;render()});
     c.querySelector('#boutique').onchange=e=>{F.boutique=e.target.value;render()};

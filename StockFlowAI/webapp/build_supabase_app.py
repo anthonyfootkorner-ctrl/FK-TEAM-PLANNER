@@ -41,34 +41,61 @@ def _extract():
 AUTH_CSS = """
 <style>
 .auth-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;
-  align-items:center;justify-content:center}
+  flex-direction:column;overflow:auto}
+.auth-top{display:flex;align-items:center;gap:10px;padding:22px 26px;flex-shrink:0}
+.auth-top .logo{width:26px;height:32px;display:grid;place-items:center}
+.auth-top b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:17px}
+.auth-body{flex:1;display:flex;align-items:center;justify-content:center;gap:64px;
+  padding:12px 26px 54px;flex-wrap:wrap}
+.auth-hero{max-width:460px}
+.hero-head{font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  font-size:clamp(42px,8.5vw,78px);line-height:.96;letter-spacing:-.015em}
+.hero-head .hl{color:var(--orange)}
+.hero-sub{color:var(--muted);font-size:15px;margin-top:20px;max-width:370px;line-height:1.5}
 .auth-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
-  padding:34px 30px;width:340px;box-shadow:var(--shadow)}
-.auth-card .brandline{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-.auth-card .logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:18px;
-  background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
-.auth-card b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:18px}
+  padding:32px 30px;width:340px;max-width:100%;box-shadow:var(--shadow)}
+.auth-card .intro{font-size:12.5px;color:var(--muted);margin-bottom:4px}
 .auth-card label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;
-  letter-spacing:.08em;margin:12px 0 5px}
-.auth-card input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
-  background:var(--bg);color:var(--text);font-size:14px}
-.auth-card button{width:100%;margin-top:18px;padding:12px;border:none;border-radius:9px;cursor:pointer;
+  letter-spacing:.08em;margin:14px 0 5px}
+.auth-card input{width:100%;padding:12px 12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--bg);color:var(--text);font-size:15px}
+.auth-card button{width:100%;margin-top:20px;padding:13px;border:none;border-radius:9px;cursor:pointer;
   background:var(--orange);color:#fff;font-family:var(--font-display);text-transform:uppercase;
   letter-spacing:.05em;font-weight:700;font-size:14px}
 .auth-err{color:var(--red);font-size:12.5px;margin-top:12px;min-height:16px}
 .hidden{display:none!important}
+@media(max-width:820px){
+  .auth-body{gap:30px;padding:8px 22px 40px}
+  .auth-hero{max-width:100%;flex:1 0 100%}
+  .hero-sub{max-width:100%}
+}
 </style>
 """
 
-AUTH_MARKUP = """
+LOGO_SVG = ('<svg class="fklogo" viewBox="0 0 64 80" fill="none" aria-hidden="true">'
+  '<defs><linearGradient id="fkgC" x1="0" y1="0" x2="0" y2="1">'
+  '<stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs>'
+  '<g stroke="url(#fkgC)" stroke-linecap="round" fill="none">'
+  '<path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/>'
+  '<path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/>'
+  '<path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/>'
+  '</g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg>')
+
+AUTH_MARKUP = f"""
 <div id="auth" class="auth-overlay">
-  <div class="auth-card">
-    <div class="brandline"><span class="logo">📦</span><b>STOCKFLOW.AI</b></div>
-    <div style="font-size:12.5px;color:var(--muted)">Connectez-vous pour consulter et valider les recommandations.</div>
-    <label>E-mail</label><input id="email" type="email" autocomplete="username"/>
-    <label>Mot de passe</label><input id="pwd" type="password" autocomplete="current-password"/>
-    <button id="signin">Se connecter</button>
-    <div class="auth-err" id="autherr"></div>
+  <div class="auth-top"><span class="logo">{LOGO_SVG}</span><b>stockflow.ai</b></div>
+  <div class="auth-body">
+    <div class="auth-hero">
+      <h2 class="hero-head">ANALYSE.<br><span class="hl">OPTIMISE.</span><br>GAGNE.</h2>
+      <p class="hero-sub">La répartition intelligente des stocks entre tes magasins : moins de ruptures, moins de dormant, les bonnes tailles au bon endroit.</p>
+    </div>
+    <div class="auth-card">
+      <div class="intro">Connectez-vous pour consulter et valider les recommandations.</div>
+      <label>E-mail</label><input id="email" type="email" autocomplete="username"/>
+      <label>Mot de passe</label><input id="pwd" type="password" autocomplete="current-password"/>
+      <button id="signin">Se connecter</button>
+      <div class="auth-err" id="autherr"></div>
+    </div>
   </div>
 </div>
 """
