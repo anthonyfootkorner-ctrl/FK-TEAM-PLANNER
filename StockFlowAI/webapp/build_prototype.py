@@ -190,6 +190,40 @@ body{font-family:var(--font-body);
 .storeswitch label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .storeswitch select{flex:1;max-width:280px;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);
   border-radius:9px;background:var(--card);color:var(--text);font-size:15px;font-weight:600}
+/* Expedier — niveau 1 : cartes d'expedition fermees (par destination) */
+.destcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.destcard:hover{border-color:var(--orange)}
+.destcard.alldone{border-color:var(--green)}
+.destcard-main{flex:1;min-width:0}
+.destcard-title{font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:16px}
+.destcard-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.destcard-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.destprogwrap{display:flex;align-items:center;gap:7px}
+.destprog{width:74px;height:6px;border-radius:20px;background:var(--card2);overflow:hidden}
+.destprog span{display:block;height:100%;background:var(--green)}
+.destprog-txt{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+.destcard .chev{font-size:24px;color:var(--muted);line-height:1}
+/* Expedier — niveau 2 : bon de prepa (lignes minimalistes) */
+.prepback{all:unset;cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:12px;display:inline-block}
+.prepback:hover{color:var(--orange)}
+.prephead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
+.prepdest{font-family:var(--font-display);font-weight:800;text-transform:uppercase;font-size:19px}
+.prepcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.preplist{display:flex;flex-direction:column;gap:8px}
+.prepline{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.prepinfo{flex:1;min-width:0;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.prepref{font-weight:700;font-size:15px}
+.prepsize{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:.03em}
+.prepqty{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
+.prepacts{display:flex;gap:8px;flex-shrink:0}
+.prepacts button{all:unset;box-sizing:border-box;cursor:pointer;width:48px;height:44px;border-radius:11px;
+  border:1px solid var(--line);display:grid;place-items:center;font-size:19px;background:var(--card2)}
+.prepacts .pok.on{background:var(--green);color:#fff;border-color:var(--green)}
+.prepacts .pdiff.on{background:var(--amber);color:#1a1a1a;border-color:var(--amber)}
+.prepline.done{border-color:var(--green)}
+.prepline.done .prepref,.prepline.done .prepsize{opacity:.55;text-decoration:line-through}
+.prepline.diff{border-color:var(--amber)}
 /* Selecteur de previsualisation magasin (pied de sidebar admin) */
 .foot-sel{width:100%;box-sizing:border-box;margin-top:10px;padding:8px 10px;border:1px solid #ffffff26;
   border-radius:8px;background:var(--sidebar-hover);color:#fff;font-size:12px;cursor:pointer}
@@ -439,7 +473,7 @@ const TABS = [
 ];
 let tab='transferts';
 // Role & vue magasin (STORES = magasins accessibles ; STORE = celui affiche)
-let MODE='admin', STORE=null, STORES=[], PREVIEW=false, stab='expedier';
+let MODE='admin', STORE=null, STORES=[], PREVIEW=false, stab='expedier', openDest=null;
 const F={q:'',prio:'',boutique:'',etat:''};
 
 function nav(){
@@ -718,49 +752,85 @@ function navStore(){
     <button data-stab="${t.id}" class="${cls(t.id)}">${t.ico} ${t.label}</button>`).join('');
   document.getElementById('botnav').innerHTML = STORE_TABS.map(t=>`
     <button data-stab="${t.id}" class="${cls(t.id)}"><span class="ico">${t.ico}</span>${t.short}</button>`).join('');
-  document.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{stab=b.dataset.stab;renderStore();window.scrollTo({top:0});});
+  document.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{stab=b.dataset.stab;openDest=null;renderStore();window.scrollTo({top:0});});
   document.getElementById('foot').innerHTML = `Magasin<br><b style="color:var(--text)">${STORE}</b>`
     + (PREVIEW?`<button class="btn ghost" id="backAdmin" style="margin-top:10px;width:100%;box-sizing:border-box;text-align:center">← Vue admin</button>`:'');
 }
 
-function prepCard(r){
-  const done=reviews[r[C.n]]==='ok';
-  return `<div class="tcard ${done?'reviewed-ok':''}" data-n="${r[C.n]}">
-    <div class="top"><span class="pill ${pcls(r[C.prio])}">${r[C.prio]}</span><span class="score" style="font-size:15px">→ ${r[C.dest]}</span></div>
-    <div class="flux">${r[C.ref]} <span style="color:var(--muted);font-weight:600">· ${r[C.taille]}</span></div>
-    <div class="meta"><span><span class="k">Qté</span>${r[C.qte]}</span>${r[C.marque]?`<span><span class="k">Marque</span>${r[C.marque]}</span>`:''}<span><span class="k">Dispo dest.</span>${r[C.dispoB]||'—'}</span></div>
-    ${r[C.motif]?`<div class="motif">${r[C.motif]}</div>`:''}
-    <div class="rev acts"><button class="ok ${done?'on':''}" data-a="ok">✓ Préparé</button></div>
-  </div>`;
-}
+function prioRank(p){ const s=String(p).toLowerCase();
+  if(s.includes('priorit')) return 0;
+  if(s.includes('fortement')) return 1;
+  if(s.includes('recommand')) return 2;
+  if(s.includes('valider')) return 3;
+  return 4; }
+
+// Niveau 1 : les expeditions (une carte fermee par destination, triees par prio)
 function renderExpedier(){
   const rows=myOut();
   if(!rows.length) return `<div class="empty">Aucun transfert à expédier pour ${STORE}. 🎉</div>`;
-  const done=rows.filter(r=>reviews[r[C.n]]==='ok').length;
+  if(openDest) return renderPrepSheet(openDest);
   const byDest={}; rows.forEach(r=>{(byDest[r[C.dest]]=byDest[r[C.dest]]||[]).push(r);});
-  const groups=Object.keys(byDest).sort().map(dest=>{
-    const g=byDest[dest].sort((a,b)=>b[C.score]-a[C.score]);
-    const pc=g.reduce((s,r)=>s+(+r[C.qte]||0),0);
-    return `<div class="panel" style="margin-bottom:14px"><h3>📦 Vers ${dest} <span class="badge">${g.length} réf · ${pc} pièces</span></h3>
-      <div class="cardcol" style="padding:12px">${g.map(prepCard).join('')}</div></div>`;
+  const dests=Object.keys(byDest).map(dest=>{
+    const g=byDest[dest];
+    const prep=g.filter(r=>reviews[r[C.n]]==='ok').length;
+    const pieces=g.reduce((s,r)=>s+(+r[C.qte]||0),0);
+    const rank=Math.min.apply(null, g.map(r=>prioRank(r[C.prio])));
+    const bestPrio=g.reduce((a,r)=>prioRank(r[C.prio])<prioRank(a)?r[C.prio]:a, g[0][C.prio]);
+    const score=Math.max.apply(null, g.map(r=>+r[C.score]||0));
+    return {dest,len:g.length,prep,pieces,rank,bestPrio,score};
+  }).sort((a,b)=> a.rank-b.rank || b.score-a.score);
+  const totalPrep=rows.filter(r=>reviews[r[C.n]]==='ok').length;
+  const cards=dests.map(d=>{
+    const pct=Math.round(d.prep/d.len*100);
+    return `<button class="destcard ${d.prep===d.len?'alldone':''}" data-dest="${d.dest}">
+      <div class="destcard-main">
+        <div class="destcard-title">→ ${d.dest}</div>
+        <div class="destcard-sub">${d.len} réf · ${d.pieces} pièces</div>
+      </div>
+      <div class="destcard-side">
+        <span class="pill ${pcls(d.bestPrio)}">${d.bestPrio}</span>
+        <div class="destprogwrap"><div class="destprog"><span style="width:${pct}%"></span></div>
+          <span class="destprog-txt">${d.prep}/${d.len}</span></div>
+      </div>
+      <span class="chev">›</span>
+    </button>`;
   }).join('');
-  return `<div class="prepbar"><div class="prepbar-fill" style="width:${Math.round(done/rows.length*100)}%"></div></div>
-    <div class="note" id="prepnote"><b>${done}/${rows.length}</b> transferts préparés · coche ✓ Préparé au fur et à mesure</div>${groups}`;
+  return `<div class="prepbar"><div class="prepbar-fill" style="width:${Math.round(totalPrep/rows.length*100)}%"></div></div>
+    <div class="note"><b>${totalPrep}/${rows.length}</b> transferts préparés · ouvre une expédition pour préparer</div>
+    ${cards}`;
 }
-function bindPrep(root){
-  root.querySelectorAll('[data-n] .rev button').forEach(b=>{
-    b.onclick=async()=>{ const host=b.closest('[data-n]'); const n=host.dataset.n;
-      reviews[n]= reviews[n]==='ok'? undefined : 'ok'; if(!reviews[n]) delete reviews[n];
-      await window.ReviewStore.set(n, reviews[n]); const done=reviews[n]==='ok';
-      host.classList.toggle('reviewed-ok', done); b.classList.toggle('on', done);
-      updatePrep();
-    };
+
+// Niveau 2 : le bon de prepa d'une destination (lignes minimalistes)
+function renderPrepSheet(dest){
+  const g=myOut().filter(r=>r[C.dest]===dest)
+    .sort((a,b)=> prioRank(a[C.prio])-prioRank(b[C.prio]) || (+b[C.score]||0)-(+a[C.score]||0));
+  const prep=g.filter(r=>reviews[r[C.n]]==='ok').length;
+  const lines=g.map(r=>{
+    const st=reviews[r[C.n]]; const cls=st==='ok'?'done':st==='diff'?'diff':'';
+    return `<div class="prepline ${cls}" data-n="${r[C.n]}">
+      <div class="prepinfo"><span class="prepref">${r[C.ref]}</span><span class="prepsize">${r[C.taille]}</span><span class="prepqty">×${r[C.qte]}</span></div>
+      <div class="prepacts">
+        <button class="pok ${st==='ok'?'on':''}" data-a="ok" title="Préparé">✓</button>
+        <button class="pdiff ${st==='diff'?'on':''}" data-a="diff" title="Signaler une différence">⚠</button>
+      </div></div>`;
+  }).join('');
+  return `<button class="prepback" id="prepBack">← Toutes les expéditions</button>
+    <div class="prephead"><span class="prepdest">→ ${dest}</span><span class="prepcount">${prep}/${g.length} préparés</span></div>
+    <div class="preplist">${lines}</div>`;
+}
+
+function bindExpedier(root){
+  root.querySelectorAll('.destcard[data-dest]').forEach(b=>b.onclick=()=>{ openDest=b.dataset.dest; renderStore(); window.scrollTo({top:0}); });
+  const bk=root.querySelector('#prepBack'); if(bk) bk.onclick=()=>{ openDest=null; renderStore(); window.scrollTo({top:0}); };
+  root.querySelectorAll('.prepline [data-a]').forEach(btn=>btn.onclick=async()=>{
+    const line=btn.closest('.prepline'); const n=line.dataset.n; const a=btn.dataset.a;
+    reviews[n]= reviews[n]===a? undefined : a; if(!reviews[n]) delete reviews[n];
+    await window.ReviewStore.set(n, reviews[n]); const st=reviews[n];
+    line.classList.remove('done','diff'); if(st==='ok') line.classList.add('done'); else if(st==='diff') line.classList.add('diff');
+    line.querySelectorAll('[data-a]').forEach(x=>x.classList.toggle('on', reviews[n]===x.dataset.a));
+    const g=myOut().filter(r=>r[C.dest]===openDest); const prep=g.filter(r=>reviews[r[C.n]]==='ok').length;
+    const el=document.querySelector('.prepcount'); if(el) el.textContent=`${prep}/${g.length} préparés`;
   });
-}
-function updatePrep(){
-  const rows=myOut(); const done=rows.filter(r=>reviews[r[C.n]]==='ok').length;
-  const note=document.getElementById('prepnote'); if(note) note.innerHTML=`<b>${done}/${rows.length}</b> transferts préparés · coche ✓ Préparé au fur et à mesure`;
-  const fill=document.querySelector('.prepbar-fill'); if(fill) fill.style.width=(rows.length?Math.round(done/rows.length*100):0)+'%';
 }
 
 function recCard(r){
@@ -860,8 +930,8 @@ function renderStore(){
   const switcher = STORES.length>1 ? `<div class="storeswitch"><label>Magasin</label>
     <select id="storeSel">${STORES.map(s=>`<option ${s===STORE?'selected':''}>${s}</option>`).join('')}</select></div>` : '';
   c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, urgent:renderUrgent}[stab]();
-  const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; renderStore(); };
-  if(stab==='expedier') bindPrep(c);
+  const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; openDest=null; renderStore(); };
+  if(stab==='expedier') bindExpedier(c);
   if(stab==='urgent') bindUrgent(c);
   if(PREVIEW){ const ba=document.getElementById('backAdmin'); if(ba) ba.onclick=()=>{PREVIEW=false;MODE='admin';render();}; }
 }
