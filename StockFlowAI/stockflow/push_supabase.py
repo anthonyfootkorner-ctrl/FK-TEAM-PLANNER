@@ -18,7 +18,9 @@ import json
 import os
 from typing import Dict, List, Optional, Tuple
 
-import pandas as pd
+# NB : pandas n'est importe que par build_payload/dry_run (cote moteur). Le
+# chemin "pousser un payload JSON deja calcule" (GitHub Action) ne depend que
+# de `requests`, pour rester leger.
 
 
 def build_payload(result, meta: Dict) -> Tuple[Dict, List[Dict]]:
@@ -114,7 +116,8 @@ def dry_run(result, meta: Dict, out_path) -> Dict:
 
 
 def _num(v):
-    if v is None or (isinstance(v, float) and pd.isna(v)):
+    # NaN vaut != a lui-meme : evite d'importer pandas juste pour isna().
+    if v is None or (isinstance(v, float) and v != v):
         return None
     try:
         f = float(v)
