@@ -195,40 +195,36 @@ body{font-family:var(--font-body);
   letter-spacing:.04em;font-size:12.5px;cursor:pointer}
 .dact button.val{background:var(--green);color:#fff;border-color:var(--green)}
 .dact button.ref{background:var(--red);color:#fff;border-color:var(--red)}
-/* ===== Splash d'intro (effet electrique) ===== */
+/* ===== Splash d'intro (apparition douce et progressive) ===== */
 #splash{position:fixed;inset:0;z-index:100;cursor:pointer;
-  background:radial-gradient(circle at 50% 42%, #17181c 0%, #09090a 72%);
+  background:radial-gradient(circle at 50% 42%, #141519 0%, #0a0a0b 74%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
-  transition:opacity .5s ease}
+  transition:opacity .6s ease}
 #splash.out{opacity:0;pointer-events:none}
-.splash-inner{display:flex;flex-direction:column;align-items:center;gap:22px;animation:splashflick 2.2s both}
-.splash-logo{width:118px;height:148px;animation:glowpulse 1.5s ease-in-out infinite}
+.splash-inner{display:flex;flex-direction:column;align-items:center;gap:22px}
+/* le S se dessine a partir de rien, en fondu (aucun clignotement) */
+.splash-logo{width:118px;height:148px;opacity:0;filter:drop-shadow(0 0 12px rgba(255,107,53,.28));
+  animation:sfade .9s ease .1s forwards}
 .splash-logo svg{width:100%;height:100%;overflow:visible}
-.splash-logo path{stroke-dasharray:220;stroke-dashoffset:220;animation:draw 1.1s .15s ease forwards}
-.splash-logo circle{opacity:0;animation:sparkdot .3s 1.05s forwards}
+.splash-logo path{stroke-dasharray:230;stroke-dashoffset:230;animation:draw 1.3s ease .1s forwards}
+.splash-logo circle{opacity:0;animation:sfade .5s 1.2s ease forwards}
 .splash-words{display:flex;flex-direction:column;align-items:center;gap:1px;
   font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.12em;
   font-size:clamp(28px,7.5vw,46px);line-height:1.04;color:#f4f4f5}
-.splash-words .sw{opacity:0;transform:translateY(8px);animation:sparkin .5s forwards}
+.splash-words .sw{opacity:0;transform:translateY(7px);animation:srise .6s ease forwards}
 .splash-words .sw2{color:var(--orange)}
-.sw1{animation-delay:.75s}.sw2{animation-delay:1.05s}.sw3{animation-delay:1.35s}
-.splash-bar{width:130px;height:3px;border-radius:3px;opacity:.85;
-  background:linear-gradient(90deg,transparent,var(--orange),#fff,var(--orange),transparent);
-  background-size:220% 100%;animation:scan 1.1s linear infinite}
+.sw1{animation-delay:.95s}.sw2{animation-delay:1.15s}.sw3{animation-delay:1.35s}
+.splash-bar{width:130px;height:3px;border-radius:3px;opacity:0;
+  background:linear-gradient(90deg,transparent,var(--orange),transparent);
+  animation:sfade .8s 1.5s ease forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
-@keyframes sparkdot{to{opacity:1}}
-@keyframes glowpulse{0%,100%{filter:drop-shadow(0 0 6px rgba(255,107,53,.45))}
-  50%{filter:drop-shadow(0 0 18px rgba(255,107,53,.95))}}
-@keyframes sparkin{0%{opacity:0;transform:translateY(9px);text-shadow:none}
-  45%{opacity:1;text-shadow:0 0 16px rgba(255,107,53,.95),0 0 5px #fff}
-  100%{opacity:1;transform:translateY(0);text-shadow:0 0 6px rgba(255,107,53,.3)}}
-@keyframes scan{0%{background-position:160% 0}100%{background-position:-60% 0}}
-@keyframes splashflick{0%{opacity:0}5%{opacity:1}7%{opacity:.5}9%{opacity:1}11%{opacity:.75}13%{opacity:1}
-  55%{opacity:1}57%{opacity:.85}59%{opacity:1}100%{opacity:1}}
+@keyframes sfade{from{opacity:0}to{opacity:1}}
+@keyframes srise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){
   .splash-logo path{animation:none;stroke-dashoffset:0}
-  .splash-inner,.splash-words .sw,.splash-logo,.splash-bar{animation:none}
-  .splash-words .sw{opacity:1;transform:none}
+  .splash-logo,.splash-words .sw,.splash-bar{animation:none;opacity:1}
+  .splash-words .sw{transform:none}
+  .splash-logo circle{opacity:1}
 }
 .tb-brand{display:none;align-items:center;gap:8px}
 .tb-brand .tb-logo{width:24px;height:30px;display:grid;place-items:center;flex-shrink:0}
@@ -408,7 +404,7 @@ tr.reviewed-no{opacity:.55}
 // Intro (splash electrique) : disparait apres ~2,4 s, ou au clic/tap
 (function(){ const s=document.getElementById('splash'); if(!s) return;
   const go=()=>{ if(!s.classList.contains('out')){ s.classList.add('out'); setTimeout(()=>{ if(s&&s.parentNode) s.remove(); }, 550); } };
-  s.addEventListener('click', go); setTimeout(go, 2400);
+  s.addEventListener('click', go); setTimeout(go, 2500);
 })();
 
 let DATA = null, C = {}, reviews = {};
