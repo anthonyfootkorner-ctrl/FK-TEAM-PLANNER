@@ -108,6 +108,7 @@ window.AUTO_BOOT = false;               // on démarre l'appli seulement apres l
 
 let RUN=null, USER=null;
 const N2ID = {{}};                       // n (ligne) -> id transfert en base
+let ID2ROW = {{}};                       // id transfert -> ligne (pour enrichir les differences)
 
 // --- Source de donnees : Supabase ---
 window.bootData = async function(){{
@@ -122,11 +123,14 @@ window.bootData = async function(){{
       .eq('run_id',RUN.id).order('score',{{ascending:false}}).range(from,from+999);
     if(!data||!data.length) break; rows=rows.concat(data); if(data.length<1000) break; from+=1000;
   }}
+  ID2ROW = {{}};
   const transfers = rows.map((r,i)=>{{
     N2ID[i+1]=r.id;
-    return [i+1, r.priorite, r.score, r.marque, r.expediteur, r.destinataire, r.reference,
+    const row=[i+1, r.priorite, r.score, r.marque, r.expediteur, r.destinataire, r.reference,
       r.taille, r.quantite, r.cov_dest_avant, r.cov_dest_apres, r.grille_avant, r.grille_apres,
       r.dispo_finale, r.picking_prevu, r.motif];
+    ID2ROW[r.id]=row;
+    return row;
   }});
   // synthese flux calculee cote client
   const fmap={{}};
@@ -173,6 +177,20 @@ window.roleInfo = async function(){{
     }}
   }}catch(e){{ console.warn('roleInfo', e); }}
   return {{mode:'admin', stores:[]}};
+}};
+
+// --- Differences signalees par les magasins (cote admin) ---
+window.DiffStore = {{
+  async list(){{
+    if(!RUN) return [];
+    const {{data, error}} = await sb.from('stockflow_reviews')
+      .select('transfer_id, updated_at').eq('run_id', RUN.id).eq('etat','diff')
+      .order('updated_at', {{ascending:false}});
+    if(error) throw error;
+    return (data||[]).map(dd=>{{ const t=ID2ROW[dd.transfer_id]; if(!t) return null;
+      return {{reference:t[6], taille:t[7], quantite:t[8], expediteur:t[4],
+        destinataire:t[5], marque:t[3], updated_at:dd.updated_at}}; }}).filter(Boolean);
+  }}
 }};
 
 // --- Deconnexion ---

@@ -469,6 +469,7 @@ const TABS = [
   {id:'flux',ico:'🔀',label:'Synthese flux',short:'Flux'},
   {id:'simulation',ico:'📊',label:'Simulation',short:'Simul.'},
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
+  {id:'differences',ico:'🚩',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
 ];
 let tab='transferts';
@@ -712,13 +713,14 @@ function render(){
   const T=TABS.find(t=>t.id===tab);
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
     flux:'Synthèse par flux',simulation:'Simulation avant / après',cas:'Cas non traités',
-    demandes:'Demandes urgentes'}[tab];
+    differences:'Différences signalées',demandes:'Demandes urgentes'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
-    simulation:renderSimulation,cas:renderCas,demandes:renderDemandes}[tab]();
+    simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes}[tab]();
   if(tab==='demandes'){ loadDemandes(); }
+  if(tab==='differences'){ loadDifferences(); }
   if(tab==='transferts'){
     bindReview(c); reviewSummary();
     c.querySelector('#q').oninput=e=>{F.q=e.target.value;const rows=filtered();
@@ -963,6 +965,28 @@ async function loadDemandes(){
     btn.onclick=async()=>{ btn.disabled=true; try{ await window.UrgentStore.decide(el.dataset.req, btn.dataset.dec);}catch(e){} loadDemandes(); }));
 }
 
+// ============================================================
+//  DIFFERENCES signalees par les magasins (cote admin)
+// ============================================================
+function renderDifferences(){
+  return `<div class="note">Différences signalées par les magasins pendant la préparation des expéditions.</div>
+    <div id="diff_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function diffCard(x){
+  return `<div class="tcard"><div class="top">
+      <span class="pill" style="background:var(--amber-bg);color:var(--amber)">⚠ Différence</span>
+      <span class="score" style="font-size:15px">${x.expediteur} → ${x.destinataire}</span></div>
+    <div class="flux">${x.reference} <span style="color:var(--muted);font-weight:600">· ${x.taille}</span></div>
+    <div class="meta"><span><span class="k">Qté prévue</span>${x.quantite}</span>${x.marque?`<span><span class="k">Marque</span>${x.marque}</span>`:''}${x.updated_at?`<span><span class="k">Signalée</span>${String(x.updated_at).slice(0,10)}</span>`:''}</div>
+  </div>`;
+}
+async function loadDifferences(){
+  const box=document.getElementById('diff_list'); if(!box) return;
+  let items=[]; try{ items=await window.DiffStore.list(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  box.innerHTML = (items.length?`<div class="note"><b>${items.length}</b> différence(s) signalée(s)</div>`:'')
+    + (items.length? items.map(diffCard).join('') : `<div class="empty">Aucune différence signalée. 👍</div>`);
+}
+
 // Hooks par defaut (prototype/demo) : role via #store=XXX, demandes en localStorage.
 // La version Supabase remplace roleInfo + UrgentStore.
 window.roleInfo = window.roleInfo || (async ()=>{
@@ -980,6 +1004,16 @@ window.UrgentStore = window.UrgentStore || {
   async listMine(store){ return this._all().filter(r=>r.magasin===store); },
   async listAll(){ return this._all(); },
   async decide(id,dec){ const a=this._all(); const r=a.find(x=>x.id===id); if(r) r.statut=dec; this._save(a); }
+};
+// Differences (demo/prototype) : lues depuis l'etat local des revues (=='diff')
+window.DiffStore = window.DiffStore || {
+  async list(){
+    const out=[];
+    DATA.transfers.forEach(r=>{ if(reviews[r[C.n]]==='diff') out.push({
+      reference:r[C.ref], taille:r[C.taille], quantite:r[C.qte],
+      expediteur:r[C.exp], destinataire:r[C.dest], marque:r[C.marque], updated_at:'' }); });
+    return out;
+  }
 };
 
 document.getElementById('theme').onclick=()=>{
