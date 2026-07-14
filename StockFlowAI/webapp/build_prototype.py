@@ -195,6 +195,41 @@ body{font-family:var(--font-body);
   letter-spacing:.04em;font-size:12.5px;cursor:pointer}
 .dact button.val{background:var(--green);color:#fff;border-color:var(--green)}
 .dact button.ref{background:var(--red);color:#fff;border-color:var(--red)}
+/* ===== Splash d'intro (effet electrique) ===== */
+#splash{position:fixed;inset:0;z-index:100;cursor:pointer;
+  background:radial-gradient(circle at 50% 42%, #17181c 0%, #09090a 72%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  transition:opacity .5s ease}
+#splash.out{opacity:0;pointer-events:none}
+.splash-inner{display:flex;flex-direction:column;align-items:center;gap:22px;animation:splashflick 2.2s both}
+.splash-logo{width:118px;height:148px;animation:glowpulse 1.5s ease-in-out infinite}
+.splash-logo svg{width:100%;height:100%;overflow:visible}
+.splash-logo path{stroke-dasharray:220;stroke-dashoffset:220;animation:draw 1.1s .15s ease forwards}
+.splash-logo circle{opacity:0;animation:sparkdot .3s 1.05s forwards}
+.splash-words{display:flex;flex-direction:column;align-items:center;gap:1px;
+  font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+  font-size:clamp(28px,7.5vw,46px);line-height:1.04;color:#f4f4f5}
+.splash-words .sw{opacity:0;transform:translateY(8px);animation:sparkin .5s forwards}
+.splash-words .sw2{color:var(--orange)}
+.sw1{animation-delay:.75s}.sw2{animation-delay:1.05s}.sw3{animation-delay:1.35s}
+.splash-bar{width:130px;height:3px;border-radius:3px;opacity:.85;
+  background:linear-gradient(90deg,transparent,var(--orange),#fff,var(--orange),transparent);
+  background-size:220% 100%;animation:scan 1.1s linear infinite}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes sparkdot{to{opacity:1}}
+@keyframes glowpulse{0%,100%{filter:drop-shadow(0 0 6px rgba(255,107,53,.45))}
+  50%{filter:drop-shadow(0 0 18px rgba(255,107,53,.95))}}
+@keyframes sparkin{0%{opacity:0;transform:translateY(9px);text-shadow:none}
+  45%{opacity:1;text-shadow:0 0 16px rgba(255,107,53,.95),0 0 5px #fff}
+  100%{opacity:1;transform:translateY(0);text-shadow:0 0 6px rgba(255,107,53,.3)}}
+@keyframes scan{0%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes splashflick{0%{opacity:0}5%{opacity:1}7%{opacity:.5}9%{opacity:1}11%{opacity:.75}13%{opacity:1}
+  55%{opacity:1}57%{opacity:.85}59%{opacity:1}100%{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  .splash-logo path{animation:none;stroke-dashoffset:0}
+  .splash-inner,.splash-words .sw,.splash-logo,.splash-bar{animation:none}
+  .splash-words .sw{opacity:1;transform:none}
+}
 .tb-brand{display:none;align-items:center;gap:8px}
 .tb-brand .tb-logo{width:24px;height:30px;display:grid;place-items:center;flex-shrink:0}
 .tb-brand b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:16px}
@@ -342,6 +377,13 @@ tr.reviewed-no{opacity:.55}
 </style>
 </head>
 <body>
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-logo"><svg viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgS)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div>
+    <div class="splash-words"><span class="sw sw1">ANALYSE.</span><span class="sw sw2">OPTIMISE.</span><span class="sw sw3">GAGNE.</span></div>
+    <div class="splash-bar"></div>
+  </div>
+</div>
 <aside class="sidebar">
   <div class="brand"><div class="logo"><svg class="fklogo" viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgA)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div><div><b>StockFlow AI</b><span>Recommandations</span></div></div>
   <nav class="nav" id="nav"></nav>
@@ -363,6 +405,12 @@ tr.reviewed-no{opacity:.55}
 <script>
 // DATA et la persistance de revue sont fournis par le "shell" (prototype ou
 // Supabase). Par defaut : donnees inlinees + revue en localStorage.
+// Intro (splash electrique) : disparait apres ~2,4 s, ou au clic/tap
+(function(){ const s=document.getElementById('splash'); if(!s) return;
+  const go=()=>{ if(!s.classList.contains('out')){ s.classList.add('out'); setTimeout(()=>{ if(s&&s.parentNode) s.remove(); }, 550); } };
+  s.addEventListener('click', go); setTimeout(go, 2400);
+})();
+
 let DATA = null, C = {}, reviews = {};
 window.bootData = window.bootData || (async () =>
   JSON.parse(document.getElementById('data').textContent));
