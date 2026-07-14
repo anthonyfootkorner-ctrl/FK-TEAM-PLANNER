@@ -159,6 +159,22 @@ body{font-family:var(--font-body);
 .review-pill{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
 .review-pill b{color:var(--text)}
 .review-pill i.w{font-style:normal}
+/* Slogan d'entete (facon FK.RESIZING) : inline sur PC, defilant sur mobile */
+.motto{display:flex;gap:9px;align-items:center;font-family:var(--font-display);text-transform:uppercase;
+  letter-spacing:.09em;font-weight:800;font-size:13.5px;color:var(--text);white-space:nowrap}
+.motto .w2{color:var(--orange)}
+/* Resume de revue (dans l'onglet Transferts) */
+.revsum{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin:2px 2px 14px}
+.revsum b{color:var(--text)}
+/* Cartes de mouvement (vue Par magasin, mobile) */
+.mvlist{display:none;flex-direction:column;gap:8px;padding:10px}
+.mvcard{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.mvtop{display:flex;align-items:baseline;gap:8px}
+.mvstore{font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:14.5px}
+.mvqte{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;white-space:nowrap}
+.mvqte small{color:var(--muted);font-weight:400;font-size:11px}
+.mvmeta{font-size:12.5px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.mvdispo{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
 .tb-brand{display:none;align-items:center;gap:8px}
 .tb-brand .tb-logo{width:24px;height:30px;display:grid;place-items:center;flex-shrink:0}
 .tb-brand b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:16px}
@@ -212,7 +228,7 @@ tr:hover td{background:color-mix(in srgb,var(--orange) 5%,transparent)}
 tr.reviewed-ok{background:color-mix(in srgb,var(--green) 6%,transparent)}
 tr.reviewed-no{opacity:.55}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:0}
 .panel h3{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;
   letter-spacing:.06em;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
 .panel .badge{margin-left:auto;font-size:12px;color:var(--muted)}
@@ -254,6 +270,7 @@ tr.reviewed-no{opacity:.55}
   .tb-brand{display:flex}
   .topbar h1{font-size:15px}
   .topbar .sub{display:none}
+  .motto{display:none}
   .mnav{display:flex;gap:7px;overflow-x:auto;padding:10px 16px;background:var(--card);
     border-bottom:1px solid var(--line);position:sticky;top:57px;z-index:4}
   .content{padding:16px}
@@ -269,9 +286,10 @@ tr.reviewed-no{opacity:.55}
   .botnav button .ico{font-size:19px}
   .botnav button.active{color:var(--orange)}
   .content{padding:14px 13px calc(72px + env(safe-area-inset-bottom))}
-  /* transferts : cartes au lieu du tableau */
+  /* transferts + magasin : cartes au lieu du tableau */
   .tbl-only{display:none}
   .tcards.card-only{display:flex}
+  .mvlist.card-only{display:flex}
   /* KPI en 2 colonnes compactes */
   .kpis{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
   .kpi{padding:13px}
@@ -282,14 +300,24 @@ tr.reviewed-no{opacity:.55}
   .toolbar .chips{flex:1 0 100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
   .toolbar select{flex:1;min-width:0;padding:11px 12px;font-size:14px}
   .toolbar .spacer{display:none}
-  .toolbar .btn{flex:1 0 100%;display:block;width:100%;text-align:center;padding:13px;font-size:14px}
-  /* topbar : titre masque (la nav basse indique la section), resume compact */
+  .toolbar .btn{flex:1 0 100%;display:block;width:100%;text-align:center;padding:13px;font-size:14px;box-sizing:border-box}
+  /* topbar : titre masque (la nav basse indique la section) ; slogan defilant */
   .topbar{padding:11px 15px;gap:10px}
   .topbar h1{display:none}
-  .review-pill{gap:9px;font-size:12px;white-space:nowrap}
-  .review-pill i.w{display:none}
   .theme-btn{padding:7px 10px}
   .theme-btn .tlbl{display:none}
+  .motto{display:block;position:relative;width:120px;height:22px;gap:0;font-size:14px;letter-spacing:.06em}
+  .motto span{position:absolute;right:0;top:0;opacity:0;animation:mottocycle 6s infinite}
+  .motto .w1{animation-delay:0s}
+  .motto .w2{animation-delay:2s}
+  .motto .w3{animation-delay:4s}
+}
+@keyframes mottocycle{
+  0%{opacity:0;transform:translateY(6px)}
+  5%{opacity:1;transform:translateY(0)}
+  29%{opacity:1;transform:translateY(0)}
+  34%{opacity:0;transform:translateY(-6px)}
+  100%{opacity:0;transform:translateY(-6px)}
 }
 </style>
 </head>
@@ -304,7 +332,7 @@ tr.reviewed-no{opacity:.55}
     <div class="tb-brand"><span class="tb-logo"><svg class="fklogo" viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgB)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></span><b id="tbBrand"></b></div>
     <div><h1 id="ttl">Transferts recommandes</h1><div class="sub" id="sub"></div></div>
     <div class="spacer"></div>
-    <div class="review-pill" id="revsum"></div>
+    <div class="motto" aria-hidden="true"><span class="w1">ANALYSE.</span><span class="w2">OPTIMISE.</span><span class="w3">GAGNE.</span></div>
     <button class="theme-btn" id="theme">◐<span class="tlbl"> Thème</span></button>
   </div>
   <nav class="mnav" id="mnav"></nav>
@@ -352,10 +380,11 @@ function nav(){
 }
 
 function reviewSummary(){
+  const el=document.getElementById('revsum'); if(!el) return;   // present uniquement dans l'onglet Transferts
   let ok=0,no=0; Object.values(reviews).forEach(v=>{if(v==='ok')ok++;else if(v==='no')no++;});
   const tot=DATA.transfers.length;
-  document.getElementById('revsum').innerHTML =
-    `<span>✅ <b>${ok}</b><i class="w"> OK</i></span><span>⛔ <b>${no}</b><i class="w"> NON</i></span><span>⏳ <b>${tot-ok-no}</b><i class="w"> à revoir</i></span>`;
+  el.innerHTML =
+    `<span>✅ <b>${ok}</b> validés</span><span>⛔ <b>${no}</b> refusés</span><span>⏳ <b>${tot-ok-no}</b> à revoir</span>`;
 }
 
 function kpiStrip(){
@@ -477,6 +506,7 @@ function renderTransferts(){
     <div class="spacer"></div>
     <button class="btn" id="exp">⬇️ Exporter les validés (CSV)</button>
   </div>
+  <div class="revsum" id="revsum"></div>
   <div class="note">${rows.length} transfert(s) affiché(s) sur ${DATA.transfers.length}. Cliquez ✓ / ✕ pour valider ou refuser — la revue est enregistrée.</div>
   <div id="tlist">${listHTML(rows)}</div>
   ${rows.length>1200?`<div class="note">Tableau limité à 1200 lignes — affinez les filtres pour voir le reste.</div>`:''}`;
@@ -488,12 +518,19 @@ function renderMagasin(){
   const opts=bs.map(b=>`<option ${b===sel?'selected':''}>${b}</option>`).join('');
   const recoit=DATA.transfers.filter(r=>r[C.dest]===sel);
   const envoie=DATA.transfers.filter(r=>r[C.exp]===sel);
-  const mini=(arr,who)=>arr.length? `<div class="tablewrap"><table><thead><tr>
+  const mvCard=(r,who)=>`<div class="mvcard">
+      <div class="mvtop"><span class="mvstore">${who==='Depuis'?r[C.exp]:r[C.dest]}</span>
+        <span class="mvqte">${r[C.qte]} <small>pièces</small></span></div>
+      <div class="mvmeta">${r[C.ref]} · Taille <b>${r[C.taille]}</b> · score ${r[C.score]}</div>
+      ${r[C.dispoB]?`<div class="mvdispo">Dispo finale : ${r[C.dispoB]}</div>`:''}</div>`;
+  const mini=(arr,who)=>arr.length? `<div class="tablewrap tbl-only"><table><thead><tr>
       <th>${who}</th><th>Réf.</th><th>Taille</th><th class="num">Qté</th><th class="num">Score</th><th>Dispo finale</th>
     </tr></thead><tbody>${arr.slice(0,400).map(r=>`<tr>
       <td class="flow">${who==='Depuis'?r[C.exp]:r[C.dest]}</td><td>${r[C.ref]}</td><td>${r[C.taille]}</td>
       <td class="num">${r[C.qte]}</td><td class="num">${r[C.score]}</td><td class="dispo">${r[C.dispoB]}</td>
-    </tr>`).join('')}</tbody></table></div>` : `<div class="empty">Aucun mouvement.</div>`;
+    </tr>`).join('')}</tbody></table></div>
+    <div class="mvlist card-only">${arr.slice(0,400).map(r=>mvCard(r,who)).join('')}</div>`
+    : `<div class="empty">Aucun mouvement.</div>`;
   const pcs=a=>a.reduce((s,r)=>s+(+r[C.qte]||0),0);
   return `<div class="toolbar"><label>Magasin&nbsp;</label>
     <select id="boutiqueM">${opts}</select></div>
@@ -564,7 +601,7 @@ function render(){
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
     simulation:renderSimulation,cas:renderCas}[tab]();
   if(tab==='transferts'){
-    bindReview(c);
+    bindReview(c); reviewSummary();
     c.querySelector('#q').oninput=e=>{F.q=e.target.value;const rows=filtered();
       const list=document.getElementById('tlist');list.innerHTML=listHTML(rows);bindReview(list);
       c.querySelector('.note').textContent=`${rows.length} transfert(s) affiché(s) sur ${DATA.transfers.length}.`;};
