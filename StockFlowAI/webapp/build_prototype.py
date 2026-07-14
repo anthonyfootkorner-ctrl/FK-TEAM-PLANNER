@@ -224,6 +224,18 @@ body{font-family:var(--font-body);
 .prepline.done{border-color:var(--green)}
 .prepline.done .prepref,.prepline.done .prepsize{opacity:.55;text-decoration:line-through}
 .prepline.diff{border-color:var(--amber)}
+/* Validation d'expedition (le magasin confirme la commande preparee) */
+#prepfooter{margin-top:18px}
+.shipbtn{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;text-align:center;
+  background:var(--orange);color:#fff;font-family:var(--font-display);text-transform:uppercase;
+  letter-spacing:.04em;font-weight:700;font-size:15px;padding:16px;border-radius:12px}
+.shipbtn[disabled]{background:var(--card2);color:var(--muted);cursor:not-allowed;border:1px solid var(--line)}
+.shipdone{display:flex;align-items:center;justify-content:center;gap:14px;background:var(--green-bg);
+  color:var(--green);font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  letter-spacing:.04em;padding:15px;border-radius:12px;font-size:15px}
+.shipundo{all:unset;cursor:pointer;color:var(--muted);font-family:var(--font-body);text-transform:none;
+  font-weight:500;font-size:12px;text-decoration:underline}
+.destcard.shipped{border-color:var(--green);opacity:.75}
 /* Selecteur de previsualisation magasin (pied de sidebar admin) */
 .foot-sel{width:100%;box-sizing:border-box;margin-top:10px;padding:8px 10px;border:1px solid #ffffff26;
   border-radius:8px;background:var(--sidebar-hover);color:#fff;font-size:12px;cursor:pointer}
@@ -453,7 +465,7 @@ tr.reviewed-no{opacity:.55}
   s.addEventListener('click', go); setTimeout(go, 2500);
 })();
 
-let DATA = null, C = {}, reviews = {};
+let DATA = null, C = {}, reviews = {}, shipments = {};
 window.bootData = window.bootData || (async () =>
   JSON.parse(document.getElementById('data').textContent));
 window.ReviewStore = window.ReviewStore || {
@@ -784,13 +796,17 @@ function renderExpedier(){
   const totalPrep=rows.filter(r=>reviews[r[C.n]]==='ok').length;
   const cards=dests.map(d=>{
     const pct=Math.round(d.prep/d.len*100);
-    return `<button class="destcard ${d.prep===d.len?'alldone':''}" data-dest="${d.dest}">
+    const shipped=!!shipments[shipKey(STORE,d.dest)];
+    const pill = shipped
+      ? `<span class="pill" style="background:var(--green-bg);color:var(--green)">✓ Expédiée</span>`
+      : `<span class="pill ${pcls(d.bestPrio)}">${d.bestPrio}</span>`;
+    return `<button class="destcard ${shipped?'shipped':(d.prep===d.len?'alldone':'')}" data-dest="${d.dest}">
       <div class="destcard-main">
         <div class="destcard-title">→ ${d.dest}</div>
         <div class="destcard-sub">${d.len} réf · ${d.pieces} pièces</div>
       </div>
       <div class="destcard-side">
-        <span class="pill ${pcls(d.bestPrio)}">${d.bestPrio}</span>
+        ${pill}
         <div class="destprogwrap"><div class="destprog"><span style="width:${pct}%"></span></div>
           <span class="destprog-txt">${d.prep}/${d.len}</span></div>
       </div>
@@ -818,7 +834,26 @@ function renderPrepSheet(dest){
   }).join('');
   return `<button class="prepback" id="prepBack">← Toutes les expéditions</button>
     <div class="prephead"><span class="prepdest">→ ${dest}</span><span class="prepcount">${prep}/${g.length} préparés</span></div>
-    <div class="preplist">${lines}</div>`;
+    <div class="preplist">${lines}</div>
+    <div id="prepfooter">${prepFooterHTML(dest, g)}</div>`;
+}
+
+function shipKey(exp,dest){ return exp+'>'+dest; }
+function prepFooterHTML(dest, g){
+  if(shipments[shipKey(STORE,dest)])
+    return `<div class="shipdone">✓ Expédition validée <button class="shipundo" id="shipUndo">annuler</button></div>`;
+  const prep=g.filter(r=>reviews[r[C.n]]==='ok').length;
+  const all = g.length>0 && prep===g.length;
+  return `<button class="shipbtn" id="shipBtn" ${all?'':'disabled'}>`
+    + (all ? `✓ Valider l'expédition` : `Préparez tout pour valider — ${prep}/${g.length}`) + `</button>`;
+}
+function bindShipFooter(){
+  const btn=document.getElementById('shipBtn');
+  if(btn && !btn.disabled) btn.onclick=async()=>{ await window.ShipStore.validate(STORE, openDest);
+    shipments[shipKey(STORE,openDest)]=true; renderStore(); window.scrollTo({top:0}); };
+  const undo=document.getElementById('shipUndo');
+  if(undo) undo.onclick=async()=>{ await window.ShipStore.unvalidate(STORE, openDest);
+    delete shipments[shipKey(STORE,openDest)]; renderStore(); };
 }
 
 function bindExpedier(root){
@@ -832,7 +867,9 @@ function bindExpedier(root){
     line.querySelectorAll('[data-a]').forEach(x=>x.classList.toggle('on', reviews[n]===x.dataset.a));
     const g=myOut().filter(r=>r[C.dest]===openDest); const prep=g.filter(r=>reviews[r[C.n]]==='ok').length;
     const el=document.querySelector('.prepcount'); if(el) el.textContent=`${prep}/${g.length} préparés`;
+    const footer=document.getElementById('prepfooter'); if(footer){ footer.innerHTML=prepFooterHTML(openDest, g); bindShipFooter(); }
   });
+  bindShipFooter();
 }
 
 function recCard(r){
@@ -1005,6 +1042,13 @@ window.UrgentStore = window.UrgentStore || {
   async listAll(){ return this._all(); },
   async decide(id,dec){ const a=this._all(); const r=a.find(x=>x.id===id); if(r) r.statut=dec; this._save(a); }
 };
+// Expeditions validees (demo/prototype) : localStorage par run
+window.ShipStore = window.ShipStore || {
+  _k(){ return 'sf_ship_'+((DATA&&DATA.meta&&DATA.meta.runid)||'run'); },
+  async load(){ try{ return JSON.parse(localStorage.getItem(this._k())||'{}'); }catch(e){ return {}; } },
+  async validate(exp,dest){ const m=await this.load(); m[exp+'>'+dest]=true; localStorage.setItem(this._k(), JSON.stringify(m)); },
+  async unvalidate(exp,dest){ const m=await this.load(); delete m[exp+'>'+dest]; localStorage.setItem(this._k(), JSON.stringify(m)); }
+};
 // Differences (demo/prototype) : lues depuis l'etat local des revues (=='diff')
 window.DiffStore = window.DiffStore || {
   async list(){
@@ -1030,6 +1074,7 @@ window.boot = async function(){
   document.getElementById('tbBrand').textContent = BRAND;
   document.title = BRAND + ' — Recommandations de transferts';
   reviews = await window.ReviewStore.load();
+  try{ shipments = window.ShipStore ? await window.ShipStore.load() : {}; }catch(e){ shipments={}; }
   const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', stores:[]});
   MODE = role.mode;
   STORES = role.stores || (role.store ? [role.store] : []);

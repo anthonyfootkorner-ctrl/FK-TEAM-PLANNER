@@ -193,6 +193,29 @@ window.DiffStore = {{
   }}
 }};
 
+// --- Expeditions validees par les magasins ---
+window.ShipStore = {{
+  async load(){{
+    if(!RUN) return {{}};
+    const {{data, error}} = await sb.from('stockflow_shipments')
+      .select('expediteur,destinataire').eq('run_id', RUN.id);
+    if(error) throw error;
+    const m={{}}; (data||[]).forEach(r=>{{ m[r.expediteur+'>'+r.destinataire]=true; }}); return m;
+  }},
+  async validate(exp,dest){{
+    const {{error}} = await sb.from('stockflow_shipments').upsert(
+      {{run_id:RUN.id, expediteur:exp, destinataire:dest, statut:'validee',
+        validated_by:USER.id, validated_at:new Date().toISOString()}},
+      {{onConflict:'run_id,expediteur,destinataire'}});
+    if(error) throw error;
+  }},
+  async unvalidate(exp,dest){{
+    const {{error}} = await sb.from('stockflow_shipments').delete()
+      .match({{run_id:RUN.id, expediteur:exp, destinataire:dest}});
+    if(error) throw error;
+  }}
+}};
+
 // --- Deconnexion ---
 window.doLogout = async function(){{
   try{{ await sb.auth.signOut(); }}catch(e){{}}
