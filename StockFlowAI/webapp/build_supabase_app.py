@@ -162,10 +162,21 @@ window.ReviewStore = {{
 }};
 
 // --- Role : magasin (login mappe) vs admin ---
+// Resilient : si la table n'existe pas / erreur reseau, on ne bloque pas la
+// connexion, on retombe simplement en mode admin.
 window.roleInfo = async function(){{
-  const {{data}} = await sb.from('stockflow_user_stores').select('magasin').eq('user_id', USER.id).maybeSingle();
-  if(data && data.magasin) return {{mode:'store', store:data.magasin}};
+  try{{
+    const {{data, error}} = await sb.from('stockflow_user_stores')
+      .select('magasin').eq('user_id', USER.id).maybeSingle();
+    if(!error && data && data.magasin) return {{mode:'store', store:data.magasin}};
+  }}catch(e){{ console.warn('roleInfo', e); }}
   return {{mode:'admin', store:null}};
+}};
+
+// --- Deconnexion ---
+window.doLogout = async function(){{
+  try{{ await sb.auth.signOut(); }}catch(e){{}}
+  location.reload();
 }};
 
 // --- Demandes urgentes (magasin -> validation admin) ---

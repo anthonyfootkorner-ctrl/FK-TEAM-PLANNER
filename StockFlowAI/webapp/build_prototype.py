@@ -203,11 +203,15 @@ body{font-family:var(--font-body);
 #splash.out{opacity:0;pointer-events:none}
 .splash-inner{display:flex;flex-direction:column;align-items:center;gap:22px}
 /* le S se dessine a partir de rien, en fondu (aucun clignotement) */
-.splash-logo{width:118px;height:148px;opacity:0;filter:drop-shadow(0 0 12px rgba(255,107,53,.28));
-  animation:sfade .9s ease .1s forwards}
+.splash-logo{width:118px;height:148px;filter:drop-shadow(0 0 10px rgba(255,107,53,.30))}
 .splash-logo svg{width:100%;height:100%;overflow:visible}
-.splash-logo path{stroke-dasharray:230;stroke-dashoffset:230;animation:draw 1.3s ease .1s forwards}
-.splash-logo circle{opacity:0;animation:sfade .5s 1.2s ease forwards}
+/* le S part invisible et se trace progressivement */
+.splash-logo g path{stroke-dasharray:230;stroke-dashoffset:230;animation:draw 1.35s ease .1s forwards}
+/* une etincelle blanche/orange parcourt le trace (effet electricite) */
+.splash-logo .spark{stroke-dasharray:5 100;stroke-dashoffset:105;opacity:0;
+  filter:drop-shadow(0 0 5px #ffd0a0) drop-shadow(0 0 9px rgba(255,107,53,.75));
+  animation:spark 1.45s ease-out .1s forwards}
+.splash-logo circle{opacity:0;animation:sfade .5s 1.25s ease forwards}
 .splash-words{display:flex;flex-direction:column;align-items:center;gap:1px;
   font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.12em;
   font-size:clamp(28px,7.5vw,46px);line-height:1.04;color:#f4f4f5}
@@ -218,11 +222,13 @@ body{font-family:var(--font-body);
   background:linear-gradient(90deg,transparent,var(--orange),transparent);
   animation:sfade .8s 1.5s ease forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
+@keyframes spark{0%{stroke-dashoffset:105;opacity:0}12%{opacity:1}86%{opacity:1}100%{stroke-dashoffset:5;opacity:0}}
 @keyframes sfade{from{opacity:0}to{opacity:1}}
 @keyframes srise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){
-  .splash-logo path{animation:none;stroke-dashoffset:0}
-  .splash-logo,.splash-words .sw,.splash-bar{animation:none;opacity:1}
+  .splash-logo g path{animation:none;stroke-dashoffset:0}
+  .splash-logo .spark{display:none}
+  .splash-inner,.splash-words .sw,.splash-bar{animation:none;opacity:1}
   .splash-words .sw{transform:none}
   .splash-logo circle{opacity:1}
 }
@@ -375,7 +381,7 @@ tr.reviewed-no{opacity:.55}
 <body>
 <div id="splash">
   <div class="splash-inner">
-    <div class="splash-logo"><svg viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgS)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div>
+    <div class="splash-logo"><svg viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgS)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><path class="spark" pathLength="100" d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke="#fff" stroke-width="5.5" stroke-linecap="round" fill="none"/><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div>
     <div class="splash-words"><span class="sw sw1">ANALYSE.</span><span class="sw sw2">OPTIMISE.</span><span class="sw sw3">GAGNE.</span></div>
     <div class="splash-bar"></div>
   </div>
@@ -392,6 +398,7 @@ tr.reviewed-no{opacity:.55}
     <div class="spacer"></div>
     <div class="motto" aria-hidden="true"><span class="w1">ANALYSE.</span><span class="w2">OPTIMISE.</span><span class="w3">GAGNE.</span></div>
     <button class="theme-btn" id="theme">◐<span class="tlbl"> Thème</span></button>
+    <button class="theme-btn" id="logout" title="Se déconnecter" style="display:none">⏻<span class="tlbl"> Quitter</span></button>
   </div>
   <nav class="mnav" id="mnav"></nav>
   <div class="content" id="content"></div>
@@ -912,6 +919,9 @@ window.boot = async function(){
   const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', store:null});
   MODE = role.mode; STORE = role.store;
   if(MODE==='store'){ PREVIEW=false; renderStore(); } else { render(); }
+  // bouton de deconnexion : visible seulement si un mecanisme est fourni (Supabase)
+  if(window.doLogout){ const lo=document.getElementById('logout');
+    if(lo){ lo.style.display=''; lo.onclick=window.doLogout; } }
 };
 if(window.AUTO_BOOT !== false) window.boot();
 </script>
