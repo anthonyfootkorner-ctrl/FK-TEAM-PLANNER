@@ -483,6 +483,7 @@ const TABS = [
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
   {id:'differences',ico:'🚩',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
+  {id:'generer',ico:'⚙️',label:'Générer',short:'Générer'},
 ];
 let tab='transferts';
 // Role & vue magasin (STORES = magasins accessibles ; STORE = celui affiche)
@@ -725,14 +726,17 @@ function render(){
   const T=TABS.find(t=>t.id===tab);
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
     flux:'Synthèse par flux',simulation:'Simulation avant / après',cas:'Cas non traités',
-    differences:'Différences signalées',demandes:'Demandes urgentes'}[tab];
+    differences:'Différences signalées',demandes:'Demandes urgentes',
+    generer:'Générer une mise à jour'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
-    simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes}[tab]();
+    simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes,
+    generer:renderGenerer}[tab]();
   if(tab==='demandes'){ loadDemandes(); }
   if(tab==='differences'){ loadDifferences(); }
+  if(tab==='generer'){ bindGenerer(c); }
   if(tab==='transferts'){
     bindReview(c); reviewSummary();
     c.querySelector('#q').oninput=e=>{F.q=e.target.value;const rows=filtered();
@@ -1022,6 +1026,42 @@ async function loadDifferences(){
   let items=[]; try{ items=await window.DiffStore.list(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
   box.innerHTML = (items.length?`<div class="note"><b>${items.length}</b> différence(s) signalée(s)</div>`:'')
     + (items.length? items.map(diffCard).join('') : `<div class="empty">Aucune différence signalée. 👍</div>`);
+}
+
+// ============================================================
+//  GENERER une mise a jour (upload fichiers -> moteur -> Supabase)
+// ============================================================
+function renderGenerer(){
+  return `<div class="note">Mets à jour les transferts en important les nouveaux fichiers Fastmag. Le calcul se lance puis remplace l'analyse affichée.</div>
+    <div class="panel" style="padding:18px;max-width:560px">
+      <div class="ufield"><label>Stock — obligatoire</label><input type="file" id="g_stock" accept=".csv,.xlsx"></div>
+      <div class="ufield"><label>Ventes — obligatoire</label><input type="file" id="g_ventes" accept=".csv,.xlsx"></div>
+      <div class="ufield"><label>Réassort Picking — optionnel</label><input type="file" id="g_reassort" accept=".xlsx,.csv"></div>
+      <div class="ufield"><label>Objectifs — optionnel</label><input type="file" id="g_objectif" accept=".csv,.xlsx"></div>
+      <div class="ufield"><label>Cible de couverture (jours)</label><input type="number" id="g_cible" value="14" min="1" style="max-width:120px"></div>
+      <button class="btn" id="g_run" style="margin-top:6px">⚙️ Générer les transferts</button>
+      <div id="g_status" style="margin-top:14px;font-size:13px;color:var(--muted);min-height:18px"></div>
+    </div>`;
+}
+function bindGenerer(root){
+  const st=root.querySelector('#g_status');
+  root.querySelector('#g_run').onclick=async()=>{
+    const stock=root.querySelector('#g_stock').files[0];
+    const ventes=root.querySelector('#g_ventes').files[0];
+    if(!stock||!ventes){ st.style.color='var(--red)'; st.textContent='Ajoute au moins le fichier Stock et le fichier Ventes.'; return; }
+    if(!window.doGenerate){ st.style.color='var(--amber)'; st.textContent="La génération est disponible sur le site hébergé (backend requis)."; return; }
+    const cible=parseInt(root.querySelector('#g_cible').value)||14;
+    const btn=root.querySelector('#g_run'); btn.disabled=true;
+    st.style.color='var(--muted)'; st.textContent='⏳ Calcul en cours… (30 s à 1 min — ne ferme pas la page)';
+    try{
+      const res=await window.doGenerate({stock, ventes,
+        reassort:root.querySelector('#g_reassort').files[0],
+        objectif:root.querySelector('#g_objectif').files[0], cible});
+      st.style.color='var(--green)';
+      st.textContent=`✅ ${res.nb_transferts} transferts générés${res.perimetre?' ('+res.perimetre+')':''}. Rechargement…`;
+      setTimeout(()=>location.reload(), 1500);
+    }catch(e){ st.style.color='var(--red)'; st.textContent='Erreur : '+(e.message||e); btn.disabled=false; }
+  };
 }
 
 // Hooks par defaut (prototype/demo) : role via #store=XXX, demandes en localStorage.

@@ -25,6 +25,9 @@ ROOT = Path(__file__).resolve().parent
 # Config publique (identique a index.html du FK Team Planner)
 SUPABASE_URL = "https://yeusqubxgxchigssobma.supabase.co"
 SUPABASE_KEY = "sb_publishable_FkwKSPbHO3CPHdRvt35img__s3HSY5R"
+# URL du backend de generation (bouton "Generer"). Vide = bouton inactif.
+# A renseigner apres deploiement du service (Render/Railway).
+BACKEND_URL = ""
 
 
 def _extract():
@@ -106,7 +109,10 @@ const SUPABASE_KEY="{SUPABASE_KEY}";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 window.AUTO_BOOT = false;               // on démarre l'appli seulement apres login
 
-let RUN=null, USER=null;
+// URL du backend de generation (Render/Railway). A renseigner apres deploiement.
+const BACKEND_URL = "{BACKEND_URL}";
+
+let RUN=null, USER=null, ACCESS=null;
 const N2ID = {{}};                       // n (ligne) -> id transfert en base
 let ID2ROW = {{}};                       // id transfert -> ligne (pour enrichir les differences)
 
@@ -244,9 +250,25 @@ const COLS=["n","prio","score","marque","exp","dest","ref","taille","qte","covA"
 // --- Authentification ---
 async function enter(session){{
   USER=session.user;
+  ACCESS=session.access_token;
   document.getElementById('auth').classList.add('hidden');
   await window.boot();
 }}
+
+// --- Generation (upload -> backend -> Supabase) ---
+window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}}){{
+  if(!BACKEND_URL) throw new Error("Backend non configure (BACKEND_URL vide).");
+  const fd = new FormData();
+  fd.append('stock', stock);
+  fd.append('ventes', ventes);
+  if(reassort) fd.append('reassort', reassort);
+  if(objectif) fd.append('objectif', objectif);
+  fd.append('cible', String(cible));
+  const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{
+    method:'POST', headers:{{'Authorization':'Bearer '+ACCESS}}, body: fd }});
+  if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
+  return await r.json();
+}};
 document.getElementById('signin').onclick=async()=>{{
   const err=document.getElementById('autherr'); err.textContent='';
   const email=document.getElementById('email').value.trim();
