@@ -254,7 +254,7 @@ async function enter(session){{
   await window.boot();
 }}
 
-// --- Generation (upload -> backend -> Supabase) ---
+// --- Generation : envoi au relais -> calcul sur GitHub -> attente du nouveau run ---
 window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}}){{
   if(!BACKEND_URL) throw new Error("Backend non configure (BACKEND_URL vide).");
   const fd = new FormData();
@@ -263,10 +263,22 @@ window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}})
   if(reassort) fd.append('reassort', reassort);
   if(objectif) fd.append('objectif', objectif);
   fd.append('cible', String(cible));
+  const baseId = RUN ? RUN.id : null;
   const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{
     method:'POST', headers:{{'Authorization':'Bearer '+ACCESS}}, body: fd }});
   if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
-  return await r.json();
+  // le calcul tourne sur GitHub (~1-2 min) : on attend l'apparition d'un run plus recent
+  if(window.__onGenProgress) window.__onGenProgress("Fichiers envoyés — calcul en cours sur GitHub…");
+  for(let i=0; i<42; i++){{               // ~7 min max (10 s x 42)
+    await new Promise(res=>setTimeout(res, 10000));
+    const {{data}} = await sb.from('stockflow_runs').select('id,nb_transferts,perimetre')
+      .order('created_at', {{ascending:false}}).limit(1);
+    const latest = data && data[0];
+    if(latest && latest.id !== baseId)
+      return {{nb_transferts: latest.nb_transferts, perimetre: latest.perimetre}};
+    if(window.__onGenProgress) window.__onGenProgress(`Calcul en cours sur GitHub… (${{(i+1)*10}} s)`);
+  }}
+  throw new Error("Toujours en cours — recharge la page dans 1-2 min pour voir le nouveau run.");
 }};
 document.getElementById('signin').onclick=async()=>{{
   const err=document.getElementById('autherr'); err.textContent='';

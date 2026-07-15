@@ -1,92 +1,98 @@
-"""Backend StockFlow.AI — genere les transferts depuis des fichiers uploades.
+"""Backend StockFlow.AI — RELAIS leger (upload -> Supabase Storage -> Action GitHub).
 
-Recoit les exports Fastmag (stock + ventes, + reassort/objectif optionnels),
-lance le moteur, et pousse le run dans Supabase. Concu pour un hebergement
-gratuit (Render / Railway / Fly).
+Le moteur (pandas) est trop gourmand pour un hebergement gratuit (512 Mo).
+Ce service ne fait donc PAS le calcul : il se contente de
+ 1) verifier que l'appelant est bien l'admin (jeton Supabase) ;
+ 2) deposer les fichiers dans un bucket prive Supabase Storage ;
+ 3) declencher l'Action GitHub `stockflow-generate` qui, elle, fait tourner
+    le moteur sur les serveurs GitHub (7 Go) et pousse le run dans Supabase.
 
-Securite :
- - l'appelant doit fournir le jeton de session Supabase (Authorization: Bearer),
-   qui est verifie aupres de Supabase ;
- - seul un compte ADMIN (non rattache a un magasin) peut generer.
+Aucune dependance lourde -> tient largement dans 512 Mo.
 
-Variables d'environnement requises (cote serveur, jamais dans le navigateur) :
+Variables d'environnement (cote serveur uniquement) :
    SUPABASE_URL           https://xxxx.supabase.co
-   SUPABASE_SERVICE_KEY   cle secrete (service_role / sb_secret_...)
-   SUPABASE_ANON_KEY      cle publishable (pour verifier les jetons)
-   ALLOW_ORIGINS          origines autorisees (CORS), ex. https://xxx.netlify.app
+   SUPABASE_SERVICE_KEY   cle secrete Supabase (sb_secret_...)
+   SUPABASE_ANON_KEY      cle publishable (verification des jetons)
+   GH_TOKEN               jeton GitHub (droit d'ecriture sur le depot)
+   GH_REPO                owner/repo, ex. anthonyfootkorner-ctrl/FK-TEAM-PLANNER
+   BUCKET                 (optionnel) nom du bucket, defaut "stockflow-uploads"
 """
 
 from __future__ import annotations
 
 import datetime
-import io
 import os
-import sys
 
-# rend le paquet `stockflow` importable quel que soit le repertoire de lancement
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import pandas as pd  # noqa: E402
-import requests  # noqa: E402
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-
-from stockflow.app_service import build_params, run_analysis  # noqa: E402
-from stockflow.push_supabase import push  # noqa: E402
+import requests
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
-ALLOW_ORIGINS = [o.strip() for o in os.environ.get("ALLOW_ORIGINS", "*").split(",") if o.strip()]
+GH_TOKEN = os.environ.get("GH_TOKEN", "")
+GH_REPO = os.environ.get("GH_REPO", "")
+BUCKET = os.environ.get("BUCKET", "stockflow-uploads")
 
-app = FastAPI(title="StockFlow.AI backend")
-# CORS : on autorise toutes les origines. Ce n'est PAS une faille : l'endpoint
-# est protege par le jeton admin Supabase (verifie cote serveur), pas par CORS.
-# On evite ainsi tout "Failed to fetch" lie a une origine mal renseignee.
-# (pas de cookies/credentials -> "*" est accepte par les navigateurs)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="StockFlow.AI relay")
+# CORS ouvert : la securite vient du jeton admin, pas de CORS.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
-@app.get("/")
-def root():
-    return {"service": "stockflow-backend", "endpoints": ["/health", "/generer"]}
+def _svc():
+    return {"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}"}
 
 
-def _verify_admin(access_token: str) -> str:
-    """Verifie le jeton Supabase et exige un compte admin (sans magasin)."""
-    if not access_token:
+def _verify_admin(token: str) -> str:
+    if not token:
         raise HTTPException(401, "Non authentifie (jeton manquant).")
-    if not SUPABASE_URL or not SERVICE_KEY:
+    if not (SUPABASE_URL and SERVICE_KEY):
         raise HTTPException(500, "Backend mal configure (SUPABASE_URL / SUPABASE_SERVICE_KEY).")
-    # 1) le jeton correspond-il a un utilisateur valide ?
     r = requests.get(
         f"{SUPABASE_URL}/auth/v1/user",
-        headers={"apikey": ANON_KEY or SERVICE_KEY, "Authorization": f"Bearer {access_token}"},
+        headers={"apikey": ANON_KEY or SERVICE_KEY, "Authorization": f"Bearer {token}"},
         timeout=15,
     )
     if r.status_code != 200:
         raise HTTPException(401, "Session invalide ou expiree.")
     uid = r.json().get("id")
-    # 2) admin = non rattache a un magasin
     rr = requests.get(
         f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
         params={"user_id": f"eq.{uid}", "select": "magasin"},
-        headers={"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}"},
-        timeout=15,
+        headers=_svc(), timeout=15,
     )
     if rr.status_code == 200 and rr.json():
         raise HTTPException(403, "Reserve a l'administrateur.")
     return uid
 
 
+def _ensure_bucket():
+    # cree le bucket prive s'il n'existe pas (idempotent ; ignore l'erreur "existe deja")
+    requests.post(
+        f"{SUPABASE_URL}/storage/v1/bucket",
+        headers={**_svc(), "Content-Type": "application/json"},
+        json={"name": BUCKET, "public": False}, timeout=15,
+    )
+
+
+def _upload(path: str, data: bytes, content_type: str | None):
+    r = requests.post(
+        f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{path}",
+        headers={**_svc(), "Content-Type": content_type or "application/octet-stream", "x-upsert": "true"},
+        data=data, timeout=120,
+    )
+    if r.status_code not in (200, 201):
+        raise HTTPException(502, f"Depot du fichier echoue ({r.status_code}) : {r.text[:200]}")
+
+
 @app.get("/health")
 def health():
-    return {"ok": True, "configured": bool(SUPABASE_URL and SERVICE_KEY)}
+    return {"ok": True, "configured": bool(SUPABASE_URL and SERVICE_KEY and GH_TOKEN and GH_REPO)}
+
+
+@app.get("/")
+def root():
+    return {"service": "stockflow-relay", "endpoints": ["/health", "/generer"]}
 
 
 @app.post("/generer")
@@ -100,40 +106,31 @@ async def generer(
 ):
     token = (authorization or "").replace("Bearer ", "").strip()
     _verify_admin(token)
+    if not (GH_TOKEN and GH_REPO):
+        raise HTTPException(500, "Backend mal configure (GH_TOKEN / GH_REPO).")
 
-    stock_b = io.BytesIO(await stock.read())
-    ventes_b = io.BytesIO(await ventes.read())
-    reassort_b = io.BytesIO(await reassort.read()) if reassort is not None else None
-    objectif_b = io.BytesIO(await objectif.read()) if objectif is not None else None
+    _ensure_bucket()
+    prefix = "runs/" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    payload = {"cible": int(cible), "bucket": BUCKET,
+               "reassort": None, "objectif": None}
 
-    params = build_params(cible=int(cible))
-    today = pd.Timestamp(datetime.date.today())
+    _upload(f"{prefix}/stock", await stock.read(), stock.content_type)
+    payload["stock"] = f"{prefix}/stock"
+    _upload(f"{prefix}/ventes", await ventes.read(), ventes.content_type)
+    payload["ventes"] = f"{prefix}/ventes"
+    if reassort is not None:
+        _upload(f"{prefix}/reassort", await reassort.read(), reassort.content_type)
+        payload["reassort"] = f"{prefix}/reassort"
+    if objectif is not None:
+        _upload(f"{prefix}/objectif", await objectif.read(), objectif.content_type)
+        payload["objectif"] = f"{prefix}/objectif"
 
-    try:
-        result, datasets = run_analysis(
-            stock=stock_b, ventes=ventes_b, reassort=reassort_b, objectif=objectif_b,
-            params=params, today=today,
-        )
-    except Exception as exc:  # erreurs de lecture / format
-        raise HTTPException(400, f"Lecture des fichiers impossible : {exc}")
+    gh = requests.post(
+        f"https://api.github.com/repos/{GH_REPO}/dispatches",
+        headers={"Authorization": f"Bearer {GH_TOKEN}", "Accept": "application/vnd.github+json"},
+        json={"event_type": "stockflow-generate", "client_payload": payload}, timeout=20,
+    )
+    if gh.status_code != 204:
+        raise HTTPException(502, f"Declenchement GitHub echoue ({gh.status_code}) : {gh.text[:200]}")
 
-    if getattr(result, "blocked", False):
-        raise HTTPException(422, f"Analyse bloquee : {getattr(result, 'block_reason', 'donnees invalides')}")
-
-    try:
-        n_stores = int(datasets["magasins"]["code_magasin"].nunique())
-    except Exception:
-        n_stores = 0
-
-    now = datetime.datetime.now()
-    meta = {
-        "runid": f"web_{now.strftime('%Y%m%d_%H%M')}",
-        "date_execution": str(today.date()),
-        "perimetre": f"{n_stores} magasins" if n_stores else None,
-        "cible": int(cible),
-        "parametres": params.snapshot(),
-    }
-
-    run_id = push(result, meta, url=SUPABASE_URL, service_key=SERVICE_KEY)
-    nb = 0 if result.transfers is None else int(len(result.transfers))
-    return {"run_id": run_id, "nb_transferts": nb, "perimetre": meta["perimetre"], "cible": int(cible)}
+    return {"status": "lance", "cible": int(cible)}

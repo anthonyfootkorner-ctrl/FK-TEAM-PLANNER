@@ -1052,7 +1052,8 @@ function bindGenerer(root){
     if(!window.doGenerate){ st.style.color='var(--amber)'; st.textContent="La génération est disponible sur le site hébergé (backend requis)."; return; }
     const cible=parseInt(root.querySelector('#g_cible').value)||14;
     const btn=root.querySelector('#g_run'); btn.disabled=true;
-    st.style.color='var(--muted)'; st.textContent='⏳ Calcul en cours… (30 s à 1 min — ne ferme pas la page)';
+    st.style.color='var(--muted)'; st.textContent='⏳ Envoi des fichiers…';
+    window.__onGenProgress=(m)=>{ st.style.color='var(--muted)'; st.textContent='⏳ '+m+' — ne ferme pas la page'; };
     try{
       const res=await window.doGenerate({stock, ventes,
         reassort:root.querySelector('#g_reassort').files[0],

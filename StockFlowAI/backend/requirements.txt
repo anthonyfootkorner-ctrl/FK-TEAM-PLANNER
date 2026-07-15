@@ -2,6 +2,3 @@ fastapi
 uvicorn[standard]
 python-multipart
 requests
-pandas
-numpy
-openpyxl
