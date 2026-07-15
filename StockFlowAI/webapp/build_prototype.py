@@ -722,7 +722,7 @@ function renderFlux(){
 }
 
 function renderSimulation(){
-  const labels={stock_total:'Stock total',valeur_stock:'Valeur du stock (€)',stock_dormant:'Stock dormant',
+  const labels={stock_total:'Stock total',valeur_stock:'Valeur du stock — prix d\'achat (€)',stock_dormant:'Stock dormant',
     ruptures:'Ruptures',refs_sous_7j:'Réf. sous 7 j',refs_sous_14j:'Réf. sous 14 j',
     couverture_moyenne:'Couverture moyenne (j)',grilles_coherentes:'Grilles cohérentes',
     tailles_coeur_dispo:'Tailles cœur disponibles',score_sante_reseau:'Score santé réseau',
