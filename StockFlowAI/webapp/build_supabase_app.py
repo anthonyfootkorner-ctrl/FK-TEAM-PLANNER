@@ -25,6 +25,8 @@ ROOT = Path(__file__).resolve().parent
 # Config publique (identique a index.html du FK Team Planner)
 SUPABASE_URL = "https://yeusqubxgxchigssobma.supabase.co"
 SUPABASE_KEY = "sb_publishable_FkwKSPbHO3CPHdRvt35img__s3HSY5R"
+# URL du backend de generation (bouton "Generer"). Vide = bouton inactif.
+BACKEND_URL = "https://fk-team-planner.onrender.com"
 
 
 def _extract():
@@ -41,34 +43,61 @@ def _extract():
 AUTH_CSS = """
 <style>
 .auth-overlay{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;
-  align-items:center;justify-content:center}
+  flex-direction:column;overflow:auto}
+.auth-top{display:flex;align-items:center;gap:10px;padding:22px 26px;flex-shrink:0}
+.auth-top .logo{width:26px;height:32px;display:grid;place-items:center}
+.auth-top b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.06em;font-size:17px}
+.auth-body{flex:1;display:flex;align-items:center;justify-content:center;gap:64px;
+  padding:12px 26px 54px;flex-wrap:wrap}
+.auth-hero{max-width:460px}
+.hero-head{font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+  font-size:clamp(42px,8.5vw,78px);line-height:.96;letter-spacing:-.015em}
+.hero-head .hl{color:var(--orange)}
+.hero-sub{color:var(--muted);font-size:15px;margin-top:20px;max-width:370px;line-height:1.5}
 .auth-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
-  padding:34px 30px;width:340px;box-shadow:var(--shadow)}
-.auth-card .brandline{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-.auth-card .logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:18px;
-  background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
-.auth-card b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:18px}
+  padding:32px 30px;width:340px;max-width:100%;box-shadow:var(--shadow)}
+.auth-card .intro{font-size:12.5px;color:var(--muted);margin-bottom:4px}
 .auth-card label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;
-  letter-spacing:.08em;margin:12px 0 5px}
-.auth-card input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
-  background:var(--bg);color:var(--text);font-size:14px}
-.auth-card button{width:100%;margin-top:18px;padding:12px;border:none;border-radius:9px;cursor:pointer;
+  letter-spacing:.08em;margin:14px 0 5px}
+.auth-card input{width:100%;padding:12px 12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--bg);color:var(--text);font-size:15px}
+.auth-card button{width:100%;margin-top:20px;padding:13px;border:none;border-radius:9px;cursor:pointer;
   background:var(--orange);color:#fff;font-family:var(--font-display);text-transform:uppercase;
   letter-spacing:.05em;font-weight:700;font-size:14px}
 .auth-err{color:var(--red);font-size:12.5px;margin-top:12px;min-height:16px}
 .hidden{display:none!important}
+@media(max-width:820px){
+  .auth-body{gap:30px;padding:8px 22px 40px}
+  .auth-hero{max-width:100%;flex:1 0 100%}
+  .hero-sub{max-width:100%}
+}
 </style>
 """
 
-AUTH_MARKUP = """
+LOGO_SVG = ('<svg class="fklogo" viewBox="0 0 64 80" fill="none" aria-hidden="true">'
+  '<defs><linearGradient id="fkgC" x1="0" y1="0" x2="0" y2="1">'
+  '<stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs>'
+  '<g stroke="url(#fkgC)" stroke-linecap="round" fill="none">'
+  '<path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/>'
+  '<path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/>'
+  '<path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/>'
+  '</g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg>')
+
+AUTH_MARKUP = f"""
 <div id="auth" class="auth-overlay">
-  <div class="auth-card">
-    <div class="brandline"><span class="logo">📦</span><b>STOCKFLOW.AI</b></div>
-    <div style="font-size:12.5px;color:var(--muted)">Connectez-vous pour consulter et valider les recommandations.</div>
-    <label>E-mail</label><input id="email" type="email" autocomplete="username"/>
-    <label>Mot de passe</label><input id="pwd" type="password" autocomplete="current-password"/>
-    <button id="signin">Se connecter</button>
-    <div class="auth-err" id="autherr"></div>
+  <div class="auth-top"><span class="logo">{LOGO_SVG}</span><b>stockflow.ai</b></div>
+  <div class="auth-body">
+    <div class="auth-hero">
+      <h2 class="hero-head">ANALYSE.<br><span class="hl">OPTIMISE.</span><br>GAGNE.</h2>
+      <p class="hero-sub">La répartition intelligente des stocks entre tes magasins : moins de ruptures, moins de dormant, les bonnes tailles au bon endroit.</p>
+    </div>
+    <div class="auth-card">
+      <div class="intro">Connectez-vous pour consulter et valider les recommandations.</div>
+      <label>E-mail</label><input id="email" type="email" autocomplete="username"/>
+      <label>Mot de passe</label><input id="pwd" type="password" autocomplete="current-password"/>
+      <button id="signin">Se connecter</button>
+      <div class="auth-err" id="autherr"></div>
+    </div>
   </div>
 </div>
 """
@@ -79,8 +108,12 @@ const SUPABASE_KEY="{SUPABASE_KEY}";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 window.AUTO_BOOT = false;               // on démarre l'appli seulement apres login
 
-let RUN=null, USER=null;
+// URL du backend de generation (Render/Railway). A renseigner apres deploiement.
+const BACKEND_URL = "{BACKEND_URL}";
+
+let RUN=null, USER=null, ACCESS=null;
 const N2ID = {{}};                       // n (ligne) -> id transfert en base
+let ID2ROW = {{}};                       // id transfert -> ligne (pour enrichir les differences)
 
 // --- Source de donnees : Supabase ---
 window.bootData = async function(){{
@@ -95,11 +128,14 @@ window.bootData = async function(){{
       .eq('run_id',RUN.id).order('score',{{ascending:false}}).range(from,from+999);
     if(!data||!data.length) break; rows=rows.concat(data); if(data.length<1000) break; from+=1000;
   }}
+  ID2ROW = {{}};
   const transfers = rows.map((r,i)=>{{
     N2ID[i+1]=r.id;
-    return [i+1, r.priorite, r.score, r.marque, r.expediteur, r.destinataire, r.reference,
+    const row=[i+1, r.priorite, r.score, r.marque, r.expediteur, r.destinataire, r.reference,
       r.taille, r.quantite, r.cov_dest_avant, r.cov_dest_apres, r.grille_avant, r.grille_apres,
       r.dispo_finale, r.picking_prevu, r.motif];
+    ID2ROW[r.id]=row;
+    return row;
   }});
   // synthese flux calculee cote client
   const fmap={{}};
@@ -134,6 +170,78 @@ window.ReviewStore = {{
   }}
 }};
 
+// --- Role : magasin (login mappe) vs admin ---
+// Resilient : si la table n'existe pas / erreur reseau, on ne bloque pas la
+// connexion, on retombe simplement en mode admin.
+window.roleInfo = async function(){{
+  try{{
+    const {{data, error}} = await sb.from('stockflow_user_stores')
+      .select('magasin').eq('user_id', USER.id).order('magasin');
+    if(!error && data && data.length){{
+      return {{mode:'store', stores:data.map(r=>r.magasin)}};
+    }}
+  }}catch(e){{ console.warn('roleInfo', e); }}
+  return {{mode:'admin', stores:[]}};
+}};
+
+// --- Differences signalees par les magasins (cote admin) ---
+window.DiffStore = {{
+  async list(){{
+    if(!RUN) return [];
+    const {{data, error}} = await sb.from('stockflow_reviews')
+      .select('transfer_id, updated_at').eq('run_id', RUN.id).eq('etat','diff')
+      .order('updated_at', {{ascending:false}});
+    if(error) throw error;
+    return (data||[]).map(dd=>{{ const t=ID2ROW[dd.transfer_id]; if(!t) return null;
+      return {{reference:t[6], taille:t[7], quantite:t[8], expediteur:t[4],
+        destinataire:t[5], marque:t[3], updated_at:dd.updated_at}}; }}).filter(Boolean);
+  }}
+}};
+
+// --- Expeditions validees par les magasins ---
+window.ShipStore = {{
+  async load(){{
+    if(!RUN) return {{}};
+    const {{data, error}} = await sb.from('stockflow_shipments')
+      .select('expediteur,destinataire').eq('run_id', RUN.id);
+    if(error) throw error;
+    const m={{}}; (data||[]).forEach(r=>{{ m[r.expediteur+'>'+r.destinataire]=true; }}); return m;
+  }},
+  async validate(exp,dest){{
+    const {{error}} = await sb.from('stockflow_shipments').upsert(
+      {{run_id:RUN.id, expediteur:exp, destinataire:dest, statut:'validee',
+        validated_by:USER.id, validated_at:new Date().toISOString()}},
+      {{onConflict:'run_id,expediteur,destinataire'}});
+    if(error) throw error;
+  }},
+  async unvalidate(exp,dest){{
+    const {{error}} = await sb.from('stockflow_shipments').delete()
+      .match({{run_id:RUN.id, expediteur:exp, destinataire:dest}});
+    if(error) throw error;
+  }}
+}};
+
+// --- Deconnexion ---
+window.doLogout = async function(){{
+  try{{ await sb.auth.signOut(); }}catch(e){{}}
+  location.reload();
+}};
+
+// --- Demandes urgentes (magasin -> validation admin) ---
+window.UrgentStore = {{
+  async create(o){{ const {{error}} = await sb.from('stockflow_urgent_requests').insert(
+      {{magasin:o.magasin, reference:o.reference, taille:o.taille||null, quantite:o.quantite||1,
+        motif:o.motif||null, created_by:USER.id}});
+    if(error) throw error; }},
+  async listMine(store){{ const {{data,error}} = await sb.from('stockflow_urgent_requests').select('*')
+      .eq('magasin',store).order('created_at',{{ascending:false}}); if(error) throw error; return data||[]; }},
+  async listAll(){{ const {{data,error}} = await sb.from('stockflow_urgent_requests').select('*')
+      .order('created_at',{{ascending:false}}); if(error) throw error; return data||[]; }},
+  async decide(id,dec){{ const {{error}} = await sb.from('stockflow_urgent_requests')
+      .update({{statut:dec, decided_by:USER.id, decided_at:new Date().toISOString()}}).eq('id',id);
+    if(error) throw error; }}
+}};
+
 // COLS doit correspondre a l'ordre attendu par le rendu
 const COLS=["n","prio","score","marque","exp","dest","ref","taille","qte","covA","covB",
   "gridA","gridB","dispoB","pick","motif"];
@@ -141,9 +249,37 @@ const COLS=["n","prio","score","marque","exp","dest","ref","taille","qte","covA"
 // --- Authentification ---
 async function enter(session){{
   USER=session.user;
+  ACCESS=session.access_token;
   document.getElementById('auth').classList.add('hidden');
   await window.boot();
 }}
+
+// --- Generation : envoi au relais -> calcul sur GitHub -> attente du nouveau run ---
+window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}}){{
+  if(!BACKEND_URL) throw new Error("Backend non configure (BACKEND_URL vide).");
+  const fd = new FormData();
+  fd.append('stock', stock);
+  fd.append('ventes', ventes);
+  if(reassort) fd.append('reassort', reassort);
+  if(objectif) fd.append('objectif', objectif);
+  fd.append('cible', String(cible));
+  const baseId = RUN ? RUN.id : null;
+  const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{
+    method:'POST', headers:{{'Authorization':'Bearer '+ACCESS}}, body: fd }});
+  if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
+  // le calcul tourne sur GitHub (~1-2 min) : on attend l'apparition d'un run plus recent
+  if(window.__onGenProgress) window.__onGenProgress("Fichiers envoyés — calcul en cours sur GitHub…");
+  for(let i=0; i<42; i++){{               // ~7 min max (10 s x 42)
+    await new Promise(res=>setTimeout(res, 10000));
+    const {{data}} = await sb.from('stockflow_runs').select('id,nb_transferts,perimetre')
+      .order('created_at', {{ascending:false}}).limit(1);
+    const latest = data && data[0];
+    if(latest && latest.id !== baseId)
+      return {{nb_transferts: latest.nb_transferts, perimetre: latest.perimetre}};
+    if(window.__onGenProgress) window.__onGenProgress(`Calcul en cours sur GitHub… (${{(i+1)*10}} s)`);
+  }}
+  throw new Error("Toujours en cours — recharge la page dans 1-2 min pour voir le nouveau run.");
+}};
 document.getElementById('signin').onclick=async()=>{{
   const err=document.getElementById('autherr'); err.textContent='';
   const email=document.getElementById('email').value.trim();

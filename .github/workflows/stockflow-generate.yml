@@ -1,0 +1,31 @@
+name: StockFlow — generer depuis un upload
+
+# Declenchee par le relais (backend) via repository_dispatch.
+# Fait tourner le moteur sur les serveurs GitHub (7 Go) puis pousse le run.
+# Necessite le secret SUPABASE_SERVICE_KEY (Repo > Settings > Secrets > Actions).
+
+on:
+  repository_dispatch:
+    types: [stockflow-generate]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Installer les dependances du moteur
+        run: pip install --quiet pandas numpy openpyxl requests
+      - name: Generer et pousser le run
+        env:
+          SUPABASE_URL: https://yeusqubxgxchigssobma.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          BUCKET: ${{ github.event.client_payload.bucket }}
+          STOCK_PATH: ${{ github.event.client_payload.stock }}
+          VENTES_PATH: ${{ github.event.client_payload.ventes }}
+          REASSORT_PATH: ${{ github.event.client_payload.reassort }}
+          OBJECTIF_PATH: ${{ github.event.client_payload.objectif }}
+          CIBLE: ${{ github.event.client_payload.cible }}
+        run: python StockFlowAI/scripts/generate_from_storage.py

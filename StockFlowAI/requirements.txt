@@ -3,3 +3,9 @@ numpy>=1.24
 openpyxl>=3.1
 pytest>=7.0
 streamlit>=1.30   # mini-site local (app.py) ; non requis pour le moteur/CLI
+
+# Backend "Generer" (API d'upload -> moteur -> Supabase)
+fastapi
+uvicorn[standard]
+python-multipart
+requests
