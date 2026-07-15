@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime
 import io
+import json
 import os
 import sys
 from pathlib import Path
@@ -24,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd  # noqa: E402
 from stockflow.app_service import build_params, run_analysis  # noqa: E402
+from stockflow.impact import compute_impact  # noqa: E402
 from stockflow.push_supabase import push  # noqa: E402
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
@@ -54,7 +56,42 @@ def _rm(path: str | None):
         pass
 
 
+def _hdr():
+    return {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+
+
+def _latest_run():
+    r = requests.get(
+        f"{URL}/rest/v1/stockflow_runs?select=id,date_execution&order=created_at.desc&limit=1",
+        headers=_hdr(), timeout=30)
+    d = r.json() if r.status_code == 200 else []
+    return d[0] if d else None
+
+
+def _run_transfers(run_id):
+    out, frm = [], 0
+    while True:
+        r = requests.get(
+            f"{URL}/rest/v1/stockflow_transfers?run_id=eq.{run_id}"
+            f"&select=reference,destinataire,quantite&limit=1000&offset={frm}",
+            headers=_hdr(), timeout=60)
+        b = r.json() if r.status_code == 200 else []
+        out += b
+        if len(b) < 1000:
+            break
+        frm += 1000
+    return out
+
+
+def _patch_impact(run_id, impact):
+    requests.patch(
+        f"{URL}/rest/v1/stockflow_runs?id=eq.{run_id}",
+        headers={**_hdr(), "Content-Type": "application/json"},
+        data=json.dumps({"impact": impact}), timeout=30)
+
+
 def main() -> int:
+    prev = _latest_run()   # dernier run AVANT le nouveau -> pour la mesure d'impact
     stock_p = os.environ.get("STOCK_PATH")
     ventes_p = os.environ.get("VENTES_PATH")
     reassort_p = os.environ.get("REASSORT_PATH") or None
@@ -90,6 +127,18 @@ def main() -> int:
         "parametres": build_params(cible=cible).snapshot(),
     }
     run_id = push(result, meta, url=URL, service_key=KEY)
+
+    # mesure d'impact du run PRECEDENT avec les nouvelles ventes (chez le destinataire)
+    if prev and prev.get("id"):
+        try:
+            imp = compute_impact(_run_transfers(prev["id"]),
+                                 datasets.get("ventes_detail"), datasets.get("stocks"),
+                                 since_date=prev.get("date_execution"))
+            _patch_impact(prev["id"], imp)
+            print(f"impact run precedent : {imp.get('units')} articles, "
+                  f"CA {imp.get('ca')} €, marge {imp.get('marge')} €")
+        except Exception as exc:
+            print("impact ignore :", exc)
 
     for p in (stock_p, ventes_p, reassort_p, objectif_p):
         _rm(p)

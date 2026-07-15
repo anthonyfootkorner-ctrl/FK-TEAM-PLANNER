@@ -509,6 +509,18 @@ window.ReviewStore = window.ReviewStore || {
   async set(n,val){ localStorage.setItem('sf_'+(DATA.meta.runid||'run'), JSON.stringify(reviews)); }
 };
 const fmt = n => (typeof n==='number'? n.toLocaleString('fr-FR'):n);
+const fmtEur = n => (typeof n==='number'? Math.round(n).toLocaleString('fr-FR'):n)+' €';
+function impactBlock(imp){
+  if(!imp || !(imp.units>0))
+    return `<div class="note">💡 Impact des transferts : il sera mesuré à la prochaine génération (avec les ventes de la semaine suivante).</div>`;
+  const card=(l,v)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div></div>`;
+  return `<div class="note">💰 Ventes réalisées sur les références transférées (semaine suivante, chez le destinataire) — estimation.</div>
+    <div class="kpis" style="margin-bottom:22px">
+      ${card('Articles vendus', fmt(imp.units))}
+      ${card('CA généré', fmtEur(imp.ca))}
+      ${card('Marge générée', fmtEur(imp.marge))}
+    </div>`;
+}
 const pcls = p => 'p-'+String(p).replace(/[^A-Za-z]/g,'').slice(0,10).replace('Fortementrecommande','Fortement').replace('Avalider','Avalider');
 
 const TABS = [
@@ -738,7 +750,7 @@ function renderSimulation(){
     return `<tr><td>${labels[k]||k}</td><td class="num">${fmt(v.avant)}</td><td class="num">${fmt(v.apres)}</td>
       <td class="num" style="color:${d===0?'var(--muted)':good?'var(--green)':'var(--red)'}">${d>0?'+':''}${fmt(+d.toFixed(1))}</td></tr>`;
   }).join('');
-  return kpiStrip()+`<div class="tablewrap"><table><thead><tr><th>Indicateur</th>
+  return impactBlock(DATA.meta.impact)+kpiStrip()+`<div class="tablewrap"><table><thead><tr><th>Indicateur</th>
     <th class="num">Avant</th><th class="num">Après</th><th class="num">Variation</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
@@ -1015,13 +1027,22 @@ function renderStoreStats(){
   const covA=inn.map(r=>+r[C.covB]||0).filter(x=>x>0);
   const covMoy=covA.length?(covA.reduce((s,x)=>s+x,0)/covA.length).toFixed(1):'0';
   const card=(l,v,d)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div>${d?`<div class="delta">${d}</div>`:''}</div>`;
+  const mi=(DATA.meta.impact&&DATA.meta.impact.par_magasin)?DATA.meta.impact.par_magasin[STORE]:null;
+  const impact = (mi && mi.units>0)
+    ? `<div class="note" style="margin-top:8px">💰 Ventes réalisées sur tes réceptions (semaine suivante) — estimation.</div>
+       <div class="kpis">
+         ${card('Articles vendus', fmt(mi.units))}
+         ${card('CA généré', fmtEur(mi.ca))}
+         ${card('Marge générée', fmtEur(mi.marge))}
+       </div>`
+    : `<div class="note" style="margin-top:8px">💡 L'impact (ventes & € sur tes réceptions) s'affichera après la prochaine génération.</div>`;
   return `<div class="note">Impact des recommandations pour <b>${STORE}</b> sur ce run.</div>
     <div class="kpis">
       ${card('Réceptions', inn.length, pc(inn)+' pièces à recevoir')}
       ${card('Expéditions', out.length, pc(out)+' pièces à envoyer')}
       ${card('Ruptures couvertes', rupt, 'réf. sous 7 j comblées')}
       ${card('Couverture après', covMoy+' j', '+'+gainMoy+' j en moyenne')}
-    </div>`;
+    </div>${impact}`;
 }
 
 function renderStore(){

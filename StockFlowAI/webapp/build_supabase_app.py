@@ -156,7 +156,8 @@ window.bootData = async function(){{
     Math.round(f.score/f.n*10)/10,'',Math.max(1,Math.ceil(f.pieces/30))]);
   return {{
     meta:{{brand:'STOCKFLOW.AI', tagline:'Répartition des stocks',
-      runid:RUN.id, perimetre:RUN.perimetre, cible:RUN.cible, date:RUN.date_execution}},
+      runid:RUN.id, perimetre:RUN.perimetre, cible:RUN.cible, date:RUN.date_execution,
+      impact:RUN.impact||null}},
     cols:COLS, transfers, kpis:RUN.kpis||{{}}, flux, cas_counts:{{}}
   }};
 }};
