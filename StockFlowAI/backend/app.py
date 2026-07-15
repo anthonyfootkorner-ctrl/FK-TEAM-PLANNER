@@ -40,12 +40,20 @@ ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 ALLOW_ORIGINS = [o.strip() for o in os.environ.get("ALLOW_ORIGINS", "*").split(",") if o.strip()]
 
 app = FastAPI(title="StockFlow.AI backend")
+# CORS tolerant : origines explicites (ALLOW_ORIGINS) + tout site *.netlify.app
+# + localhost (tests). Evite les "Failed to fetch" si le site est renomme.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOW_ORIGINS or ["*"],
+    allow_origin_regex=r"https?://([a-z0-9-]+\.)*(netlify\.app|localhost)(:\d+)?",
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def root():
+    return {"service": "stockflow-backend", "endpoints": ["/health", "/generer"]}
 
 
 def _verify_admin(access_token: str) -> str:
