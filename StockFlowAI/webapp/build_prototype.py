@@ -515,7 +515,7 @@ const TABS = [
   {id:'transferts',ico:'📦',label:'Transferts',short:'Transf.'},
   {id:'magasin',ico:'🏬',label:'Par magasin',short:'Magasin'},
   {id:'flux',ico:'🔀',label:'Synthese flux',short:'Flux'},
-  {id:'simulation',ico:'📊',label:'Simulation',short:'Simul.'},
+  {id:'simulation',ico:'📊',label:'Stats',short:'Stats'},
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
   {id:'differences',ico:'🚩',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
@@ -761,7 +761,7 @@ function render(){
   if(ps) ps.onchange=e=>{ if(e.target.value){ STORE=e.target.value; PREVIEW=true; MODE='store'; stab='expedier'; renderStore(); } };
   const T=TABS.find(t=>t.id===tab);
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
-    flux:'Synthèse par flux',simulation:'Simulation avant / après',cas:'Cas non traités',
+    flux:'Synthèse par flux',simulation:'Statistiques (avant / après)',cas:'Cas non traités',
     differences:'Différences signalées',demandes:'Demandes urgentes',
     generer:'Générer une mise à jour'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
