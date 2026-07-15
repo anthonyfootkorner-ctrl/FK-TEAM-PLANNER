@@ -113,6 +113,16 @@ def load_reassort(reassort_xlsx) -> pd.DataFrame:
     return pick
 
 
+def _require_columns(df: pd.DataFrame, cols, label: str) -> None:
+    """Verifie la presence des colonnes essentielles ; message clair si absentes."""
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        found = ", ".join(map(str, list(df.columns)[:30]))
+        raise ValueError(
+            f"Fichier {label} : colonne(s) manquante(s) : {', '.join(missing)}. "
+            f"Colonnes trouvees : {found}")
+
+
 def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
                       reassort_xlsx=None, ratio_prix_min: float = 0.25,
                       today: pd.Timestamp | None = None) -> Dict[str, pd.DataFrame]:
@@ -120,16 +130,26 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
 
     # ---------------- VENTES (grain jour x magasin x barcode x taille) --------
     vraw = _read_csv(sales_csv)
+    _require_columns(vraw, ["BarCode V2", "Taille", "Code_Origine",
+                            "Total QteVenteRetail", "Total MtVenteRetailTTC",
+                            "Jours dans Date"], "VENTES")
     vref = barcode_reference(vraw["BarCode V2"])
     vtaille, vfam = _norm_sizes(vraw["Taille"])
+    vqte = _num(vraw["Total QteVenteRetail"])
+    vca = _num(vraw["Total MtVenteRetailTTC"])
+    # prix de vente : optionnel. Absent -> derive du prix unitaire reel (CA / Qte).
+    if "PrixVente" in vraw.columns:
+        vprix = _num(vraw["PrixVente"])
+    else:
+        vprix = (vca / vqte.replace(0, np.nan)).fillna(0.0)
     v = pd.DataFrame({
         "magasin": vraw["Code_Origine"].str.strip(),
         "reference": vref, "couleur": "", "taille": vtaille, "famille": vfam,
-        "marque": vraw["Marque Gp"].str.strip(),
+        "marque": vraw.get("Marque Gp", pd.Series([""] * len(vraw))).astype(str).str.strip(),
         "saison": vraw.get("Saison", pd.Series([""] * len(vraw))).astype(str).str.strip(),
-        "prix_vente": _num(vraw["PrixVente"]),
-        "qte": _num(vraw["Total QteVenteRetail"]),
-        "ca": _num(vraw["Total MtVenteRetailTTC"]),
+        "prix_vente": vprix,
+        "qte": vqte,
+        "ca": vca,
         "date": pd.to_datetime(vraw["Jours dans Date"], dayfirst=True, errors="coerce"),
     })
     # --- Garde-fou anti-erreur de saisie -----------------------------------
@@ -168,13 +188,14 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
 
     # ---------------- STOCK (grain magasin x barcode x taille) ----------------
     sraw = _read_csv(stock_csv)
+    _require_columns(sraw, ["BarCode V2", "Taille", "Code_Origine", "Total Stock"], "STOCK")
     sref = barcode_reference(sraw["BarCode V2"])
     staille, sfam = _norm_sizes(sraw["Taille"])
     st = pd.DataFrame({
         "magasin": sraw["Code_Origine"].str.strip(),
         "reference": sref, "couleur": "", "taille": staille, "famille": sfam,
-        "marque": sraw["Marque Gp"].str.strip(),
-        "prix_achat": _num(sraw["PrixAchat"]),
+        "marque": sraw.get("Marque Gp", pd.Series([""] * len(sraw))).astype(str).str.strip(),
+        "prix_achat": _num(sraw.get("PrixAchat", pd.Series([0.0] * len(sraw)))),
         "stock_physique": _num(sraw["Total Stock"]),
     })
     # agregation des doublons apres normalisation des tailles
