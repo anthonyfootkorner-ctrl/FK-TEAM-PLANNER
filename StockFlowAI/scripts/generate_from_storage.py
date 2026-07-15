@@ -94,6 +94,23 @@ def main() -> int:
     for p in (stock_p, ventes_p, reassort_p, objectif_p):
         _rm(p)
 
+    # purge : on ne garde que les N derniers runs (maitrise du stockage / cout).
+    # La suppression d'un run efface en cascade ses transferts / revues / expeditions.
+    try:
+        keep = int(os.environ.get("KEEP_RUNS", "12"))
+        r = requests.get(
+            f"{URL}/rest/v1/stockflow_runs?select=id&order=created_at.desc",
+            headers={"apikey": KEY, "Authorization": f"Bearer {KEY}"}, timeout=30)
+        ids = [row["id"] for row in (r.json() or [])]
+        for rid in ids[keep:]:
+            requests.delete(
+                f"{URL}/rest/v1/stockflow_runs?id=eq.{rid}",
+                headers={"apikey": KEY, "Authorization": f"Bearer {KEY}"}, timeout=30)
+        if len(ids) > keep:
+            print(f"purge : {len(ids) - keep} ancien(s) run(s) supprime(s), {keep} conserves")
+    except Exception as exc:
+        print("purge ignoree :", exc)
+
     nb = 0 if result.transfers is None else int(len(result.transfers))
     print(f"OK — run {run_id} — {nb} transferts — {meta['perimetre']}")
     return 0

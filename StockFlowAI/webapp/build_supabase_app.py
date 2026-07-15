@@ -116,9 +116,19 @@ const N2ID = {{}};                       // n (ligne) -> id transfert en base
 let ID2ROW = {{}};                       // id transfert -> ligne (pour enrichir les differences)
 
 // --- Source de donnees : Supabase ---
+// liste des runs recents (historique)
+window.listRuns = async function(){{
+  const {{data}} = await sb.from('stockflow_runs')
+    .select('id,label,date_execution,nb_transferts,created_at')
+    .order('created_at', {{ascending:false}}).limit(20);
+  return data || [];
+}};
+
 window.bootData = async function(){{
-  const {{data:runs}} = await sb.from('stockflow_runs')
-    .select('*').order('created_at',{{ascending:false}}).limit(1);
+  let q = sb.from('stockflow_runs').select('*');
+  q = window.__runId ? q.eq('id', window.__runId).limit(1)
+                     : q.order('created_at', {{ascending:false}}).limit(1);
+  const {{data:runs}} = await q;
   RUN = (runs && runs[0]) || null;
   if(!RUN){{ return {{meta:{{brand:'STOCKFLOW.AI',tagline:'Répartition des stocks'}},
       cols:COLS, transfers:[], kpis:{{}}, flux:[], cas_counts:{{}} }}; }}

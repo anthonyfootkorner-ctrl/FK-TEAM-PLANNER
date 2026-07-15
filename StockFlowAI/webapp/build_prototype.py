@@ -524,6 +524,7 @@ const TABS = [
 let tab='transferts';
 // Role & vue magasin (STORES = magasins accessibles ; STORE = celui affiche)
 let MODE='admin', STORE=null, STORES=[], PREVIEW=false, stab='expedier', openDest=null;
+let RUNS_CACHE=null;   // historique des runs (admin)
 const F={q:'',prio:'',boutique:'',etat:''};
 
 function nav(){
@@ -538,10 +539,15 @@ function nav(){
     <button data-tab="${t.id}" class="${t.id===tab?'active':''}"><span class="ico">${t.ico}</span>${t.short||t.label}</button>`).join('');
   document.querySelectorAll('#nav button, #mnav button, #botnav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();
     window.scrollTo({top:0});});
+  const runOpts=(RUNS_CACHE||[]).map((r,i)=>{
+    const sel=(window.__runId ? r.id===window.__runId : i===0) ? ' selected':'';
+    return `<option value="${r.id}"${sel}>${String(r.date_execution||r.created_at||'').slice(0,10)} · ${r.nb_transferts} transf.${i===0?' (actuel)':''}</option>`;
+  }).join('');
   document.getElementById('foot').innerHTML =
     `Perimetre : ${DATA.meta.perimetre||'-'}<br>Cible ${DATA.meta.cible||'-'} j · ${DATA.meta.date||''}`
     + `<select class="foot-sel" id="previewStore"><option value="">👁 Prévisualiser un magasin…</option>`
-    + boutiques().map(b=>`<option>${b}</option>`).join('') + `</select>`;
+    + boutiques().map(b=>`<option>${b}</option>`).join('') + `</select>`
+    + ((RUNS_CACHE&&RUNS_CACHE.length>1) ? `<select class="foot-sel" id="runSel">${runOpts}</select>` : '');
 }
 
 function reviewSummary(){
@@ -759,6 +765,8 @@ function render(){
   nav(); reviewSummary();
   const ps=document.getElementById('previewStore');
   if(ps) ps.onchange=e=>{ if(e.target.value){ STORE=e.target.value; PREVIEW=true; MODE='store'; stab='expedier'; renderStore(); } };
+  const rs=document.getElementById('runSel');
+  if(rs) rs.onchange=e=>{ window.__runId=e.target.value||null; window.boot(); };
   const T=TABS.find(t=>t.id===tab);
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
     flux:'Synthèse par flux',simulation:'Statistiques (avant / après)',cas:'Cas non traités',
@@ -793,6 +801,7 @@ const STORE_TABS = [
   {id:'expedier', ico:'📤', label:'À expédier',       short:'Expédier'},
   {id:'recevoir', ico:'📥', label:'Réceptions',       short:'Récept.'},
   {id:'grilles',  ico:'📐', label:'Mes grilles',      short:'Grilles'},
+  {id:'stats',    ico:'📊', label:'Mes stats',        short:'Stats'},
   {id:'urgent',   ico:'🚨', label:'Demande urgente',  short:'Urgent'},
 ];
 function myOut(){ return DATA.transfers.filter(r=>r[C.exp]===STORE); }
@@ -997,6 +1006,24 @@ async function loadMyRequests(){
   list.innerHTML = reqs.length? reqs.map(reqCard).join('') : `<div class="empty">Aucune demande pour le moment.</div>`;
 }
 
+function renderStoreStats(){
+  const out=myOut(), inn=myIn();
+  const pc=a=>a.reduce((s,r)=>s+(+r[C.qte]||0),0);
+  const rupt=inn.filter(r=>(+r[C.covA]||0)<7).length;
+  const gains=inn.map(r=>(+r[C.covB]||0)-(+r[C.covA]||0)).filter(x=>x>0);
+  const gainMoy=gains.length?(gains.reduce((s,x)=>s+x,0)/gains.length).toFixed(1):'0';
+  const covA=inn.map(r=>+r[C.covB]||0).filter(x=>x>0);
+  const covMoy=covA.length?(covA.reduce((s,x)=>s+x,0)/covA.length).toFixed(1):'0';
+  const card=(l,v,d)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div>${d?`<div class="delta">${d}</div>`:''}</div>`;
+  return `<div class="note">Impact des recommandations pour <b>${STORE}</b> sur ce run.</div>
+    <div class="kpis">
+      ${card('Réceptions', inn.length, pc(inn)+' pièces à recevoir')}
+      ${card('Expéditions', out.length, pc(out)+' pièces à envoyer')}
+      ${card('Ruptures couvertes', rupt, 'réf. sous 7 j comblées')}
+      ${card('Couverture après', covMoy+' j', '+'+gainMoy+' j en moyenne')}
+    </div>`;
+}
+
 function renderStore(){
   navStore();
   document.querySelector('.brand b').textContent = 'STOCKFLOW.AI';
@@ -1008,7 +1035,7 @@ function renderStore(){
   const c=document.getElementById('content'); c.className='content';
   const switcher = STORES.length>1 ? `<div class="storeswitch"><label>Magasin</label>
     <select id="storeSel">${STORES.map(s=>`<option ${s===STORE?'selected':''}>${s}</option>`).join('')}</select></div>` : '';
-  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, urgent:renderUrgent}[stab]();
+  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, stats:renderStoreStats, urgent:renderUrgent}[stab]();
   const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; openDest=null; renderStore(); };
   if(stab==='expedier') bindExpedier(c);
   if(stab==='urgent') bindUrgent(c);
@@ -1171,6 +1198,7 @@ window.boot = async function(){
   document.title = BRAND + ' — Recommandations de transferts';
   reviews = await window.ReviewStore.load();
   try{ shipments = window.ShipStore ? await window.ShipStore.load() : {}; }catch(e){ shipments={}; }
+  try{ RUNS_CACHE = window.listRuns ? await window.listRuns() : null; }catch(e){ RUNS_CACHE=null; }
   const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', stores:[]});
   MODE = role.mode;
   STORES = role.stores || (role.store ? [role.store] : []);
