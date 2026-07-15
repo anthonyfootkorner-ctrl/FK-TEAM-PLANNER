@@ -267,8 +267,9 @@ window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}})
   const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{
     method:'POST', headers:{{'Authorization':'Bearer '+ACCESS}}, body: fd }});
   if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
-  // le calcul tourne sur GitHub (~1-2 min) : on attend l'apparition d'un run plus recent
-  if(window.__onGenProgress) window.__onGenProgress("Fichiers envoyés — calcul en cours sur GitHub…");
+  // fichiers envoyes : le moteur tourne sur GitHub (~1-2 min) -> etape "optimise"
+  if(window.__genStep) window.__genStep('optimise');
+  if(window.__onGenProgress) window.__onGenProgress("Optimisation des transferts…");
   for(let i=0; i<42; i++){{               // ~7 min max (10 s x 42)
     await new Promise(res=>setTimeout(res, 10000));
     const {{data}} = await sb.from('stockflow_runs').select('id,nb_transferts,perimetre')
@@ -276,7 +277,7 @@ window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}})
     const latest = data && data[0];
     if(latest && latest.id !== baseId)
       return {{nb_transferts: latest.nb_transferts, perimetre: latest.perimetre}};
-    if(window.__onGenProgress) window.__onGenProgress(`Calcul en cours sur GitHub… (${{(i+1)*10}} s)`);
+    if(window.__onGenProgress) window.__onGenProgress(`Optimisation des transferts… (${{(i+1)*10}} s)`);
   }}
   throw new Error("Toujours en cours — recharge la page dans 1-2 min pour voir le nouveau run.");
 }};
