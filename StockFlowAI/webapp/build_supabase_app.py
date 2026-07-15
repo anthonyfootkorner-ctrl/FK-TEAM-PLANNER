@@ -26,8 +26,7 @@ ROOT = Path(__file__).resolve().parent
 SUPABASE_URL = "https://yeusqubxgxchigssobma.supabase.co"
 SUPABASE_KEY = "sb_publishable_FkwKSPbHO3CPHdRvt35img__s3HSY5R"
 # URL du backend de generation (bouton "Generer"). Vide = bouton inactif.
-# A renseigner apres deploiement du service (Render/Railway).
-BACKEND_URL = ""
+BACKEND_URL = "https://fk-team-planner.onrender.com"
 
 
 def _extract():
