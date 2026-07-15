@@ -40,12 +40,13 @@ ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 ALLOW_ORIGINS = [o.strip() for o in os.environ.get("ALLOW_ORIGINS", "*").split(",") if o.strip()]
 
 app = FastAPI(title="StockFlow.AI backend")
-# CORS tolerant : origines explicites (ALLOW_ORIGINS) + tout site *.netlify.app
-# + localhost (tests). Evite les "Failed to fetch" si le site est renomme.
+# CORS : on autorise toutes les origines. Ce n'est PAS une faille : l'endpoint
+# est protege par le jeton admin Supabase (verifie cote serveur), pas par CORS.
+# On evite ainsi tout "Failed to fetch" lie a une origine mal renseignee.
+# (pas de cookies/credentials -> "*" est accepte par les navigateurs)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOW_ORIGINS or ["*"],
-    allow_origin_regex=r"https?://([a-z0-9-]+\.)*(netlify\.app|localhost)(:\d+)?",
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
