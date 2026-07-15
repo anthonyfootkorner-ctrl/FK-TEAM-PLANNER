@@ -283,6 +283,31 @@ body{font-family:var(--font-body);
   .splash-words .sw{transform:none}
   .splash-logo circle{opacity:1}
 }
+/* ===== Overlay de generation (logo + 3 mots comme etapes) ===== */
+.genov{position:fixed;inset:0;z-index:90;opacity:0;transition:opacity .4s ease;
+  background:radial-gradient(circle at 50% 40%, #141519 0%, #0a0a0b 74%);
+  display:flex;align-items:center;justify-content:center}
+.genov.on{opacity:1}
+.genov[hidden]{display:none}
+.genov-inner{display:flex;flex-direction:column;align-items:center;gap:28px;width:min(90vw,420px)}
+.genov-logo{width:96px;height:120px;animation:genglow 2.2s ease-in-out infinite}
+.genov-logo svg{width:100%;height:100%}
+.genov-steps{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.gstep{display:flex;align-items:center;gap:15px;font-family:var(--font-display);font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;font-size:clamp(26px,6.5vw,36px);line-height:1;
+  color:var(--muted);opacity:.4;transition:opacity .35s ease,color .35s ease}
+.gstep .gdot{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);flex-shrink:0;
+  display:grid;place-items:center;font-size:12px;line-height:1;transition:all .3s ease}
+.gstep.active{opacity:1;color:var(--orange)}
+.gstep.active .gdot{border-color:var(--orange);animation:gdotpulse 1.1s ease-in-out infinite}
+.gstep.done{opacity:1;color:var(--text)}
+.gstep.done .gdot{border-color:var(--green);background:var(--green);color:#fff}
+.gstep.done .gdot::after{content:'✓'}
+.genov-hint{font-family:var(--font-body);font-size:14px;color:var(--muted);min-height:20px;text-align:center}
+@keyframes genglow{0%,100%{filter:drop-shadow(0 0 6px rgba(255,107,53,.35))}
+  50%{filter:drop-shadow(0 0 16px rgba(255,107,53,.7))}}
+@keyframes gdotpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,53,.5)}50%{box-shadow:0 0 0 7px rgba(255,107,53,0)}}
+@media(prefers-reduced-motion:reduce){ .genov-logo,.gstep.active .gdot{animation:none} }
 .tb-brand{display:none;align-items:center;gap:8px}
 .tb-brand .tb-logo{width:24px;height:30px;display:grid;place-items:center;flex-shrink:0}
 .tb-brand b{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:16px}
@@ -435,6 +460,17 @@ tr.reviewed-no{opacity:.55}
     <div class="splash-logo"><svg viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgS)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><path class="spark" pathLength="100" d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke="#fff" stroke-width="5.5" stroke-linecap="round" fill="none"/><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div>
     <div class="splash-words"><span class="sw sw1">ANALYSE.</span><span class="sw sw2">OPTIMISE.</span><span class="sw sw3">GAGNE.</span></div>
     <div class="splash-bar"></div>
+  </div>
+</div>
+<div id="genov" class="genov" hidden>
+  <div class="genov-inner">
+    <div class="genov-logo"><svg viewBox="0 0 64 80" fill="none" aria-hidden="true"><defs><linearGradient id="fkgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E6D"/><stop offset="1" stop-color="#EF5A2A"/></linearGradient></defs><g stroke="url(#fkgG)" stroke-linecap="round" fill="none"><path d="M44 16C44 8 24 7 22 20C20 33 42 34 40 48C38 63 19 62 16 54" stroke-width="3.5" opacity=".45" transform="translate(-5 0)"/><path d="M46 16C46 8 24 6 22 20C20 33 44 34 42 48C40 64 18 62 16 54" stroke-width="5"/><path d="M48 16C48 8 26 7 24 20C22 33 46 34 44 48C42 63 21 62 18 54" stroke-width="3.5" opacity=".7" transform="translate(5 0)"/></g><circle cx="46" cy="16" r="2.4" fill="#FF9E6D"/><circle cx="16" cy="54" r="2.4" fill="#EF5A2A"/></svg></div>
+    <div class="genov-steps">
+      <div class="gstep" data-step="analyse"><span class="gdot"></span>ANALYSE.</div>
+      <div class="gstep" data-step="optimise"><span class="gdot"></span>OPTIMISE.</div>
+      <div class="gstep" data-step="gagne"><span class="gdot"></span>GAGNE.</div>
+    </div>
+    <div class="genov-hint" id="genovHint"></div>
   </div>
 </div>
 <aside class="sidebar">
@@ -1043,6 +1079,22 @@ function renderGenerer(){
       <div id="g_status" style="margin-top:14px;font-size:13px;color:var(--muted);min-height:18px"></div>
     </div>`;
 }
+// Overlay de generation : logo + 3 mots comme etapes (analyse -> optimise -> gagne)
+function genHint(msg){ const h=document.getElementById('genovHint'); if(h) h.textContent=msg||''; }
+window.__onGenProgress = genHint;
+window.__genStep = function(name){
+  const ov=document.getElementById('genov'); if(!ov) return;
+  const order=['analyse','optimise','gagne']; const idx=order.indexOf(name);
+  ov.querySelectorAll('.gstep').forEach((el,i)=>{
+    el.classList.toggle('active', i===idx);
+    el.classList.toggle('done', i<idx);
+  });
+};
+function showGenOverlay(){ const ov=document.getElementById('genov'); if(!ov) return;
+  ov.hidden=false; requestAnimationFrame(()=>ov.classList.add('on')); window.__genStep('analyse'); genHint('Envoi des fichiers…'); }
+function hideGenOverlay(){ const ov=document.getElementById('genov'); if(!ov) return;
+  ov.classList.remove('on'); setTimeout(()=>{ ov.hidden=true; }, 400); }
+
 function bindGenerer(root){
   const st=root.querySelector('#g_status');
   root.querySelector('#g_run').onclick=async()=>{
@@ -1051,17 +1103,20 @@ function bindGenerer(root){
     if(!stock||!ventes){ st.style.color='var(--red)'; st.textContent='Ajoute au moins le fichier Stock et le fichier Ventes.'; return; }
     if(!window.doGenerate){ st.style.color='var(--amber)'; st.textContent="La génération est disponible sur le site hébergé (backend requis)."; return; }
     const cible=parseInt(root.querySelector('#g_cible').value)||14;
-    const btn=root.querySelector('#g_run'); btn.disabled=true;
-    st.style.color='var(--muted)'; st.textContent='⏳ Envoi des fichiers…';
-    window.__onGenProgress=(m)=>{ st.style.color='var(--muted)'; st.textContent='⏳ '+m+' — ne ferme pas la page'; };
+    root.querySelector('#g_run').disabled=true; st.textContent='';
+    showGenOverlay();
     try{
       const res=await window.doGenerate({stock, ventes,
         reassort:root.querySelector('#g_reassort').files[0],
         objectif:root.querySelector('#g_objectif').files[0], cible});
-      st.style.color='var(--green)';
-      st.textContent=`✅ ${res.nb_transferts} transferts générés${res.perimetre?' ('+res.perimetre+')':''}. Rechargement…`;
-      setTimeout(()=>location.reload(), 1500);
-    }catch(e){ st.style.color='var(--red)'; st.textContent='Erreur : '+(e.message||e); btn.disabled=false; }
+      window.__genStep('gagne');
+      genHint(`✅ ${res.nb_transferts} transferts générés${res.perimetre?' · '+res.perimetre:''}`);
+      setTimeout(()=>location.reload(), 1800);
+    }catch(e){
+      hideGenOverlay();
+      st.style.color='var(--red)'; st.textContent='Erreur : '+(e.message||e);
+      root.querySelector('#g_run').disabled=false;
+    }
   };
 }
 
