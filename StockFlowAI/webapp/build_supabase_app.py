@@ -232,6 +232,23 @@ window.ShipStore = {{
   }}
 }};
 
+// --- Back-office utilisateurs (via le backend, protege par le jeton admin) ---
+async function _adminApi(path, method, body){{
+  if(!BACKEND_URL) throw new Error("Backend non configure.");
+  const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + path, {{
+    method: method || 'GET',
+    headers: {{'Authorization':'Bearer '+ACCESS, 'Content-Type':'application/json'}},
+    body: body ? JSON.stringify(body) : undefined }});
+  if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
+  return r.status===204 ? null : await r.json();
+}}
+window.UserAdmin = {{
+  list: () => _adminApi('/users'),
+  create: (email, password, stores) => _adminApi('/users', 'POST', {{email, password, stores}}),
+  setStores: (id, stores) => _adminApi('/users/'+id+'/stores', 'POST', {{stores}}),
+  remove: (id) => _adminApi('/users/'+id, 'DELETE')
+}};
+
 // --- Deconnexion ---
 window.doLogout = async function(){{
   try{{ await sb.auth.signOut(); }}catch(e){{}}

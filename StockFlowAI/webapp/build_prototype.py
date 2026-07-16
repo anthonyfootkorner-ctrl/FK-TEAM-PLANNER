@@ -185,6 +185,10 @@ body{font-family:var(--font-body);
 .ufield input,.ufield textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);
   border-radius:9px;background:var(--bg);color:var(--text);font-size:15px;font-family:var(--font-body)}
 .urow{display:flex;gap:10px}.urow .ufield{flex:1}
+/* Cases magasins (back-office utilisateurs) */
+.uchecks{display:flex;flex-wrap:wrap;gap:9px 16px}
+.ucheck{display:flex;align-items:center;gap:7px;font-size:13.5px;cursor:pointer}
+.ucheck input{width:16px;height:16px;accent-color:var(--orange)}
 /* Switcher de magasin (comptes multi-magasins) */
 .storeswitch{display:flex;align-items:center;gap:10px;margin:0 0 16px}
 .storeswitch label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
@@ -531,6 +535,7 @@ const TABS = [
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
   {id:'differences',ico:'🚩',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
+  {id:'users',ico:'👤',label:'Utilisateurs',short:'Users'},
   {id:'generer',ico:'⚙️',label:'Générer',short:'Générer'},
 ];
 let tab='transferts';
@@ -783,15 +788,16 @@ function render(){
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
     flux:'Synthèse par flux',simulation:'Statistiques (avant / après)',cas:'Cas non traités',
     differences:'Différences signalées',demandes:'Demandes urgentes',
-    generer:'Générer une mise à jour'}[tab];
+    users:'Gestion des utilisateurs',generer:'Générer une mise à jour'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
     simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes,
-    generer:renderGenerer}[tab]();
+    users:renderUsers,generer:renderGenerer}[tab]();
   if(tab==='demandes'){ loadDemandes(); }
   if(tab==='differences'){ loadDifferences(); }
+  if(tab==='users'){ bindUsers(c); }
   if(tab==='generer'){ bindGenerer(c); }
   if(tab==='transferts'){
     bindReview(c); reviewSummary();
@@ -1110,6 +1116,80 @@ async function loadDifferences(){
   let items=[]; try{ items=await window.DiffStore.list(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
   box.innerHTML = (items.length?`<div class="note"><b>${items.length}</b> différence(s) signalée(s)</div>`:'')
     + (items.length? items.map(diffCard).join('') : `<div class="empty">Aucune différence signalée. 👍</div>`);
+}
+
+// ============================================================
+//  UTILISATEURS (back-office admin)
+// ============================================================
+function renderUsers(){
+  const opts=boutiques().map(b=>`<label class="ucheck"><input type="checkbox" value="${b}"> ${b}</label>`).join('');
+  return `<div class="note">Crée les comptes de l'équipe et affecte un ou plusieurs magasins. Aucun magasin coché = compte administrateur (accès complet).</div>
+    <div class="panel" style="padding:16px;max-width:640px;margin-bottom:20px">
+      <div class="ufield"><label>E-mail</label><input id="nu_email" type="email" placeholder="toulouse@fk.local"></div>
+      <div class="ufield"><label>Mot de passe (min. 6 caractères)</label><input id="nu_pwd" type="text" placeholder="mot de passe"></div>
+      <div class="ufield"><label>Magasins</label><div class="uchecks" id="nu_stores">${opts||'<span style="color:var(--muted);font-size:13px">Aucun magasin dans ce run.</span>'}</div></div>
+      <button class="btn" id="nu_add">➕ Créer le compte</button>
+      <div id="nu_err" style="color:var(--red);font-size:12.5px;margin-top:10px;min-height:14px"></div>
+    </div>
+    <h3 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:13px;margin:6px 2px 12px">Comptes existants</h3>
+    <div id="u_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function userCard(u){
+  const isAdmin=!(u.stores&&u.stores.length);
+  const opts=boutiques().map(b=>`<label class="ucheck"><input type="checkbox" value="${b}" ${u.stores&&u.stores.indexOf(b)>=0?'checked':''}> ${b}</label>`).join('');
+  return `<div class="tcard" data-uid="${u.id}">
+    <div class="top"><span class="pill" style="${isAdmin?'background:var(--blue-bg);color:var(--blue)':'background:var(--green-bg);color:var(--green)'}">${isAdmin?'ADMIN':'MAGASIN'}</span>
+      <span class="score" style="font-size:12.5px">${(u.created_at||'').slice(0,10)}</span></div>
+    <div class="flux" style="font-size:15px;text-transform:none;letter-spacing:0">${u.email||''}</div>
+    <div class="meta"><span><span class="k">Accès</span>${isAdmin?'Tout (administrateur)':u.stores.join(' · ')}</span></div>
+    <div class="ueditor" hidden style="margin-top:8px">
+      <div class="uchecks">${opts}</div>
+      <div class="dact"><button class="val usave">Enregistrer</button><button class="ucancel">Annuler</button></div>
+    </div>
+    <div class="dact uactions">
+      <button class="uedit">Modifier les magasins</button>
+      <button class="ref udel">Supprimer</button>
+    </div>
+  </div>`;
+}
+async function loadUsers(){
+  const box=document.getElementById('u_list'); if(!box) return;
+  if(!window.UserAdmin){ box.innerHTML=`<div class="empty">Disponible sur le site hébergé (backend requis).</div>`; return; }
+  let list=[]; try{ const r=await window.UserAdmin.list(); list=r.users||[]; }
+  catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  box.innerHTML = list.length? list.map(userCard).join('') : `<div class="empty">Aucun compte pour le moment.</div>`;
+  box.querySelectorAll('[data-uid]').forEach(card=>{
+    const uid=card.dataset.uid;
+    const ed=card.querySelector('.ueditor'), act=card.querySelector('.uactions');
+    card.querySelector('.uedit').onclick=()=>{ ed.hidden=false; act.hidden=true; };
+    card.querySelector('.ucancel').onclick=()=>{ ed.hidden=true; act.hidden=false; };
+    card.querySelector('.usave').onclick=async(e)=>{ e.target.disabled=true;
+      const stores=[...ed.querySelectorAll('input:checked')].map(i=>i.value);
+      try{ await window.UserAdmin.setStores(uid, stores); loadUsers(); }
+      catch(err){ e.target.disabled=false; alert('Erreur : '+(err.message||err)); } };
+    card.querySelector('.udel').onclick=async(e)=>{ if(!confirm('Supprimer ce compte ?')) return; e.target.disabled=true;
+      try{ await window.UserAdmin.remove(uid); loadUsers(); }
+      catch(err){ e.target.disabled=false; alert('Erreur : '+(err.message||err)); } };
+  });
+}
+function bindUsers(root){
+  loadUsers();
+  const add=root.querySelector('#nu_add'); if(!add) return;
+  add.onclick=async()=>{
+    const err=root.querySelector('#nu_err'); err.textContent='';
+    const email=root.querySelector('#nu_email').value.trim();
+    const pwd=root.querySelector('#nu_pwd').value;
+    const stores=[...root.querySelectorAll('#nu_stores input:checked')].map(i=>i.value);
+    if(!email||pwd.length<6){ err.textContent="E-mail requis et mot de passe d'au moins 6 caractères."; return; }
+    if(!window.UserAdmin){ err.textContent='Disponible sur le site hébergé.'; return; }
+    add.disabled=true;
+    try{ await window.UserAdmin.create(email,pwd,stores);
+      root.querySelector('#nu_email').value=''; root.querySelector('#nu_pwd').value='';
+      root.querySelectorAll('#nu_stores input:checked').forEach(i=>i.checked=false);
+      loadUsers();
+    }catch(e){ err.textContent='Erreur : '+(e.message||e); }
+    add.disabled=false;
+  };
 }
 
 // ============================================================

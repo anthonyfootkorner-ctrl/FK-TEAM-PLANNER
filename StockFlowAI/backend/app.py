@@ -21,10 +21,11 @@ Variables d'environnement (cote serveur uniquement) :
 from __future__ import annotations
 
 import datetime
+import json
 import os
 
 import requests
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -83,6 +84,75 @@ def _upload(path: str, data: bytes, content_type: str | None):
     )
     if r.status_code not in (200, 201):
         raise HTTPException(502, f"Depot du fichier echoue ({r.status_code}) : {r.text[:200]}")
+
+
+def _set_stores(uid: str, stores):
+    """Remplace l'affectation magasins d'un utilisateur."""
+    requests.delete(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                    params={"user_id": f"eq.{uid}"}, headers=_svc(), timeout=15)
+    rows = [{"user_id": uid, "magasin": str(s).strip()} for s in (stores or []) if str(s).strip()]
+    if rows:
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                          headers={**_svc(), "Content-Type": "application/json"},
+                          data=json.dumps(rows), timeout=15)
+        if r.status_code not in (200, 201):
+            raise HTTPException(502, f"Affectation magasins echouee ({r.status_code}) : {r.text[:200]}")
+
+
+@app.get("/users")
+def list_users(authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    r = requests.get(f"{SUPABASE_URL}/auth/v1/admin/users",
+                     params={"per_page": 200}, headers=_svc(), timeout=20)
+    users = (r.json() or {}).get("users", []) if r.status_code == 200 else []
+    m = requests.get(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                     params={"select": "user_id,magasin"}, headers=_svc(), timeout=15)
+    by_user: dict = {}
+    for row in (m.json() or []) if m.status_code == 200 else []:
+        by_user.setdefault(row["user_id"], []).append(row["magasin"])
+    out = [{"id": u["id"], "email": u.get("email"),
+            "stores": sorted(by_user.get(u["id"], [])),
+            "created_at": u.get("created_at")} for u in users]
+    out.sort(key=lambda x: (0 if not x["stores"] else 1, x["email"] or ""))
+    return {"users": out}
+
+
+@app.post("/users")
+def create_user(payload: dict = Body(...), authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    email = (payload.get("email") or "").strip()
+    password = payload.get("password") or ""
+    stores = payload.get("stores") or []
+    if not email or len(password) < 6:
+        raise HTTPException(400, "E-mail requis et mot de passe d'au moins 6 caracteres.")
+    r = requests.post(f"{SUPABASE_URL}/auth/v1/admin/users",
+                      headers={**_svc(), "Content-Type": "application/json"},
+                      data=json.dumps(
+                          {"email": email, "password": password, "email_confirm": True}),
+                      timeout=20)
+    if r.status_code not in (200, 201):
+        raise HTTPException(400, f"Creation impossible : {r.text[:200]}")
+    uid = r.json().get("id")
+    _set_stores(uid, stores)
+    return {"id": uid, "email": email, "stores": stores}
+
+
+@app.post("/users/{uid}/stores")
+def update_stores(uid: str, payload: dict = Body(...), authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    _set_stores(uid, payload.get("stores") or [])
+    return {"ok": True}
+
+
+@app.delete("/users/{uid}")
+def delete_user(uid: str, authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    requests.delete(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                    params={"user_id": f"eq.{uid}"}, headers=_svc(), timeout=15)
+    r = requests.delete(f"{SUPABASE_URL}/auth/v1/admin/users/{uid}", headers=_svc(), timeout=20)
+    if r.status_code not in (200, 204):
+        raise HTTPException(400, f"Suppression impossible : {r.text[:200]}")
+    return {"ok": True}
 
 
 @app.get("/health")
