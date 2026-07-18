@@ -140,3 +140,36 @@ def test_reserve_absente_message_clair():
 def test_fastmag_import_vide_sans_proposition(tmp_path):
     nb, nbb, sans = build_fastmag_import(pd.DataFrame(), tmp_path / "x.txt", tmp_path)
     assert (nb, nbb, sans) == (0, 0, [])
+
+
+def test_donneurs_exposes_pour_depannage():
+    """Le moteur expose les donneurs (surplus) ; ils se serialisent pour la
+    proposition de depannage d'une demande urgente."""
+    from stockflow.push_supabase import build_donor_rows
+    today = pd.Timestamp("2026-07-13")
+    # PARIS gros surplus sur la reference (donneur) ; LYON en tension
+    stock = (
+        "Code_Origine,BarCode V2,Taille,Total Stock,Marque Gp\n"
+        f"PARIS,{REF},M,80,NIKE\nPARIS,{REF},L,80,NIKE\nPARIS,{REF},S,80,NIKE\n"
+        f"LYON,{REF},M,2,NIKE\n"
+    )
+    dates = pd.date_range("2026-06-08", "2026-07-12", freq="3D")
+    rows = []
+    for d in dates:
+        ds = d.strftime("%d/%m/%Y")
+        rows.append(("PARIS", REF, "M", 1, 35.0, ds, "NIKE", "26 Q2", 35.0))
+        rows.append(("LYON", REF, "M", 2, 70.0, ds, "NIKE", "26 Q2", 35.0))
+    v = pd.DataFrame(rows, columns=[
+        "Code_Origine", "BarCode V2", "Taille", "Total QteVenteRetail",
+        "Total MtVenteRetailTTC", "Jours dans Date", "Marque Gp", "Saison", "PrixVente"])
+    res, _ = run_analysis(stock=_bytes(stock), ventes=_bytes(v.to_csv(index=False)),
+                          params=build_params(cible=14), today=today)
+    assert not res.donors.empty
+    donor_rows = build_donor_rows(res.donors)
+    assert donor_rows
+    # PARIS doit apparaitre comme donneur sur la reference, avec du surplus
+    paris = [r for r in donor_rows if r["magasin"] == "PARIS" and r["reference"] == REF]
+    assert paris
+    assert all(set(["magasin", "reference", "taille", "qte_don", "couverture_j"]).issubset(r)
+               for r in donor_rows)
+    assert any(r["qte_don"] > 0 for r in paris)

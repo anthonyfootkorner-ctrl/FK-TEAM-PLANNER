@@ -46,6 +46,7 @@ logger = logging.getLogger("stockflow")
 class PipelineResult:
     export_path: Optional[Path] = None
     transfers: pd.DataFrame = field(default_factory=pd.DataFrame)
+    donors: pd.DataFrame = field(default_factory=pd.DataFrame)
     flux: pd.DataFrame = field(default_factory=pd.DataFrame)
     simulation_global: pd.DataFrame = field(default_factory=pd.DataFrame)
     simulation_stores: pd.DataFrame = field(default_factory=pd.DataFrame)
@@ -152,6 +153,9 @@ def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores
     # --- Modules 5 & 6 : donneurs / receveurs ---
     logger.info("Detection donneurs / receveurs...")
     donors = donors_mod.detect_donors(base, params, web_codes, history, today)
+    # instantane des donneurs (surplus mobilisable) AVANT que l'optimiseur ne le
+    # consomme : sert a proposer un magasin depanneur pour une demande urgente.
+    donors_snapshot = donors.copy()
     needs = receivers_mod.detect_receivers(base, grid_index, params, web_codes)
 
     # --- Module 10 : optimisation ---
@@ -213,6 +217,7 @@ def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores
     return PipelineResult(
         export_path=export_path_result,
         transfers=result.transfers if result.transfers is not None else pd.DataFrame(),
+        donors=donors_snapshot,
         flux=flux,
         simulation_global=sim_global,
         simulation_stores=sim_stores,

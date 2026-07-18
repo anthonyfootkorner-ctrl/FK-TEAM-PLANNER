@@ -156,6 +156,61 @@ def push_reassort_central(run_id: str, proposed, *, url: Optional[str] = None,
     return len(rows)
 
 
+def build_donor_rows(donors) -> List[Dict]:
+    """Serialise les donneurs (surplus mobilisable) pour la proposition de
+    depannage sur une demande urgente. Une ligne par (magasin, reference, taille)."""
+    rows: List[Dict] = []
+    if donors is None or getattr(donors, "empty", True):
+        return rows
+    for r in donors.itertuples(index=False):
+        qte = _num(getattr(r, "qte_don_max", 0))
+        if not qte or qte <= 0:
+            continue
+        cov = _num(getattr(r, "couverture_projetee", None))
+        if cov is not None and cov > 999:
+            cov = 999
+        rows.append({
+            "magasin": str(getattr(r, "magasin", "")),
+            "reference": str(getattr(r, "reference", "")),
+            "taille": str(getattr(r, "taille", "")),
+            "qte_don": int(qte),
+            "couverture_j": cov,
+            "ventes_jour": _num(getattr(r, "moyenne_quotidienne", None)),
+            "motif": getattr(r, "motif_donneur", None),
+        })
+    return rows
+
+
+def push_donors(run_id: str, donors, *, url: Optional[str] = None,
+                service_key: Optional[str] = None, chunk: int = 500) -> int:
+    """Insere les donneurs d'un run puis purge ceux des autres runs (on ne garde
+    que la photo courante : une demande urgente concerne le stock d'aujourd'hui)."""
+    import requests
+
+    rows = build_donor_rows(donors)
+    url = (url or os.environ.get("SUPABASE_URL", "")).rstrip("/")
+    service_key = service_key or os.environ.get("SUPABASE_SERVICE_KEY", "")
+    base = f"{url}/rest/v1"
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    for i in range(0, len(rows), chunk):
+        batch = [{**row, "run_id": run_id} for row in rows[i:i + chunk]]
+        r = requests.post(f"{base}/stockflow_donors", headers=headers,
+                          data=json.dumps(batch), timeout=60)
+        r.raise_for_status()
+    # purge des donneurs des autres runs (on ne garde que le run courant)
+    try:
+        requests.delete(f"{base}/stockflow_donors?run_id=neq.{run_id}",
+                        headers=headers, timeout=30)
+    except Exception:
+        pass
+    return len(rows)
+
+
 def dry_run(result, meta: Dict, out_path) -> Dict:
     """Ecrit le payload dans un JSON (sans Supabase) pour verification."""
     run, transfers = build_payload(result, meta)

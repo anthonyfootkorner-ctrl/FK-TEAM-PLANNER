@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd  # noqa: E402
 from stockflow.app_service import build_params, run_analysis  # noqa: E402
 from stockflow.impact import compute_impact  # noqa: E402
-from stockflow.push_supabase import push, push_reassort_central  # noqa: E402
+from stockflow.push_supabase import push, push_reassort_central, push_donors  # noqa: E402
 from stockflow.reassort_central import build_fastmag_import  # noqa: E402
 
 REF_DIR = Path(__file__).resolve().parent / "reassort_ref"  # Listing mag + prix de gros
@@ -191,6 +191,13 @@ def main() -> int:
 
     # reassort central : sortie A (base) + sortie B (import Fastmag dans Storage)
     _reassort_central_outputs(run_id, datasets, meta["runid"], central_p)
+
+    # donneurs (surplus) : proposition de depannage sur les demandes urgentes
+    try:
+        nd = push_donors(run_id, getattr(result, "donors", None), url=URL, service_key=KEY)
+        print(f"donneurs : {nd} lignes (depannage demandes urgentes)")
+    except Exception as exc:
+        print("donneurs ignores :", exc)
 
     # mesure d'impact du run PRECEDENT avec les nouvelles ventes (chez le destinataire)
     if prev and prev.get("id"):
