@@ -89,7 +89,7 @@ DEFAULTS: Dict[str, Any] = {
     # Implantation : score minimal pour proposer une nouvelle implantation
     "seuil_proposition_implantation": 70,
     # Seuils de selection des transferts (module 9)
-    "seuil_score_minimum": 60,          # en dessous : non retenu
+    "seuil_score_minimum": 70,          # en dessous : non retenu (>=70 = Recommande minimum)
     # Exclusions
     "exclusions_marque": [],
     "exclusions_saison": [],

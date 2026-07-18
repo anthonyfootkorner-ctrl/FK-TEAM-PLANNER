@@ -45,7 +45,7 @@ def _buffer(src):
 
 
 def build_params(*, cible=21, min_expediteur=30, min_web=14, nb_max_destinations=4,
-                 seuil_score=60, base: Optional[Parameters] = None) -> Parameters:
+                 seuil_score=70, base: Optional[Parameters] = None) -> Parameters:
     """Construit un jeu de parametres a partir des reglages de l'interface.
 
     Regles metier (validees) :

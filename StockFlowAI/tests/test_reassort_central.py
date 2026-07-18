@@ -106,7 +106,7 @@ def test_chainage_nette_le_besoin():
 
     res_sans, ds_sans = run_analysis(
         stock=_bytes(_stock_csv()), ventes=_bytes(_ventes_csv()),
-        central_stock=None, params=build_params(cible=14), today=today)
+        central_stock=None, params=build_params(cible=14, seuil_score=50), today=today)
     t_sans = res_sans.transfers
     inter_m_sans = t_sans[(t_sans["reference"] == REF) & (t_sans["taille"] == "M")] \
         if t_sans is not None and not t_sans.empty else pd.DataFrame()
@@ -115,7 +115,7 @@ def test_chainage_nette_le_besoin():
     res_avec, ds_avec = run_analysis(
         stock=_bytes(_stock_csv()), ventes=_bytes(_ventes_csv()),
         central_stock=_central_tsv().encode("latin1"),
-        params=build_params(cible=14), today=today)
+        params=build_params(cible=14, seuil_score=50), today=today)
     # le picking (reassort central) est bien injecte
     assert not ds_avec["picking"].empty
     assert "reassort_central" in ds_avec and not ds_avec["reassort_central"].empty
@@ -163,7 +163,7 @@ def test_donneurs_exposes_pour_depannage():
         "Code_Origine", "BarCode V2", "Taille", "Total QteVenteRetail",
         "Total MtVenteRetailTTC", "Jours dans Date", "Marque Gp", "Saison", "PrixVente"])
     res, _ = run_analysis(stock=_bytes(stock), ventes=_bytes(v.to_csv(index=False)),
-                          params=build_params(cible=14), today=today)
+                          params=build_params(cible=14, seuil_score=50), today=today)
     assert not res.donors.empty
     donor_rows = build_donor_rows(res.donors)
     assert donor_rows
