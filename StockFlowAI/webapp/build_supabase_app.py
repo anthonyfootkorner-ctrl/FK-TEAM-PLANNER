@@ -299,11 +299,20 @@ window.ShipStore = {{
 }};
 
 // --- Back-office utilisateurs (via le backend, protege par le jeton admin) ---
+// jeton TOUJOURS frais : Supabase rafraichit la session cote client, on relit
+// donc le jeton courant avant chaque appel backend (evite « Session expiree »).
+async function freshToken(){{
+  try{{ const {{data}} = await sb.auth.getSession();
+    if(data && data.session){{ ACCESS = data.session.access_token; return ACCESS; }}
+  }}catch(e){{}}
+  return ACCESS;
+}}
 async function _adminApi(path, method, body){{
   if(!BACKEND_URL) throw new Error("Backend non configure.");
+  const tok = await freshToken();
   const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + path, {{
     method: method || 'GET',
-    headers: {{'Authorization':'Bearer '+ACCESS, 'Content-Type':'application/json'}},
+    headers: {{'Authorization':'Bearer '+tok, 'Content-Type':'application/json'}},
     body: body ? JSON.stringify(body) : undefined }});
   if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
   return r.status===204 ? null : await r.json();
@@ -359,8 +368,9 @@ window.doGenerate = async function({{stock, ventes, reassort, objectif, central,
   if(central) fd.append('central', central);
   fd.append('cible', String(cible));
   const baseId = RUN ? RUN.id : null;
+  const tok = await freshToken();
   const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{
-    method:'POST', headers:{{'Authorization':'Bearer '+ACCESS}}, body: fd }});
+    method:'POST', headers:{{'Authorization':'Bearer '+tok}}, body: fd }});
   if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
   // fichiers envoyes : le moteur tourne sur GitHub (~1-2 min) -> etape "optimise"
   if(window.__genStep) window.__genStep('optimise');
