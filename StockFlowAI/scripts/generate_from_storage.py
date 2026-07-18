@@ -34,6 +34,7 @@ from stockflow.reassort_central import (  # noqa: E402
 from stockflow import valorisation as valo  # noqa: E402
 
 REF_DIR = Path(__file__).resolve().parent / "reassort_ref"  # Listing mag + prix de gros
+_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_KEY"]
@@ -249,9 +250,12 @@ def _send_mail(subject, html, attachments):
     return True
 
 
-def _reassort_central_outputs(run_id, datasets, run_label, central_path):
+def _reassort_central_outputs(run_id, datasets, run_label, central_path,
+                              transferts_excel=None):
     """Sortie A (lignes de reassort central en base) + sortie B (import Fastmag
-    depose dans le Storage). Ne fait rien si le reassort central n'a pas tourne."""
+    depose dans le Storage) + classeur Excel + e-mail recap. ``transferts_excel``
+    (octets) = classeur des transferts inter-magasins, joint au meme e-mail.
+    Ne fait rien si le reassort central n'a pas tourne."""
     rc = datasets.get("reassort_central")
     if rc is None or rc.empty:
         return
@@ -290,7 +294,6 @@ def _reassort_central_outputs(run_id, datasets, run_label, central_path):
             # Classeur Excel recap (comme l'outil historique) + e-mail
             res = datasets.get("reassort_central_result")
             xlsx_bytes = None
-            _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             try:
                 xlsx_path = tmpd / f"reassort_{run_label}.xlsx"
                 if build_reassort_excel(res, xlsx_path):
@@ -307,7 +310,9 @@ def _reassort_central_outputs(run_id, datasets, run_label, central_path):
                 if html:
                     atts = []
                     if xlsx_bytes:
-                        atts.append((f"reassort_{run_label}.xlsx", xlsx_bytes, _XLSX))
+                        atts.append((f"reassort_central_{run_label}.xlsx", xlsx_bytes, _XLSX))
+                    if transferts_excel:
+                        atts.append((f"transferts_intermagasins_{run_label}.xlsx", transferts_excel, _XLSX))
                     if fastmag_bytes:
                         atts.append(("IMPORT_FASTMAG.txt", fastmag_bytes, "text/plain"))
                     _send_mail(f"Reassort central — {run_label}", html, atts)
@@ -333,9 +338,13 @@ def main() -> int:
     central = _dl(central_p)
 
     today = pd.Timestamp(datetime.date.today())
+    # classeur des transferts inter-magasins ecrit par la pipeline (export_path)
+    _workdir = tempfile.mkdtemp()
+    transferts_xlsx = Path(_workdir) / "transferts.xlsx"
     result, datasets = run_analysis(
         stock=stock, ventes=ventes, reassort=reassort, objectif=objectif,
         central_stock=central, params=build_params(cible=cible), today=today,
+        export_path=transferts_xlsx,
     )
     if getattr(result, "blocked", False):
         # on nettoie quand meme puis on echoue clairement
@@ -357,8 +366,21 @@ def main() -> int:
     }
     run_id = push(result, meta, url=URL, service_key=KEY)
 
-    # reassort central : sortie A (base) + sortie B (import Fastmag dans Storage)
-    _reassort_central_outputs(run_id, datasets, meta["runid"], central_p)
+    # classeur des transferts inter-magasins : depot Storage + joint a l'e-mail
+    transferts_bytes = None
+    try:
+        if transferts_xlsx.exists():
+            transferts_bytes = transferts_xlsx.read_bytes()
+            dt = f"exports/{meta['runid']}/transferts.xlsx"
+            if _upload(dt, transferts_bytes, _XLSX):
+                _patch_run(run_id, {"transferts_excel": dt})
+                print(f"classeur transferts inter-magasins : {dt}")
+    except Exception as exc:
+        print("classeur transferts ignore :", exc)
+
+    # reassort central : sortie A (base) + sortie B (Fastmag) + Excel + e-mail
+    _reassort_central_outputs(run_id, datasets, meta["runid"], central_p,
+                              transferts_excel=transferts_bytes)
 
     # valorisation cumulative (central + inter-magasins, credit expediteur)
     _valorisation_step(run_id, today, datasets, result)
@@ -384,6 +406,7 @@ def main() -> int:
 
     for p in (stock_p, ventes_p, reassort_p, objectif_p, central_p):
         _rm(p)
+    shutil.rmtree(_workdir, ignore_errors=True)
 
     # purge : on ne garde que les N derniers runs (maitrise du stockage / cout).
     # La suppression d'un run efface en cascade ses transferts / revues / expeditions.
