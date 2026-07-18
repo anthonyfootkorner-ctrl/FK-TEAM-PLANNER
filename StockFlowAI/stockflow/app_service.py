@@ -44,11 +44,19 @@ def _buffer(src):
     return _factory
 
 
-def build_params(*, cible=14, min_expediteur=10, min_web=14, nb_max_destinations=4,
+def build_params(*, cible=21, min_expediteur=30, min_web=14, nb_max_destinations=4,
                  seuil_score=60, base: Optional[Parameters] = None) -> Parameters:
-    """Construit un jeu de parametres a partir des reglages de l'interface."""
+    """Construit un jeu de parametres a partir des reglages de l'interface.
+
+    Regles metier (validees) :
+    * ``cible`` = couverture visee chez le RECEVEUR (jours) : appliquee aux
+      transferts inter-magasins ET au reassort central (meme cible partout).
+    * ``min_expediteur`` = couverture que l'EXPEDITEUR conserve apres envoi
+      (jours) : il ne cede que le surplus au-dela de cette reserve.
+    """
     p = base or Parameters()
     p.set("couverture_cible_magasin", int(cible))
+    p.set("couverture_cible_central", int(cible))   # reassort central : meme cible receveur
     p.set("couverture_min_expediteur", int(min_expediteur))
     p.set("couverture_min_web", int(min_web))
     p.set("nb_max_destinations", int(nb_max_destinations))

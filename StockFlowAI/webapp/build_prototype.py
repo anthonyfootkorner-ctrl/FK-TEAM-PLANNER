@@ -1330,7 +1330,7 @@ function renderGenerer(){
       <div class="ufield"><label>Stock CENTRAL — optionnel (réassort central)</label><input type="file" id="g_central" accept=".xls,.xlsx,.csv,.txt"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">Active le réassort central : CENTRAL → magasins d'abord, puis son résultat alimente le picking des transferts inter-magasins (A + B).</div></div>
       <div class="ufield"><label>Réassort Picking — optionnel</label><input type="file" id="g_reassort" accept=".xlsx,.csv"></div>
       <div class="ufield"><label>Objectifs — optionnel</label><input type="file" id="g_objectif" accept=".csv,.xlsx"></div>
-      <div class="ufield"><label>Cible de couverture (jours)</label><input type="number" id="g_cible" value="14" min="1" style="max-width:120px"></div>
+      <div class="ufield"><label>Cible de couverture receveur (jours)</label><input type="number" id="g_cible" value="21" min="1" style="max-width:120px"></div>
       <button class="btn" id="g_run" style="margin-top:6px">⚙️ Générer les transferts</button>
       <div id="g_status" style="margin-top:14px;font-size:13px;color:var(--muted);min-height:18px"></div>
     </div>`;
@@ -1358,7 +1358,7 @@ function bindGenerer(root){
     const ventes=root.querySelector('#g_ventes').files[0];
     if(!stock||!ventes){ st.style.color='var(--red)'; st.textContent='Ajoute au moins le fichier Stock et le fichier Ventes.'; return; }
     if(!window.doGenerate){ st.style.color='var(--amber)'; st.textContent="La génération est disponible sur le site hébergé (backend requis)."; return; }
-    const cible=parseInt(root.querySelector('#g_cible').value)||14;
+    const cible=parseInt(root.querySelector('#g_cible').value)||21;
     root.querySelector('#g_run').disabled=true; st.textContent='';
     showGenOverlay();
     try{

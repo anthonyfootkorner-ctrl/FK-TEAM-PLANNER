@@ -191,7 +191,7 @@ async def generer(
     reassort: UploadFile | None = File(None),
     objectif: UploadFile | None = File(None),
     central: UploadFile | None = File(None),
-    cible: int = Form(14),
+    cible: int = Form(21),
     authorization: str | None = Header(None),
 ):
     token = (authorization or "").replace("Bearer ", "").strip()

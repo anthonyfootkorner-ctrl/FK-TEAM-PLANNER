@@ -117,10 +117,10 @@ def test_couverture_formule(stocks, sales, picking, stores, params):
 
 def test_besoin_residuel_net_du_picking(stocks, sales, picking, stores, params):
     base = build(stocks, sales, picking, stores, params)
-    # S : cible 30j * daily 1 = 30 ; projete 3 => besoin residuel 27
+    # S : cible 21j * daily 1 = 21 ; projete 3 => besoin residuel 18
     s = get(base, "A", "S")
-    assert s["besoin_residuel"] == 27
-    # M : cible 30 ; projete 45 => aucun besoin (anti-double reassort)
+    assert s["besoin_residuel"] == 18
+    # M : cible 21 ; projete 45 => aucun besoin (anti-double reassort)
     m = get(base, "A", "M")
     assert m["besoin_residuel"] == 0
 
