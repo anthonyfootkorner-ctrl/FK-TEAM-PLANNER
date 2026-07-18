@@ -272,6 +272,23 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
 
     picking = load_reassort(reassort_xlsx) if reassort_xlsx else pd.DataFrame()
 
+    # designation produit (best-effort) : si un des fichiers fournit un libelle,
+    # on construit une carte reference -> designation pour enrichir l'affichage
+    # (bons de prepa magasin). Absente si les exports n'ont pas la colonne.
+    _DESIG_COLS = ("designation", "désignation", "desig", "libelle", "libellé",
+                   "description", "designation article", "nom article", "designation1")
+    designation_map: Dict[str, str] = {}
+    for raw, refser in ((vraw, vref), (sraw, sref)):
+        col = next((c for c in raw.columns
+                    if str(c).strip().lower() in _DESIG_COLS), None)
+        if not col:
+            continue
+        d = pd.DataFrame({"ref": list(refser.values),
+                          "d": raw[col].astype(str).str.strip().values})
+        d = d[(d["d"] != "") & (d["d"].str.lower() != "nan")]
+        for ref, des in zip(d["ref"], d["d"]):
+            designation_map.setdefault(str(ref), des)
+
     return {
         "stocks": stocks,
         "ventes": sales_out,
@@ -279,4 +296,5 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
         "picking": picking,
         "magasins": stores,
         "historique": pd.DataFrame(),
+        "designation_map": designation_map,
     }

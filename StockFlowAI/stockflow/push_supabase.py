@@ -46,6 +46,7 @@ def build_payload(result, meta: Dict) -> Tuple[Dict, List[Dict]]:
     if t is not None and not t.empty:
         t = t.sort_values("score", ascending=False).reset_index(drop=True)
         marque_map = meta.get("marque_map", {})
+        desig_map = meta.get("designation_map", {}) or {}
         for i, r in t.iterrows():
             ref = str(r.get("reference", ""))
             transfers.append({
@@ -53,6 +54,7 @@ def build_payload(result, meta: Dict) -> Tuple[Dict, List[Dict]]:
                 "priorite": r.get("priorite"),
                 "score": _num(r.get("score")),
                 "marque": marque_map.get((ref, str(r.get("couleur", ""))), r.get("marque", "")),
+                "designation": desig_map.get(ref) or None,
                 "expediteur": r.get("expediteur"),
                 "destinataire": r.get("destinataire"),
                 "reference": ref,
