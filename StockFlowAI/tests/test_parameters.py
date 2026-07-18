@@ -4,8 +4,8 @@ from stockflow.parameters import Parameters, classer_score
 
 def test_defaults_presents():
     p = Parameters()
-    assert p.get("couverture_cible_magasin") == 30
-    assert p.get("couverture_min_expediteur") == 20
+    assert p.get("couverture_cible_magasin") == 21
+    assert p.get("couverture_min_expediteur") == 30
     assert p.get("nb_max_destinations") == 4
 
 
@@ -35,12 +35,12 @@ def test_load_from_xlsx(tmp_path):
     assert p.get("couverture_cible_magasin") == 40
     assert p.get("nb_max_destinations") == 3
     # les autres defauts restent
-    assert p.get("couverture_min_expediteur") == 20
+    assert p.get("couverture_min_expediteur") == 30
 
 
 def test_absence_fichier_ne_bloque_pas(tmp_path):
     p = Parameters.load(tmp_path / "inexistant.xlsx")
-    assert p.get("couverture_cible_magasin") == 30
+    assert p.get("couverture_cible_magasin") == 21
 
 
 def test_roundtrip_preserve_familles_vides(tmp_path):

@@ -156,7 +156,7 @@ def main() -> int:
     reassort_p = os.environ.get("REASSORT_PATH") or None
     objectif_p = os.environ.get("OBJECTIF_PATH") or None
     central_p = os.environ.get("CENTRAL_PATH") or None
-    cible = int(os.environ.get("CIBLE", "14"))
+    cible = int(os.environ.get("CIBLE", "21"))
 
     stock = _dl(stock_p)
     ventes = _dl(ventes_p)
