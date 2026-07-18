@@ -11,8 +11,8 @@ Genere la liste des *besoins* receveur au niveau
 Regles respectees :
 * uniquement des references DEJA implantees dans le magasin receveur (2.8) ;
 * le Picking deja programme ne doit pas etre double (besoin residuel, 5.1) ;
-* le Web n'est pas un receveur du flux principal (il recoit des reliquats,
-  traite a part).
+* le Web est receveur du surplus magasin (intershop) des que SA propre
+  couverture est sous le seuil web, sans contrainte de grille de tailles.
 """
 
 from __future__ import annotations
@@ -83,6 +83,25 @@ def detect_receivers(df: pd.DataFrame, index: GridIndex, params: Parameters,
                 besoins.append(_need_row(row, taille=taille, qte=2.0,
                                          type_besoin="grille",
                                          motif=f"Taille coeur {taille} absente (grille {state.label()})"))
+
+    # 3) Besoins WEB (intershop) : le web absorbe le surplus des magasins des
+    #    que SA propre couverture est sous le seuil web. Aucune contrainte de
+    #    grille de tailles pour le web. C'est le canal "ce que les magasins
+    #    n'ecouleront pas" -> web (le donneur reste un magasin en surstock).
+    cible_web = float(params.get("couverture_cible_web") or cible)
+    webs = df[is_web].copy()
+    if exclus_flux and not webs.empty:
+        webs = webs[~webs["magasin"].astype(str).str.upper().isin(exclus_flux)]
+    for row in webs.itertuples(index=False):
+        daily = float(getattr(row, "moyenne_quotidienne", 0) or 0)
+        cov = float(getattr(row, "couverture_projetee", 0) or 0)
+        stock_proj = float(getattr(row, "stock_projete", 0) or 0)
+        if daily > 0 and cov < cible_web:
+            besoin_web = float(np.maximum(0.0, np.ceil(cible_web * daily - stock_proj)))
+            if besoin_web >= 1:
+                besoins.append(_need_row(
+                    row, taille=str(row.taille), qte=besoin_web, type_besoin="couverture",
+                    motif=f"Web sous couverture ({cov:.0f}j) — absorbe le surplus magasin"))
 
     if not besoins:
         return pd.DataFrame(columns=_NEED_COLUMNS)
