@@ -155,6 +155,25 @@ def delete_user(uid: str, authorization: str | None = Header(None)):
     return {"ok": True}
 
 
+@app.get("/fastmag")
+def fastmag_url(path: str, authorization: str | None = Header(None)):
+    """Renvoie une URL signee (courte duree) pour telecharger le fichier
+    d'import Fastmag depose dans le Storage prive. Reserve a l'admin."""
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    if not path:
+        raise HTTPException(400, "Chemin manquant.")
+    r = requests.post(
+        f"{SUPABASE_URL}/storage/v1/object/sign/{BUCKET}/{path}",
+        headers={**_svc(), "Content-Type": "application/json"},
+        json={"expiresIn": 300}, timeout=15)
+    if r.status_code != 200:
+        raise HTTPException(404, f"Fichier introuvable ({r.status_code}).")
+    signed = (r.json() or {}).get("signedURL", "")
+    if not signed:
+        raise HTTPException(404, "URL signee indisponible.")
+    return {"url": f"{SUPABASE_URL}/storage/v1{signed}"}
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "configured": bool(SUPABASE_URL and SERVICE_KEY and GH_TOKEN and GH_REPO)}

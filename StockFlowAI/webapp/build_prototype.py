@@ -535,6 +535,7 @@ const TABS = [
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
   {id:'differences',ico:'🚩',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
+  {id:'reassort',ico:'🏭',label:'Réassort central',short:'Réassort'},
   {id:'users',ico:'👤',label:'Utilisateurs',short:'Users'},
   {id:'generer',ico:'⚙️',label:'Générer',short:'Générer'},
 ];
@@ -788,15 +789,17 @@ function render(){
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
     flux:'Synthèse par flux',simulation:'Statistiques (avant / après)',cas:'Cas non traités',
     differences:'Différences signalées',demandes:'Demandes urgentes',
+    reassort:'Réassort central (CENTRAL → magasins)',
     users:'Gestion des utilisateurs',generer:'Générer une mise à jour'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
     simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes,
-    users:renderUsers,generer:renderGenerer}[tab]();
+    reassort:renderReassort,users:renderUsers,generer:renderGenerer}[tab]();
   if(tab==='demandes'){ loadDemandes(); }
   if(tab==='differences'){ loadDifferences(); }
+  if(tab==='reassort'){ loadReassort(c, null); }
   if(tab==='users'){ bindUsers(c); }
   if(tab==='generer'){ bindGenerer(c); }
   if(tab==='transferts'){
@@ -818,6 +821,7 @@ function render(){
 const STORE_TABS = [
   {id:'expedier', ico:'📤', label:'À expédier',       short:'Expédier'},
   {id:'recevoir', ico:'📥', label:'Réceptions',       short:'Récept.'},
+  {id:'reassort', ico:'🏭', label:'Réassort central', short:'Réassort'},
   {id:'grilles',  ico:'📐', label:'Mes grilles',      short:'Grilles'},
   {id:'stats',    ico:'📊', label:'Mes stats',        short:'Stats'},
   {id:'urgent',   ico:'🚨', label:'Demande urgente',  short:'Urgent'},
@@ -1062,9 +1066,10 @@ function renderStore(){
   const c=document.getElementById('content'); c.className='content';
   const switcher = STORES.length>1 ? `<div class="storeswitch"><label>Magasin</label>
     <select id="storeSel">${STORES.map(s=>`<option ${s===STORE?'selected':''}>${s}</option>`).join('')}</select></div>` : '';
-  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, stats:renderStoreStats, urgent:renderUrgent}[stab]();
+  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, reassort:renderReassort, grilles:renderGrilles, stats:renderStoreStats, urgent:renderUrgent}[stab]();
   const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; openDest=null; renderStore(); };
   if(stab==='expedier') bindExpedier(c);
+  if(stab==='reassort') loadReassort(c, STORE);
   if(stab==='urgent') bindUrgent(c);
   if(PREVIEW){ const ba=document.getElementById('backAdmin'); if(ba) ba.onclick=()=>{PREVIEW=false;MODE='admin';render();}; }
 }
@@ -1117,6 +1122,49 @@ async function loadDifferences(){
   box.innerHTML = (items.length?`<div class="note"><b>${items.length}</b> différence(s) signalée(s)</div>`:'')
     + (items.length? items.map(diffCard).join('') : `<div class="empty">Aucune différence signalée. 👍</div>`);
 }
+
+// ============================================================
+//  REASSORT CENTRAL (CENTRAL -> magasins) — sortie A + import Fastmag (B)
+// ============================================================
+function renderReassort(){
+  return `<div class="note">Réassort central de la semaine : <b>CENTRAL → magasins</b>. Sa sortie alimente aussi le picking des transferts inter-magasins (le besoin résiduel en tient compte).</div>
+    <div id="rc_head"></div>
+    <div id="rc_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function reassortCard(x){
+  const p=(x.priorite||''); const isP1=p.indexOf('P1')===0; const isP2=p.indexOf('P2')===0;
+  const col=isP1?'var(--red)':(isP2?'var(--amber)':'var(--muted)');
+  const bg=isP1?'var(--red-bg)':(isP2?'var(--amber-bg)':'var(--chip)');
+  return `<div class="tcard"><div class="top">
+      <span class="pill" style="background:${bg};color:${col}">${p||'—'}</span>
+      <span class="score" style="font-size:15px">${x.boutique}</span></div>
+    <div class="flux">${x.reference} <span style="color:var(--muted);font-weight:600">· ${x.taille}</span></div>
+    <div class="meta"><span><span class="k">Qté</span>${x.qte}</span>${x.marque?`<span><span class="k">Marque</span>${x.marque}</span>`:''}${(x.couverture_j!=null&&x.couverture_j!=='')?`<span><span class="k">Couv.</span>${x.couverture_j} j</span>`:''}${x.tailles_apres?`<span><span class="k">Après</span>${x.tailles_apres}</span>`:''}</div>
+    ${x.commentaire?`<div class="motif">${x.commentaire}</div>`:''}
+  </div>`;
+}
+async function loadReassort(root, store){
+  const box=(root||document).querySelector('#rc_list'); if(!box) return;
+  const head=(root||document).querySelector('#rc_head');
+  if(!window.ReassortStore){ box.innerHTML=`<div class="empty">Disponible sur le site hébergé.</div>`; return; }
+  let items=[]; try{ items=await window.ReassortStore.list(store); }
+  catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  if(!items.length){ if(head) head.innerHTML='';
+    box.innerHTML=`<div class="empty">Aucun réassort central pour ce run.${store?'':" Importe un fichier « Stock CENTRAL » dans l'onglet Générer."}</div>`; return; }
+  const pieces=items.reduce((s,x)=>s+(+x.qte||0),0);
+  const nbBout=new Set(items.map(x=>x.boutique)).size;
+  if(head){
+    let dl='';
+    if(!store && window.ReassortStore.fastmagUrl){
+      try{ const u=await window.ReassortStore.fastmagUrl(); if(u) dl=`<a class="btn" href="${u}" style="text-decoration:none">⬇️ Fichier d'import Fastmag</a>`; }catch(e){}
+    }
+    head.innerHTML=`<div class="note"><b>${items.length}</b> ligne(s) · <b>${pieces}</b> pièces${store?'':` · ${nbBout} magasin(s)`}</div>`
+      +(dl?`<div style="margin:2px 0 14px">${dl}</div>`:'');
+  }
+  box.innerHTML=items.map(reassortCard).join('');
+}
+// Hook par defaut (prototype/demo) : pas de reassort central hors site heberge.
+window.ReassortStore = window.ReassortStore || { async list(){ return []; } };
 
 // ============================================================
 //  UTILISATEURS (back-office admin)
@@ -1200,6 +1248,7 @@ function renderGenerer(){
     <div class="panel" style="padding:18px;max-width:560px">
       <div class="ufield"><label>Stock — obligatoire</label><input type="file" id="g_stock" accept=".csv,.xlsx"></div>
       <div class="ufield"><label>Ventes — obligatoire</label><input type="file" id="g_ventes" accept=".csv,.xlsx"></div>
+      <div class="ufield"><label>Stock CENTRAL — optionnel (réassort central)</label><input type="file" id="g_central" accept=".xls,.xlsx,.csv,.txt"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">Active le réassort central : CENTRAL → magasins d'abord, puis son résultat alimente le picking des transferts inter-magasins (A + B).</div></div>
       <div class="ufield"><label>Réassort Picking — optionnel</label><input type="file" id="g_reassort" accept=".xlsx,.csv"></div>
       <div class="ufield"><label>Objectifs — optionnel</label><input type="file" id="g_objectif" accept=".csv,.xlsx"></div>
       <div class="ufield"><label>Cible de couverture (jours)</label><input type="number" id="g_cible" value="14" min="1" style="max-width:120px"></div>
@@ -1236,7 +1285,8 @@ function bindGenerer(root){
     try{
       const res=await window.doGenerate({stock, ventes,
         reassort:root.querySelector('#g_reassort').files[0],
-        objectif:root.querySelector('#g_objectif').files[0], cible});
+        objectif:root.querySelector('#g_objectif').files[0],
+        central:root.querySelector('#g_central').files[0], cible});
       window.__genStep('gagne');
       genHint(`✅ ${res.nb_transferts} transferts générés${res.perimetre?' · '+res.perimetre:''}`);
       setTimeout(()=>location.reload(), 1800);

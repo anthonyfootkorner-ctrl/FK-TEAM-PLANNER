@@ -157,7 +157,7 @@ window.bootData = async function(){{
   return {{
     meta:{{brand:'STOCKFLOW.AI', tagline:'Répartition des stocks',
       runid:RUN.id, perimetre:RUN.perimetre, cible:RUN.cible, date:RUN.date_execution,
-      impact:RUN.impact||null}},
+      impact:RUN.impact||null, fastmag_import:RUN.fastmag_import||null}},
     cols:COLS, transfers, kpis:RUN.kpis||{{}}, flux, cas_counts:{{}}
   }};
 }};
@@ -206,6 +206,28 @@ window.DiffStore = {{
     return (data||[]).map(dd=>{{ const t=ID2ROW[dd.transfer_id]; if(!t) return null;
       return {{reference:t[6], taille:t[7], quantite:t[8], expediteur:t[4],
         destinataire:t[5], marque:t[3], updated_at:dd.updated_at}}; }}).filter(Boolean);
+  }}
+}};
+
+// --- Reassort central (CENTRAL -> magasins) : sortie A + import Fastmag (B) ---
+window.ReassortStore = {{
+  async list(store){{
+    if(!RUN) return [];
+    let q = sb.from('stockflow_reassort_central').select('*').eq('run_id', RUN.id);
+    if(store) q = q.eq('boutique', store);
+    // tri : priorite (P1..P4) puis quantite decroissante
+    q = q.order('priorite', {{ascending:true}}).order('qte', {{ascending:false}});
+    const {{data, error}} = await q.limit(5000);
+    if(error) throw error;
+    return (data||[]).map(r=>({{boutique:r.boutique, reference:r.reference, taille:r.taille,
+      marque:r.marque, qte:r.qte, priorite:r.priorite, commentaire:r.commentaire,
+      couverture_j:r.couverture_j, tailles_apres:r.tailles_apres}}));
+  }},
+  // lien de telechargement du fichier d'import Fastmag (admin, via le backend)
+  async fastmagUrl(){{
+    if(!RUN || !RUN.fastmag_import || !BACKEND_URL) return null;
+    try{{ const j = await _adminApi('/fastmag?path='+encodeURIComponent(RUN.fastmag_import));
+      return (j && j.url) || null; }}catch(e){{ return null; }}
   }}
 }};
 
@@ -283,13 +305,14 @@ async function enter(session){{
 }}
 
 // --- Generation : envoi au relais -> calcul sur GitHub -> attente du nouveau run ---
-window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}}){{
+window.doGenerate = async function({{stock, ventes, reassort, objectif, central, cible}}){{
   if(!BACKEND_URL) throw new Error("Backend non configure (BACKEND_URL vide).");
   const fd = new FormData();
   fd.append('stock', stock);
   fd.append('ventes', ventes);
   if(reassort) fd.append('reassort', reassort);
   if(objectif) fd.append('objectif', objectif);
+  if(central) fd.append('central', central);
   fd.append('cible', String(cible));
   const baseId = RUN ? RUN.id : null;
   const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{
