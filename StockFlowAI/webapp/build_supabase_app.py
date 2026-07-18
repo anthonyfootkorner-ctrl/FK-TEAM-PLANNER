@@ -157,7 +157,8 @@ window.bootData = async function(){{
   return {{
     meta:{{brand:'STOCKFLOW.AI', tagline:'Répartition des stocks',
       runid:RUN.id, perimetre:RUN.perimetre, cible:RUN.cible, date:RUN.date_execution,
-      impact:RUN.impact||null, fastmag_import:RUN.fastmag_import||null}},
+      impact:RUN.impact||null, fastmag_import:RUN.fastmag_import||null,
+      reassort_excel:RUN.reassort_excel||null}},
     cols:COLS, transfers, kpis:RUN.kpis||{{}}, flux, cas_counts:{{}}
   }};
 }};
@@ -227,6 +228,12 @@ window.ReassortStore = {{
   async fastmagUrl(){{
     if(!RUN || !RUN.fastmag_import || !BACKEND_URL) return null;
     try{{ const j = await _adminApi('/fastmag?path='+encodeURIComponent(RUN.fastmag_import));
+      return (j && j.url) || null; }}catch(e){{ return null; }}
+  }},
+  // lien de telechargement du classeur Excel recap (memes endpoint signe)
+  async excelUrl(){{
+    if(!RUN || !RUN.reassort_excel || !BACKEND_URL) return null;
+    try{{ const j = await _adminApi('/fastmag?path='+encodeURIComponent(RUN.reassort_excel));
       return (j && j.url) || null; }}catch(e){{ return null; }}
   }}
 }};

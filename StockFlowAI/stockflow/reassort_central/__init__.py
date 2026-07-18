@@ -325,6 +325,28 @@ def proposed_to_picking(proposed: pd.DataFrame) -> pd.DataFrame:
     return pick
 
 
+def build_reassort_excel(res: "ReassortCentralResult", out_path) -> bool:
+    """Genere le classeur Excel recap (comme l'outil historique) : Synthese,
+    Tous transferts, une feuille par magasin, alertes, risques, top ventes."""
+    if res is None or res.proposed is None or res.proposed.empty:
+        return False
+    _ag.build_excel(
+        Path(out_path), res.proposed, res.risk, res.top,
+        res.promo_exclus, res.taille_seule_exclus, res.reserve,
+        res.sales_start, res.sales_end, res.target_days, res.sales_days)
+    return True
+
+
+def build_reassort_email_html(res: "ReassortCentralResult", run_date=None) -> str:
+    """Corps HTML du mail recap (reprend le format de l'outil historique)."""
+    if res is None or res.proposed is None or res.proposed.empty:
+        return ""
+    return _ag.build_email_html(
+        res.proposed, res.risk, res.promo_exclus, res.taille_seule_exclus,
+        res.sales_start, res.sales_end, res.target_days, res.sales_days,
+        res.reserve, run_date=run_date)
+
+
 def build_fastmag_import(proposed: pd.DataFrame, out_path, ref_dir,
                          run_date=None) -> tuple[int, int, list]:
     """Genere le fichier d'import Fastmag (sortie B).
