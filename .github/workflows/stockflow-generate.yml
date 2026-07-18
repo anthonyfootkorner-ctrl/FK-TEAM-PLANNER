@@ -27,5 +27,6 @@ jobs:
           VENTES_PATH: ${{ github.event.client_payload.ventes }}
           REASSORT_PATH: ${{ github.event.client_payload.reassort }}
           OBJECTIF_PATH: ${{ github.event.client_payload.objectif }}
+          CENTRAL_PATH: ${{ github.event.client_payload.central }}
           CIBLE: ${{ github.event.client_payload.cible }}
         run: python StockFlowAI/scripts/generate_from_storage.py

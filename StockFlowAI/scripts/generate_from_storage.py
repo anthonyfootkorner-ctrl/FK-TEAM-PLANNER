@@ -16,7 +16,9 @@ import datetime
 import io
 import json
 import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import requests
@@ -26,7 +28,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd  # noqa: E402
 from stockflow.app_service import build_params, run_analysis  # noqa: E402
 from stockflow.impact import compute_impact  # noqa: E402
-from stockflow.push_supabase import push  # noqa: E402
+from stockflow.push_supabase import push, push_reassort_central  # noqa: E402
+from stockflow.reassort_central import build_fastmag_import  # noqa: E402
+
+REF_DIR = Path(__file__).resolve().parent / "reassort_ref"  # Listing mag + prix de gros
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_KEY"]
@@ -90,23 +95,79 @@ def _patch_impact(run_id, impact):
         data=json.dumps({"impact": impact}), timeout=30)
 
 
+def _patch_run(run_id, fields: dict):
+    requests.patch(
+        f"{URL}/rest/v1/stockflow_runs?id=eq.{run_id}",
+        headers={**_hdr(), "Content-Type": "application/json"},
+        data=json.dumps(fields), timeout=30)
+
+
+def _upload(path: str, data: bytes, content_type: str = "text/plain"):
+    r = requests.post(
+        f"{URL}/storage/v1/object/{BUCKET}/{path}",
+        headers={**_hdr(), "Content-Type": content_type, "x-upsert": "true"},
+        data=data, timeout=120)
+    return r.status_code in (200, 201)
+
+
+def _reassort_central_outputs(run_id, datasets, run_label, central_path):
+    """Sortie A (lignes de reassort central en base) + sortie B (import Fastmag
+    depose dans le Storage). Ne fait rien si le reassort central n'a pas tourne."""
+    rc = datasets.get("reassort_central")
+    if rc is None or rc.empty:
+        return
+    try:
+        n = push_reassort_central(run_id, rc, url=URL, service_key=KEY)
+        print(f"reassort central : {n} lignes (sortie A)")
+    except Exception as exc:
+        print("reassort central (A) ignore :", exc)
+
+    # Sortie B : fichier d'import Fastmag. On prepare un dossier de reference
+    # (Listing mag + prix de gros versionnes) + le stock CENTRAL (couleurs).
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpd = Path(tmp)
+            if REF_DIR.exists():
+                for f in REF_DIR.iterdir():
+                    if f.is_file():
+                        shutil.copy2(f, tmpd / f.name)
+            # le stock CENTRAL sert de source couleur (central_couleur)
+            cdata = _dl(central_path)
+            if cdata is not None:
+                (tmpd / "stock_central.xls").write_bytes(cdata.getvalue())
+            out = tmpd / "IMPORT_FASTMAG.txt"
+            nb, nbb, sans = build_fastmag_import(rc, out, tmpd,
+                                                 run_date=datetime.datetime.now())
+            if nb > 0:
+                dest = f"exports/{run_label}/IMPORT_FASTMAG.txt"
+                if _upload(dest, out.read_bytes(), "text/plain; charset=latin1"):
+                    _patch_run(run_id, {"fastmag_import": dest})
+                    print(f"import Fastmag : {nb} lignes -> {dest} (sortie B)")
+                if sans:
+                    print("boutiques sans numero Fastmag :", ", ".join(sans))
+    except Exception as exc:
+        print("import Fastmag (B) ignore :", exc)
+
+
 def main() -> int:
     prev = _latest_run()   # dernier run AVANT le nouveau -> pour la mesure d'impact
     stock_p = os.environ.get("STOCK_PATH")
     ventes_p = os.environ.get("VENTES_PATH")
     reassort_p = os.environ.get("REASSORT_PATH") or None
     objectif_p = os.environ.get("OBJECTIF_PATH") or None
+    central_p = os.environ.get("CENTRAL_PATH") or None
     cible = int(os.environ.get("CIBLE", "14"))
 
     stock = _dl(stock_p)
     ventes = _dl(ventes_p)
     reassort = _dl(reassort_p)
     objectif = _dl(objectif_p)
+    central = _dl(central_p)
 
     today = pd.Timestamp(datetime.date.today())
     result, datasets = run_analysis(
         stock=stock, ventes=ventes, reassort=reassort, objectif=objectif,
-        params=build_params(cible=cible), today=today,
+        central_stock=central, params=build_params(cible=cible), today=today,
     )
     if getattr(result, "blocked", False):
         # on nettoie quand meme puis on echoue clairement
@@ -128,6 +189,9 @@ def main() -> int:
     }
     run_id = push(result, meta, url=URL, service_key=KEY)
 
+    # reassort central : sortie A (base) + sortie B (import Fastmag dans Storage)
+    _reassort_central_outputs(run_id, datasets, meta["runid"], central_p)
+
     # mesure d'impact du run PRECEDENT avec les nouvelles ventes (chez le destinataire)
     if prev and prev.get("id"):
         try:
@@ -140,7 +204,7 @@ def main() -> int:
         except Exception as exc:
             print("impact ignore :", exc)
 
-    for p in (stock_p, ventes_p, reassort_p, objectif_p):
+    for p in (stock_p, ventes_p, reassort_p, objectif_p, central_p):
         _rm(p)
 
     # purge : on ne garde que les N derniers runs (maitrise du stockage / cout).

@@ -106,6 +106,56 @@ def push(result, meta: Dict, *, url: Optional[str] = None, service_key: Optional
     return push_payload(run, transfers, url=url, service_key=service_key, chunk=chunk)
 
 
+def build_reassort_rows(proposed) -> List[Dict]:
+    """Serialise la sortie du reassort central (sortie A) en lignes compactes."""
+    rows: List[Dict] = []
+    if proposed is None or getattr(proposed, "empty", True):
+        return rows
+    for r in proposed.itertuples(index=False):
+        qte = _num(getattr(r, "qte_proposee", 0))
+        if not qte or qte <= 0:
+            continue
+        rows.append({
+            "boutique": str(getattr(r, "boutique", "")),
+            "reference": str(getattr(r, "barcode", "")),
+            "taille": str(getattr(r, "taille", "")),
+            "marque": (str(getattr(r, "marque", "")) or None),
+            "qte": int(qte),
+            "priorite": getattr(r, "priorite", None),
+            "commentaire": getattr(r, "commentaire", None),
+            "couverture_j": _num(getattr(r, "couverture_jours", None)),
+            "besoin": _num(getattr(r, "besoin_theorique", None)),
+            "stock": _num(getattr(r, "stock", None)),
+            "tailles_apres": getattr(r, "tailles_stock_boutique", None),
+        })
+    return rows
+
+
+def push_reassort_central(run_id: str, proposed, *, url: Optional[str] = None,
+                          service_key: Optional[str] = None, chunk: int = 500) -> int:
+    """Insere les lignes de reassort central pour un run. Renvoie le nb insere."""
+    import requests
+
+    rows = build_reassort_rows(proposed)
+    if not rows:
+        return 0
+    url = (url or os.environ.get("SUPABASE_URL", "")).rstrip("/")
+    service_key = service_key or os.environ.get("SUPABASE_SERVICE_KEY", "")
+    base = f"{url}/rest/v1"
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    for i in range(0, len(rows), chunk):
+        batch = [{**row, "run_id": run_id} for row in rows[i:i + chunk]]
+        r = requests.post(f"{base}/stockflow_reassort_central",
+                          headers=headers, data=json.dumps(batch), timeout=60)
+        r.raise_for_status()
+    return len(rows)
+
+
 def dry_run(result, meta: Dict, out_path) -> Dict:
     """Ecrit le payload dans un JSON (sans Supabase) pour verification."""
     run, transfers = build_payload(result, meta)

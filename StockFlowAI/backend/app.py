@@ -171,6 +171,7 @@ async def generer(
     ventes: UploadFile = File(...),
     reassort: UploadFile | None = File(None),
     objectif: UploadFile | None = File(None),
+    central: UploadFile | None = File(None),
     cible: int = Form(14),
     authorization: str | None = Header(None),
 ):
@@ -182,7 +183,7 @@ async def generer(
     _ensure_bucket()
     prefix = "runs/" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     payload = {"cible": int(cible), "bucket": BUCKET,
-               "reassort": None, "objectif": None}
+               "reassort": None, "objectif": None, "central": None}
 
     _upload(f"{prefix}/stock", await stock.read(), stock.content_type)
     payload["stock"] = f"{prefix}/stock"
@@ -194,6 +195,9 @@ async def generer(
     if objectif is not None:
         _upload(f"{prefix}/objectif", await objectif.read(), objectif.content_type)
         payload["objectif"] = f"{prefix}/objectif"
+    if central is not None:
+        _upload(f"{prefix}/central", await central.read(), central.content_type)
+        payload["central"] = f"{prefix}/central"
 
     gh = requests.post(
         f"https://api.github.com/repos/{GH_REPO}/dispatches",
