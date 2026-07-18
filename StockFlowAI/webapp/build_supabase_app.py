@@ -116,9 +116,19 @@ const N2ID = {{}};                       // n (ligne) -> id transfert en base
 let ID2ROW = {{}};                       // id transfert -> ligne (pour enrichir les differences)
 
 // --- Source de donnees : Supabase ---
+// liste des runs recents (historique)
+window.listRuns = async function(){{
+  const {{data}} = await sb.from('stockflow_runs')
+    .select('id,label,date_execution,nb_transferts,created_at')
+    .order('created_at', {{ascending:false}}).limit(20);
+  return data || [];
+}};
+
 window.bootData = async function(){{
-  const {{data:runs}} = await sb.from('stockflow_runs')
-    .select('*').order('created_at',{{ascending:false}}).limit(1);
+  let q = sb.from('stockflow_runs').select('*');
+  q = window.__runId ? q.eq('id', window.__runId).limit(1)
+                     : q.order('created_at', {{ascending:false}}).limit(1);
+  const {{data:runs}} = await q;
   RUN = (runs && runs[0]) || null;
   if(!RUN){{ return {{meta:{{brand:'STOCKFLOW.AI',tagline:'Répartition des stocks'}},
       cols:COLS, transfers:[], kpis:{{}}, flux:[], cas_counts:{{}} }}; }}
@@ -146,7 +156,8 @@ window.bootData = async function(){{
     Math.round(f.score/f.n*10)/10,'',Math.max(1,Math.ceil(f.pieces/30))]);
   return {{
     meta:{{brand:'STOCKFLOW.AI', tagline:'Répartition des stocks',
-      runid:RUN.id, perimetre:RUN.perimetre, cible:RUN.cible, date:RUN.date_execution}},
+      runid:RUN.id, perimetre:RUN.perimetre, cible:RUN.cible, date:RUN.date_execution,
+      impact:RUN.impact||null, fastmag_import:RUN.fastmag_import||null}},
     cols:COLS, transfers, kpis:RUN.kpis||{{}}, flux, cas_counts:{{}}
   }};
 }};
@@ -198,6 +209,28 @@ window.DiffStore = {{
   }}
 }};
 
+// --- Reassort central (CENTRAL -> magasins) : sortie A + import Fastmag (B) ---
+window.ReassortStore = {{
+  async list(store){{
+    if(!RUN) return [];
+    let q = sb.from('stockflow_reassort_central').select('*').eq('run_id', RUN.id);
+    if(store) q = q.eq('boutique', store);
+    // tri : priorite (P1..P4) puis quantite decroissante
+    q = q.order('priorite', {{ascending:true}}).order('qte', {{ascending:false}});
+    const {{data, error}} = await q.limit(5000);
+    if(error) throw error;
+    return (data||[]).map(r=>({{boutique:r.boutique, reference:r.reference, taille:r.taille,
+      marque:r.marque, qte:r.qte, priorite:r.priorite, commentaire:r.commentaire,
+      couverture_j:r.couverture_j, tailles_apres:r.tailles_apres}}));
+  }},
+  // lien de telechargement du fichier d'import Fastmag (admin, via le backend)
+  async fastmagUrl(){{
+    if(!RUN || !RUN.fastmag_import || !BACKEND_URL) return null;
+    try{{ const j = await _adminApi('/fastmag?path='+encodeURIComponent(RUN.fastmag_import));
+      return (j && j.url) || null; }}catch(e){{ return null; }}
+  }}
+}};
+
 // --- Expeditions validees par les magasins ---
 window.ShipStore = {{
   async load(){{
@@ -219,6 +252,23 @@ window.ShipStore = {{
       .match({{run_id:RUN.id, expediteur:exp, destinataire:dest}});
     if(error) throw error;
   }}
+}};
+
+// --- Back-office utilisateurs (via le backend, protege par le jeton admin) ---
+async function _adminApi(path, method, body){{
+  if(!BACKEND_URL) throw new Error("Backend non configure.");
+  const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + path, {{
+    method: method || 'GET',
+    headers: {{'Authorization':'Bearer '+ACCESS, 'Content-Type':'application/json'}},
+    body: body ? JSON.stringify(body) : undefined }});
+  if(!r.ok){{ let m='Erreur '+r.status; try{{ const j=await r.json(); m=j.detail||m; }}catch(e){{}} throw new Error(m); }}
+  return r.status===204 ? null : await r.json();
+}}
+window.UserAdmin = {{
+  list: () => _adminApi('/users'),
+  create: (email, password, stores) => _adminApi('/users', 'POST', {{email, password, stores}}),
+  setStores: (id, stores) => _adminApi('/users/'+id+'/stores', 'POST', {{stores}}),
+  remove: (id) => _adminApi('/users/'+id, 'DELETE')
 }};
 
 // --- Deconnexion ---
@@ -255,13 +305,14 @@ async function enter(session){{
 }}
 
 // --- Generation : envoi au relais -> calcul sur GitHub -> attente du nouveau run ---
-window.doGenerate = async function({{stock, ventes, reassort, objectif, cible}}){{
+window.doGenerate = async function({{stock, ventes, reassort, objectif, central, cible}}){{
   if(!BACKEND_URL) throw new Error("Backend non configure (BACKEND_URL vide).");
   const fd = new FormData();
   fd.append('stock', stock);
   fd.append('ventes', ventes);
   if(reassort) fd.append('reassort', reassort);
   if(objectif) fd.append('objectif', objectif);
+  if(central) fd.append('central', central);
   fd.append('cible', String(cible));
   const baseId = RUN ? RUN.id : null;
   const r = await fetch(BACKEND_URL.replace(/\\/$/, '') + '/generer', {{

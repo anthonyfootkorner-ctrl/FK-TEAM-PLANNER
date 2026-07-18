@@ -28,7 +28,9 @@ DEFAULTS: Dict[str, Any] = {
     # Couvertures (en jours)
     "couverture_cible_magasin": 30,     # cible receveur apres reassort
     "couverture_min_expediteur": 20,    # a conserver apres transfert
-    "couverture_min_web": 30,           # reserve strategique protegee
+    "couverture_min_web": 30,           # reserve strategique protegee (web donneur)
+    "couverture_cible_web": None,       # seuil couverture web receveur (None = meme que magasins)
+    "couverture_cible_central": 14,     # cible (jours) du reassort CENTRAL -> boutiques
     # Logistique
     "nb_max_destinations": 4,           # destinations / expediteur / semaine
     # Periodes d'analyse (jours)

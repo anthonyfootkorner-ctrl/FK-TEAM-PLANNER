@@ -185,6 +185,10 @@ body{font-family:var(--font-body);
 .ufield input,.ufield textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);
   border-radius:9px;background:var(--bg);color:var(--text);font-size:15px;font-family:var(--font-body)}
 .urow{display:flex;gap:10px}.urow .ufield{flex:1}
+/* Cases magasins (back-office utilisateurs) */
+.uchecks{display:flex;flex-wrap:wrap;gap:9px 16px}
+.ucheck{display:flex;align-items:center;gap:7px;font-size:13.5px;cursor:pointer}
+.ucheck input{width:16px;height:16px;accent-color:var(--orange)}
 /* Switcher de magasin (comptes multi-magasins) */
 .storeswitch{display:flex;align-items:center;gap:10px;margin:0 0 16px}
 .storeswitch label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
@@ -509,21 +513,36 @@ window.ReviewStore = window.ReviewStore || {
   async set(n,val){ localStorage.setItem('sf_'+(DATA.meta.runid||'run'), JSON.stringify(reviews)); }
 };
 const fmt = n => (typeof n==='number'? n.toLocaleString('fr-FR'):n);
+const fmtEur = n => (typeof n==='number'? Math.round(n).toLocaleString('fr-FR'):n)+' €';
+function impactBlock(imp){
+  if(!imp || !(imp.units>0))
+    return `<div class="note">💡 Impact des transferts : il sera mesuré à la prochaine génération (avec les ventes de la semaine suivante).</div>`;
+  const card=(l,v)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div></div>`;
+  return `<div class="note">💰 Ventes réalisées sur les références transférées (semaine suivante, chez le destinataire) — estimation.</div>
+    <div class="kpis" style="margin-bottom:22px">
+      ${card('Articles vendus', fmt(imp.units))}
+      ${card('CA généré', fmtEur(imp.ca))}
+      ${card('Marge générée', fmtEur(imp.marge))}
+    </div>`;
+}
 const pcls = p => 'p-'+String(p).replace(/[^A-Za-z]/g,'').slice(0,10).replace('Fortementrecommande','Fortement').replace('Avalider','Avalider');
 
 const TABS = [
   {id:'transferts',ico:'📦',label:'Transferts',short:'Transf.'},
   {id:'magasin',ico:'🏬',label:'Par magasin',short:'Magasin'},
   {id:'flux',ico:'🔀',label:'Synthese flux',short:'Flux'},
-  {id:'simulation',ico:'📊',label:'Simulation',short:'Simul.'},
+  {id:'simulation',ico:'📊',label:'Stats',short:'Stats'},
   {id:'cas',ico:'⚠️',label:'Cas non traites',short:'Cas'},
   {id:'differences',ico:'🚩',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'🚨',label:'Demandes urgentes',short:'Demandes'},
+  {id:'reassort',ico:'🏭',label:'Réassort central',short:'Réassort'},
+  {id:'users',ico:'👤',label:'Utilisateurs',short:'Users'},
   {id:'generer',ico:'⚙️',label:'Générer',short:'Générer'},
 ];
 let tab='transferts';
 // Role & vue magasin (STORES = magasins accessibles ; STORE = celui affiche)
 let MODE='admin', STORE=null, STORES=[], PREVIEW=false, stab='expedier', openDest=null;
+let RUNS_CACHE=null;   // historique des runs (admin)
 const F={q:'',prio:'',boutique:'',etat:''};
 
 function nav(){
@@ -538,10 +557,15 @@ function nav(){
     <button data-tab="${t.id}" class="${t.id===tab?'active':''}"><span class="ico">${t.ico}</span>${t.short||t.label}</button>`).join('');
   document.querySelectorAll('#nav button, #mnav button, #botnav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();
     window.scrollTo({top:0});});
+  const runOpts=(RUNS_CACHE||[]).map((r,i)=>{
+    const sel=(window.__runId ? r.id===window.__runId : i===0) ? ' selected':'';
+    return `<option value="${r.id}"${sel}>${String(r.date_execution||r.created_at||'').slice(0,10)} · ${r.nb_transferts} transf.${i===0?' (actuel)':''}</option>`;
+  }).join('');
   document.getElementById('foot').innerHTML =
     `Perimetre : ${DATA.meta.perimetre||'-'}<br>Cible ${DATA.meta.cible||'-'} j · ${DATA.meta.date||''}`
     + `<select class="foot-sel" id="previewStore"><option value="">👁 Prévisualiser un magasin…</option>`
-    + boutiques().map(b=>`<option>${b}</option>`).join('') + `</select>`;
+    + boutiques().map(b=>`<option>${b}</option>`).join('') + `</select>`
+    + ((RUNS_CACHE&&RUNS_CACHE.length>1) ? `<select class="foot-sel" id="runSel">${runOpts}</select>` : '');
 }
 
 function reviewSummary(){
@@ -722,7 +746,7 @@ function renderFlux(){
 }
 
 function renderSimulation(){
-  const labels={stock_total:'Stock total',valeur_stock:'Valeur du stock (€)',stock_dormant:'Stock dormant',
+  const labels={stock_total:'Stock total',valeur_stock:'Valeur du stock — prix d\'achat (€)',stock_dormant:'Stock dormant',
     ruptures:'Ruptures',refs_sous_7j:'Réf. sous 7 j',refs_sous_14j:'Réf. sous 14 j',
     couverture_moyenne:'Couverture moyenne (j)',grilles_coherentes:'Grilles cohérentes',
     tailles_coeur_dispo:'Tailles cœur disponibles',score_sante_reseau:'Score santé réseau',
@@ -732,7 +756,7 @@ function renderSimulation(){
     return `<tr><td>${labels[k]||k}</td><td class="num">${fmt(v.avant)}</td><td class="num">${fmt(v.apres)}</td>
       <td class="num" style="color:${d===0?'var(--muted)':good?'var(--green)':'var(--red)'}">${d>0?'+':''}${fmt(+d.toFixed(1))}</td></tr>`;
   }).join('');
-  return kpiStrip()+`<div class="tablewrap"><table><thead><tr><th>Indicateur</th>
+  return impactBlock(DATA.meta.impact)+kpiStrip()+`<div class="tablewrap"><table><thead><tr><th>Indicateur</th>
     <th class="num">Avant</th><th class="num">Après</th><th class="num">Variation</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
@@ -759,19 +783,24 @@ function render(){
   nav(); reviewSummary();
   const ps=document.getElementById('previewStore');
   if(ps) ps.onchange=e=>{ if(e.target.value){ STORE=e.target.value; PREVIEW=true; MODE='store'; stab='expedier'; renderStore(); } };
+  const rs=document.getElementById('runSel');
+  if(rs) rs.onchange=e=>{ window.__runId=e.target.value||null; window.boot(); };
   const T=TABS.find(t=>t.id===tab);
   document.getElementById('ttl').textContent = {transferts:'Transferts recommandés',magasin:'Vue par magasin',
-    flux:'Synthèse par flux',simulation:'Simulation avant / après',cas:'Cas non traités',
+    flux:'Synthèse par flux',simulation:'Statistiques (avant / après)',cas:'Cas non traités',
     differences:'Différences signalées',demandes:'Demandes urgentes',
-    generer:'Générer une mise à jour'}[tab];
+    reassort:'Réassort central (CENTRAL → magasins)',
+    users:'Gestion des utilisateurs',generer:'Générer une mise à jour'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
     simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes,
-    generer:renderGenerer}[tab]();
+    reassort:renderReassort,users:renderUsers,generer:renderGenerer}[tab]();
   if(tab==='demandes'){ loadDemandes(); }
   if(tab==='differences'){ loadDifferences(); }
+  if(tab==='reassort'){ loadReassort(c, null); }
+  if(tab==='users'){ bindUsers(c); }
   if(tab==='generer'){ bindGenerer(c); }
   if(tab==='transferts'){
     bindReview(c); reviewSummary();
@@ -792,7 +821,9 @@ function render(){
 const STORE_TABS = [
   {id:'expedier', ico:'📤', label:'À expédier',       short:'Expédier'},
   {id:'recevoir', ico:'📥', label:'Réceptions',       short:'Récept.'},
+  {id:'reassort', ico:'🏭', label:'Réassort central', short:'Réassort'},
   {id:'grilles',  ico:'📐', label:'Mes grilles',      short:'Grilles'},
+  {id:'stats',    ico:'📊', label:'Mes stats',        short:'Stats'},
   {id:'urgent',   ico:'🚨', label:'Demande urgente',  short:'Urgent'},
 ];
 function myOut(){ return DATA.transfers.filter(r=>r[C.exp]===STORE); }
@@ -997,6 +1028,33 @@ async function loadMyRequests(){
   list.innerHTML = reqs.length? reqs.map(reqCard).join('') : `<div class="empty">Aucune demande pour le moment.</div>`;
 }
 
+function renderStoreStats(){
+  const out=myOut(), inn=myIn();
+  const pc=a=>a.reduce((s,r)=>s+(+r[C.qte]||0),0);
+  const rupt=inn.filter(r=>(+r[C.covA]||0)<7).length;
+  const gains=inn.map(r=>(+r[C.covB]||0)-(+r[C.covA]||0)).filter(x=>x>0);
+  const gainMoy=gains.length?(gains.reduce((s,x)=>s+x,0)/gains.length).toFixed(1):'0';
+  const covA=inn.map(r=>+r[C.covB]||0).filter(x=>x>0);
+  const covMoy=covA.length?(covA.reduce((s,x)=>s+x,0)/covA.length).toFixed(1):'0';
+  const card=(l,v,d)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div>${d?`<div class="delta">${d}</div>`:''}</div>`;
+  const mi=(DATA.meta.impact&&DATA.meta.impact.par_magasin)?DATA.meta.impact.par_magasin[STORE]:null;
+  const impact = (mi && mi.units>0)
+    ? `<div class="note" style="margin-top:8px">💰 Ventes réalisées sur tes réceptions (semaine suivante) — estimation.</div>
+       <div class="kpis">
+         ${card('Articles vendus', fmt(mi.units))}
+         ${card('CA généré', fmtEur(mi.ca))}
+         ${card('Marge générée', fmtEur(mi.marge))}
+       </div>`
+    : `<div class="note" style="margin-top:8px">💡 L'impact (ventes & € sur tes réceptions) s'affichera après la prochaine génération.</div>`;
+  return `<div class="note">Impact des recommandations pour <b>${STORE}</b> sur ce run.</div>
+    <div class="kpis">
+      ${card('Réceptions', inn.length, pc(inn)+' pièces à recevoir')}
+      ${card('Expéditions', out.length, pc(out)+' pièces à envoyer')}
+      ${card('Ruptures couvertes', rupt, 'réf. sous 7 j comblées')}
+      ${card('Couverture après', covMoy+' j', '+'+gainMoy+' j en moyenne')}
+    </div>${impact}`;
+}
+
 function renderStore(){
   navStore();
   document.querySelector('.brand b').textContent = 'STOCKFLOW.AI';
@@ -1008,9 +1066,10 @@ function renderStore(){
   const c=document.getElementById('content'); c.className='content';
   const switcher = STORES.length>1 ? `<div class="storeswitch"><label>Magasin</label>
     <select id="storeSel">${STORES.map(s=>`<option ${s===STORE?'selected':''}>${s}</option>`).join('')}</select></div>` : '';
-  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, grilles:renderGrilles, urgent:renderUrgent}[stab]();
+  c.innerHTML = switcher + {expedier:renderExpedier, recevoir:renderRecevoir, reassort:renderReassort, grilles:renderGrilles, stats:renderStoreStats, urgent:renderUrgent}[stab]();
   const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; openDest=null; renderStore(); };
   if(stab==='expedier') bindExpedier(c);
+  if(stab==='reassort') loadReassort(c, STORE);
   if(stab==='urgent') bindUrgent(c);
   if(PREVIEW){ const ba=document.getElementById('backAdmin'); if(ba) ba.onclick=()=>{PREVIEW=false;MODE='admin';render();}; }
 }
@@ -1065,6 +1124,123 @@ async function loadDifferences(){
 }
 
 // ============================================================
+//  REASSORT CENTRAL (CENTRAL -> magasins) — sortie A + import Fastmag (B)
+// ============================================================
+function renderReassort(){
+  return `<div class="note">Réassort central de la semaine : <b>CENTRAL → magasins</b>. Sa sortie alimente aussi le picking des transferts inter-magasins (le besoin résiduel en tient compte).</div>
+    <div id="rc_head"></div>
+    <div id="rc_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function reassortCard(x){
+  const p=(x.priorite||''); const isP1=p.indexOf('P1')===0; const isP2=p.indexOf('P2')===0;
+  const col=isP1?'var(--red)':(isP2?'var(--amber)':'var(--muted)');
+  const bg=isP1?'var(--red-bg)':(isP2?'var(--amber-bg)':'var(--chip)');
+  return `<div class="tcard"><div class="top">
+      <span class="pill" style="background:${bg};color:${col}">${p||'—'}</span>
+      <span class="score" style="font-size:15px">${x.boutique}</span></div>
+    <div class="flux">${x.reference} <span style="color:var(--muted);font-weight:600">· ${x.taille}</span></div>
+    <div class="meta"><span><span class="k">Qté</span>${x.qte}</span>${x.marque?`<span><span class="k">Marque</span>${x.marque}</span>`:''}${(x.couverture_j!=null&&x.couverture_j!=='')?`<span><span class="k">Couv.</span>${x.couverture_j} j</span>`:''}${x.tailles_apres?`<span><span class="k">Après</span>${x.tailles_apres}</span>`:''}</div>
+    ${x.commentaire?`<div class="motif">${x.commentaire}</div>`:''}
+  </div>`;
+}
+async function loadReassort(root, store){
+  const box=(root||document).querySelector('#rc_list'); if(!box) return;
+  const head=(root||document).querySelector('#rc_head');
+  if(!window.ReassortStore){ box.innerHTML=`<div class="empty">Disponible sur le site hébergé.</div>`; return; }
+  let items=[]; try{ items=await window.ReassortStore.list(store); }
+  catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  if(!items.length){ if(head) head.innerHTML='';
+    box.innerHTML=`<div class="empty">Aucun réassort central pour ce run.${store?'':" Importe un fichier « Stock CENTRAL » dans l'onglet Générer."}</div>`; return; }
+  const pieces=items.reduce((s,x)=>s+(+x.qte||0),0);
+  const nbBout=new Set(items.map(x=>x.boutique)).size;
+  if(head){
+    let dl='';
+    if(!store && window.ReassortStore.fastmagUrl){
+      try{ const u=await window.ReassortStore.fastmagUrl(); if(u) dl=`<a class="btn" href="${u}" style="text-decoration:none">⬇️ Fichier d'import Fastmag</a>`; }catch(e){}
+    }
+    head.innerHTML=`<div class="note"><b>${items.length}</b> ligne(s) · <b>${pieces}</b> pièces${store?'':` · ${nbBout} magasin(s)`}</div>`
+      +(dl?`<div style="margin:2px 0 14px">${dl}</div>`:'');
+  }
+  box.innerHTML=items.map(reassortCard).join('');
+}
+// Hook par defaut (prototype/demo) : pas de reassort central hors site heberge.
+window.ReassortStore = window.ReassortStore || { async list(){ return []; } };
+
+// ============================================================
+//  UTILISATEURS (back-office admin)
+// ============================================================
+function renderUsers(){
+  const opts=boutiques().map(b=>`<label class="ucheck"><input type="checkbox" value="${b}"> ${b}</label>`).join('');
+  return `<div class="note">Crée les comptes de l'équipe et affecte un ou plusieurs magasins. Aucun magasin coché = compte administrateur (accès complet).</div>
+    <div class="panel" style="padding:16px;max-width:640px;margin-bottom:20px">
+      <div class="ufield"><label>E-mail</label><input id="nu_email" type="email" placeholder="toulouse@fk.local"></div>
+      <div class="ufield"><label>Mot de passe (min. 6 caractères)</label><input id="nu_pwd" type="text" placeholder="mot de passe"></div>
+      <div class="ufield"><label>Magasins</label><div class="uchecks" id="nu_stores">${opts||'<span style="color:var(--muted);font-size:13px">Aucun magasin dans ce run.</span>'}</div></div>
+      <button class="btn" id="nu_add">➕ Créer le compte</button>
+      <div id="nu_err" style="color:var(--red);font-size:12.5px;margin-top:10px;min-height:14px"></div>
+    </div>
+    <h3 style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;font-size:13px;margin:6px 2px 12px">Comptes existants</h3>
+    <div id="u_list" class="cardcol"><div class="empty">Chargement…</div></div>`;
+}
+function userCard(u){
+  const isAdmin=!(u.stores&&u.stores.length);
+  const opts=boutiques().map(b=>`<label class="ucheck"><input type="checkbox" value="${b}" ${u.stores&&u.stores.indexOf(b)>=0?'checked':''}> ${b}</label>`).join('');
+  return `<div class="tcard" data-uid="${u.id}">
+    <div class="top"><span class="pill" style="${isAdmin?'background:var(--blue-bg);color:var(--blue)':'background:var(--green-bg);color:var(--green)'}">${isAdmin?'ADMIN':'MAGASIN'}</span>
+      <span class="score" style="font-size:12.5px">${(u.created_at||'').slice(0,10)}</span></div>
+    <div class="flux" style="font-size:15px;text-transform:none;letter-spacing:0">${u.email||''}</div>
+    <div class="meta"><span><span class="k">Accès</span>${isAdmin?'Tout (administrateur)':u.stores.join(' · ')}</span></div>
+    <div class="ueditor" hidden style="margin-top:8px">
+      <div class="uchecks">${opts}</div>
+      <div class="dact"><button class="val usave">Enregistrer</button><button class="ucancel">Annuler</button></div>
+    </div>
+    <div class="dact uactions">
+      <button class="uedit">Modifier les magasins</button>
+      <button class="ref udel">Supprimer</button>
+    </div>
+  </div>`;
+}
+async function loadUsers(){
+  const box=document.getElementById('u_list'); if(!box) return;
+  if(!window.UserAdmin){ box.innerHTML=`<div class="empty">Disponible sur le site hébergé (backend requis).</div>`; return; }
+  let list=[]; try{ const r=await window.UserAdmin.list(); list=r.users||[]; }
+  catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  box.innerHTML = list.length? list.map(userCard).join('') : `<div class="empty">Aucun compte pour le moment.</div>`;
+  box.querySelectorAll('[data-uid]').forEach(card=>{
+    const uid=card.dataset.uid;
+    const ed=card.querySelector('.ueditor'), act=card.querySelector('.uactions');
+    card.querySelector('.uedit').onclick=()=>{ ed.hidden=false; act.hidden=true; };
+    card.querySelector('.ucancel').onclick=()=>{ ed.hidden=true; act.hidden=false; };
+    card.querySelector('.usave').onclick=async(e)=>{ e.target.disabled=true;
+      const stores=[...ed.querySelectorAll('input:checked')].map(i=>i.value);
+      try{ await window.UserAdmin.setStores(uid, stores); loadUsers(); }
+      catch(err){ e.target.disabled=false; alert('Erreur : '+(err.message||err)); } };
+    card.querySelector('.udel').onclick=async(e)=>{ if(!confirm('Supprimer ce compte ?')) return; e.target.disabled=true;
+      try{ await window.UserAdmin.remove(uid); loadUsers(); }
+      catch(err){ e.target.disabled=false; alert('Erreur : '+(err.message||err)); } };
+  });
+}
+function bindUsers(root){
+  loadUsers();
+  const add=root.querySelector('#nu_add'); if(!add) return;
+  add.onclick=async()=>{
+    const err=root.querySelector('#nu_err'); err.textContent='';
+    const email=root.querySelector('#nu_email').value.trim();
+    const pwd=root.querySelector('#nu_pwd').value;
+    const stores=[...root.querySelectorAll('#nu_stores input:checked')].map(i=>i.value);
+    if(!email||pwd.length<6){ err.textContent="E-mail requis et mot de passe d'au moins 6 caractères."; return; }
+    if(!window.UserAdmin){ err.textContent='Disponible sur le site hébergé.'; return; }
+    add.disabled=true;
+    try{ await window.UserAdmin.create(email,pwd,stores);
+      root.querySelector('#nu_email').value=''; root.querySelector('#nu_pwd').value='';
+      root.querySelectorAll('#nu_stores input:checked').forEach(i=>i.checked=false);
+      loadUsers();
+    }catch(e){ err.textContent='Erreur : '+(e.message||e); }
+    add.disabled=false;
+  };
+}
+
+// ============================================================
 //  GENERER une mise a jour (upload fichiers -> moteur -> Supabase)
 // ============================================================
 function renderGenerer(){
@@ -1072,6 +1248,7 @@ function renderGenerer(){
     <div class="panel" style="padding:18px;max-width:560px">
       <div class="ufield"><label>Stock — obligatoire</label><input type="file" id="g_stock" accept=".csv,.xlsx"></div>
       <div class="ufield"><label>Ventes — obligatoire</label><input type="file" id="g_ventes" accept=".csv,.xlsx"></div>
+      <div class="ufield"><label>Stock CENTRAL — optionnel (réassort central)</label><input type="file" id="g_central" accept=".xls,.xlsx,.csv,.txt"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">Active le réassort central : CENTRAL → magasins d'abord, puis son résultat alimente le picking des transferts inter-magasins (A + B).</div></div>
       <div class="ufield"><label>Réassort Picking — optionnel</label><input type="file" id="g_reassort" accept=".xlsx,.csv"></div>
       <div class="ufield"><label>Objectifs — optionnel</label><input type="file" id="g_objectif" accept=".csv,.xlsx"></div>
       <div class="ufield"><label>Cible de couverture (jours)</label><input type="number" id="g_cible" value="14" min="1" style="max-width:120px"></div>
@@ -1108,7 +1285,8 @@ function bindGenerer(root){
     try{
       const res=await window.doGenerate({stock, ventes,
         reassort:root.querySelector('#g_reassort').files[0],
-        objectif:root.querySelector('#g_objectif').files[0], cible});
+        objectif:root.querySelector('#g_objectif').files[0],
+        central:root.querySelector('#g_central').files[0], cible});
       window.__genStep('gagne');
       genHint(`✅ ${res.nb_transferts} transferts générés${res.perimetre?' · '+res.perimetre:''}`);
       setTimeout(()=>location.reload(), 1800);
@@ -1171,6 +1349,7 @@ window.boot = async function(){
   document.title = BRAND + ' — Recommandations de transferts';
   reviews = await window.ReviewStore.load();
   try{ shipments = window.ShipStore ? await window.ShipStore.load() : {}; }catch(e){ shipments={}; }
+  try{ RUNS_CACHE = window.listRuns ? await window.listRuns() : null; }catch(e){ RUNS_CACHE=null; }
   const role = await (window.roleInfo ? window.roleInfo() : {mode:'admin', stores:[]});
   MODE = role.mode;
   STORES = role.stores || (role.store ? [role.store] : []);

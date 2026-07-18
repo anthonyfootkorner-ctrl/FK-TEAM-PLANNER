@@ -21,10 +21,11 @@ Variables d'environnement (cote serveur uniquement) :
 from __future__ import annotations
 
 import datetime
+import json
 import os
 
 import requests
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -85,6 +86,94 @@ def _upload(path: str, data: bytes, content_type: str | None):
         raise HTTPException(502, f"Depot du fichier echoue ({r.status_code}) : {r.text[:200]}")
 
 
+def _set_stores(uid: str, stores):
+    """Remplace l'affectation magasins d'un utilisateur."""
+    requests.delete(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                    params={"user_id": f"eq.{uid}"}, headers=_svc(), timeout=15)
+    rows = [{"user_id": uid, "magasin": str(s).strip()} for s in (stores or []) if str(s).strip()]
+    if rows:
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                          headers={**_svc(), "Content-Type": "application/json"},
+                          data=json.dumps(rows), timeout=15)
+        if r.status_code not in (200, 201):
+            raise HTTPException(502, f"Affectation magasins echouee ({r.status_code}) : {r.text[:200]}")
+
+
+@app.get("/users")
+def list_users(authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    r = requests.get(f"{SUPABASE_URL}/auth/v1/admin/users",
+                     params={"per_page": 200}, headers=_svc(), timeout=20)
+    users = (r.json() or {}).get("users", []) if r.status_code == 200 else []
+    m = requests.get(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                     params={"select": "user_id,magasin"}, headers=_svc(), timeout=15)
+    by_user: dict = {}
+    for row in (m.json() or []) if m.status_code == 200 else []:
+        by_user.setdefault(row["user_id"], []).append(row["magasin"])
+    out = [{"id": u["id"], "email": u.get("email"),
+            "stores": sorted(by_user.get(u["id"], [])),
+            "created_at": u.get("created_at")} for u in users]
+    out.sort(key=lambda x: (0 if not x["stores"] else 1, x["email"] or ""))
+    return {"users": out}
+
+
+@app.post("/users")
+def create_user(payload: dict = Body(...), authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    email = (payload.get("email") or "").strip()
+    password = payload.get("password") or ""
+    stores = payload.get("stores") or []
+    if not email or len(password) < 6:
+        raise HTTPException(400, "E-mail requis et mot de passe d'au moins 6 caracteres.")
+    r = requests.post(f"{SUPABASE_URL}/auth/v1/admin/users",
+                      headers={**_svc(), "Content-Type": "application/json"},
+                      data=json.dumps(
+                          {"email": email, "password": password, "email_confirm": True}),
+                      timeout=20)
+    if r.status_code not in (200, 201):
+        raise HTTPException(400, f"Creation impossible : {r.text[:200]}")
+    uid = r.json().get("id")
+    _set_stores(uid, stores)
+    return {"id": uid, "email": email, "stores": stores}
+
+
+@app.post("/users/{uid}/stores")
+def update_stores(uid: str, payload: dict = Body(...), authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    _set_stores(uid, payload.get("stores") or [])
+    return {"ok": True}
+
+
+@app.delete("/users/{uid}")
+def delete_user(uid: str, authorization: str | None = Header(None)):
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    requests.delete(f"{SUPABASE_URL}/rest/v1/stockflow_user_stores",
+                    params={"user_id": f"eq.{uid}"}, headers=_svc(), timeout=15)
+    r = requests.delete(f"{SUPABASE_URL}/auth/v1/admin/users/{uid}", headers=_svc(), timeout=20)
+    if r.status_code not in (200, 204):
+        raise HTTPException(400, f"Suppression impossible : {r.text[:200]}")
+    return {"ok": True}
+
+
+@app.get("/fastmag")
+def fastmag_url(path: str, authorization: str | None = Header(None)):
+    """Renvoie une URL signee (courte duree) pour telecharger le fichier
+    d'import Fastmag depose dans le Storage prive. Reserve a l'admin."""
+    _verify_admin((authorization or "").replace("Bearer ", "").strip())
+    if not path:
+        raise HTTPException(400, "Chemin manquant.")
+    r = requests.post(
+        f"{SUPABASE_URL}/storage/v1/object/sign/{BUCKET}/{path}",
+        headers={**_svc(), "Content-Type": "application/json"},
+        json={"expiresIn": 300}, timeout=15)
+    if r.status_code != 200:
+        raise HTTPException(404, f"Fichier introuvable ({r.status_code}).")
+    signed = (r.json() or {}).get("signedURL", "")
+    if not signed:
+        raise HTTPException(404, "URL signee indisponible.")
+    return {"url": f"{SUPABASE_URL}/storage/v1{signed}"}
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "configured": bool(SUPABASE_URL and SERVICE_KEY and GH_TOKEN and GH_REPO)}
@@ -101,6 +190,7 @@ async def generer(
     ventes: UploadFile = File(...),
     reassort: UploadFile | None = File(None),
     objectif: UploadFile | None = File(None),
+    central: UploadFile | None = File(None),
     cible: int = Form(14),
     authorization: str | None = Header(None),
 ):
@@ -112,7 +202,7 @@ async def generer(
     _ensure_bucket()
     prefix = "runs/" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     payload = {"cible": int(cible), "bucket": BUCKET,
-               "reassort": None, "objectif": None}
+               "reassort": None, "objectif": None, "central": None}
 
     _upload(f"{prefix}/stock", await stock.read(), stock.content_type)
     payload["stock"] = f"{prefix}/stock"
@@ -124,6 +214,9 @@ async def generer(
     if objectif is not None:
         _upload(f"{prefix}/objectif", await objectif.read(), objectif.content_type)
         payload["objectif"] = f"{prefix}/objectif"
+    if central is not None:
+        _upload(f"{prefix}/central", await central.read(), central.content_type)
+        payload["central"] = f"{prefix}/central"
 
     gh = requests.post(
         f"https://api.github.com/repos/{GH_REPO}/dispatches",

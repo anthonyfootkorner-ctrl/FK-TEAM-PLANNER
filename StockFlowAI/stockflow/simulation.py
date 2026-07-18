@@ -39,6 +39,7 @@ def _build_frame(base: pd.DataFrame, stock_map: Dict[LineKey, float]) -> pd.Data
     ville_map: Dict[str, str] = {}
     cat_map: Dict[Tuple[str, str], str] = {}
     price_by_sku: Dict[Tuple[str, str, str], float] = {}
+    price_achat_by_sku: Dict[Tuple[str, str, str], float] = {}
     for row in base.itertuples(index=False):
         key = (str(row.magasin), str(row.reference), str(row.couleur), str(row.taille))
         daily_map[key] = float(getattr(row, "moyenne_quotidienne", 0) or 0)
@@ -47,6 +48,8 @@ def _build_frame(base: pd.DataFrame, stock_map: Dict[LineKey, float]) -> pd.Data
         cat_map[(str(row.reference), str(row.couleur))] = getattr(row, "categorie", None)
         pv = float(getattr(row, "prix_vente", 0) or 0)
         price_by_sku[(str(row.reference), str(row.couleur), str(row.taille))] = pv
+        pa = float(getattr(row, "prix_achat", 0) or 0)
+        price_achat_by_sku[(str(row.reference), str(row.couleur), str(row.taille))] = pa
 
     keys = set(daily_map) | set(stock_map)
     rows = []
@@ -56,6 +59,7 @@ def _build_frame(base: pd.DataFrame, stock_map: Dict[LineKey, float]) -> pd.Data
             "stock": stock_map.get((mag, ref, coul, taille), 0.0),
             "moyenne_quotidienne": daily_map.get((mag, ref, coul, taille), 0.0),
             "prix_vente": price_by_sku.get((ref, coul, taille), 0.0),
+            "prix_achat": price_achat_by_sku.get((ref, coul, taille), 0.0),
             "is_web": web_map.get(mag, False),
             "categorie": cat_map.get((ref, coul)),
             "ville": ville_map.get(mag),
@@ -77,7 +81,12 @@ def _indicators(frame: pd.DataFrame, grid: GridIndex, params: Parameters) -> Dic
     for row in frame.itertuples(index=False):
         stock = float(row.stock)
         total_stock += stock
-        total_value += stock * float(row.prix_vente or 0)
+        # valeur du stock = valeur de COUT (prix d'achat) ; si le prix d'achat
+        # manque, on estime l'achat HT = prix de vente TTC / 2.3 (marge moyenne).
+        pa = float(getattr(row, "prix_achat", 0) or 0)
+        if pa <= 0:
+            pa = float(row.prix_vente or 0) / 2.3
+        total_value += stock * pa
         if row.is_web:
             continue  # le web compte dans le stock mais pas dans les KPI service
         daily = float(row.moyenne_quotidienne or 0)
@@ -164,16 +173,24 @@ def simulate(base: pd.DataFrame, result, params: Parameters, web_codes):
     valeur_deplacee = 0.0
     if nb_transferts:
         nb_dest = int(result.transfers.groupby("expediteur")["destinataire"].nunique().sum())
-        prix_map = base.drop_duplicates(["reference", "couleur", "taille"]).set_index(
-            ["reference", "couleur", "taille"]).get("prix_vente")
+        idx = base.drop_duplicates(["reference", "couleur", "taille"]).set_index(
+            ["reference", "couleur", "taille"])
+        pa_map = idx.get("prix_achat")
+        pv_map = idx.get("prix_vente")
         for t in result.transfers.itertuples(index=False):
-            pv = 0.0
-            if prix_map is not None:
+            k = (t.reference, t.couleur, t.taille)
+            cout = 0.0
+            if pa_map is not None:
                 try:
-                    pv = float(prix_map.loc[(t.reference, t.couleur, t.taille)])
+                    cout = float(pa_map.loc[k])
                 except Exception:
-                    pv = 0.0
-            valeur_deplacee += t.quantite * pv
+                    cout = 0.0
+            if cout <= 0 and pv_map is not None:      # repli : achat HT = vente TTC / 2.3
+                try:
+                    cout = float(pv_map.loc[k]) / 2.3
+                except Exception:
+                    cout = 0.0
+            valeur_deplacee += t.quantite * cout
     for label, val in [("nb_transferts", nb_transferts),
                        ("nb_destinations", nb_dest),
                        ("valeur_stock_deplace", round(valeur_deplacee, 0))]:

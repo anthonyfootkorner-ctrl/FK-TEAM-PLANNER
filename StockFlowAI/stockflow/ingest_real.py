@@ -275,6 +275,7 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
     return {
         "stocks": stocks,
         "ventes": sales_out,
+        "ventes_detail": v,          # ventes ligne a ligne avec date (mesure d'impact)
         "picking": picking,
         "magasins": stores,
         "historique": pd.DataFrame(),
