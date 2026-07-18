@@ -231,6 +231,22 @@ window.ReassortStore = {{
   }}
 }};
 
+// --- Valorisation cumulative (central / inter-magasins, credit expediteur) ---
+window.ValoStore = {{
+  async all(){{
+    let out=[], from=0;
+    while(true){{
+      const {{data, error}} = await sb.from('stockflow_valorisation')
+        .select('type,expediteur,destinataire,reference,cumul_units,cumul_ca,cumul_marge')
+        .gt('cumul_units', 0).range(from, from+999);
+      if(error) throw error;
+      if(!data || !data.length) break;
+      out = out.concat(data); if(data.length<1000) break; from += 1000;
+    }}
+    return out;
+  }}
+}};
+
 // --- Donneurs : proposition de depannage sur une demande urgente ---
 // La table ne contient que la photo du run courant (surplus mobilisable).
 window.DonorStore = {{

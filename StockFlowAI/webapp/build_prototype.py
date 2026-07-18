@@ -421,6 +421,20 @@ tr.reviewed-no{opacity:.55}
 .dsug-t{background:var(--chip);border-radius:6px;padding:1px 7px;font-weight:600}
 .dsug-q{color:var(--green);font-weight:600}
 .dsug-c{color:var(--muted)}
+.valo-h{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:800;
+  font-size:15px;letter-spacing:-.01em;margin:22px 2px 12px}
+.valo-h:first-child{margin-top:4px}
+.valo-h .ico .ic{width:18px;height:18px}
+.valo-h .ico{color:var(--orange)}
+.vrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius-sm);padding:12px 14px}
+.vrow .vmag{font-weight:700;min-width:120px}
+.vrow .vmeta{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.vrow .vca{margin-left:auto;font-family:var(--font-display);font-weight:800;font-size:17px;
+  font-variant-numeric:tabular-nums;color:var(--green)}
+.vrow .vmarge{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;min-width:110px;text-align:right}
+.vchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.vchip{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:600}
 .tcard .acts{display:flex;gap:10px}
 .tcard .acts button{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
   background:var(--card2);color:var(--text);font-family:var(--font-display);font-weight:700;
@@ -568,6 +582,7 @@ const TABS = [
   {id:'differences',ico:'flag',label:'Différences',short:'Diff.'},
   {id:'demandes',ico:'bell',label:'Demandes urgentes',short:'Demandes'},
   {id:'reassort',ico:'warehouse',label:'Réassort central',short:'Réassort'},
+  {id:'valorisation',ico:'trend',label:'Valorisation',short:'Valeur'},
   {id:'users',ico:'user',label:'Utilisateurs',short:'Users'},
   {id:'generer',ico:'sparkle',label:'Générer',short:'Générer'},
 ];
@@ -593,6 +608,7 @@ const ICONS={
   download:'<path d="M12 4v11.5"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M4.5 15v4a1.2 1.2 0 0 0 1.2 1.2h12.6A1.2 1.2 0 0 0 19.5 19v-4"/>',
   grid:'<rect x="4" y="4" width="7" height="7" rx="1.4"/><rect x="13" y="4" width="7" height="7" rx="1.4"/><rect x="4" y="13" width="7" height="7" rx="1.4"/><rect x="13" y="13" width="7" height="7" rx="1.4"/>',
   bolt:'<path d="M13 3 4.5 13.5H11l-1 7.5 8.5-11H12z"/>',
+  trend:'<path d="M4 15.5 10 9.5l3.2 3.2L20 6"/><path d="M16 6h4v4"/>',
 };
 function icon(n){ return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[n]||'')+'</svg>'; }
 
@@ -841,16 +857,18 @@ function render(){
     flux:'Synthèse par flux',simulation:'Statistiques (avant / après)',cas:'Cas non traités',
     differences:'Différences signalées',demandes:'Demandes urgentes',
     reassort:'Réassort central (CENTRAL → magasins)',
+    valorisation:'Valorisation — argent généré',
     users:'Gestion des utilisateurs',generer:'Générer une mise à jour'}[tab];
   document.getElementById('sub').textContent = DATA.meta.perimetre+' · '+DATA.transfers.length+' transferts · cible '+DATA.meta.cible+' j';
   const c=document.getElementById('content');
   c.className='content';
   c.innerHTML = {transferts:renderTransferts,magasin:renderMagasin,flux:renderFlux,
     simulation:renderSimulation,cas:renderCas,differences:renderDifferences,demandes:renderDemandes,
-    reassort:renderReassort,users:renderUsers,generer:renderGenerer}[tab]();
+    reassort:renderReassort,valorisation:renderValo,users:renderUsers,generer:renderGenerer}[tab]();
   if(tab==='demandes'){ loadDemandes(); }
   if(tab==='differences'){ loadDifferences(); }
   if(tab==='reassort'){ loadReassort(c, null); }
+  if(tab==='valorisation'){ loadValo(); }
   if(tab==='users'){ bindUsers(c); }
   if(tab==='generer'){ bindGenerer(c); }
   if(tab==='transferts'){
@@ -1103,7 +1121,27 @@ function renderStoreStats(){
       ${card('Expéditions', out.length, pc(out)+' pièces à envoyer')}
       ${card('Ruptures couvertes', rupt, 'réf. sous 7 j comblées')}
       ${card('Couverture après', covMoy+' j', '+'+gainMoy+' j en moyenne')}
-    </div>${impact}`;
+    </div>${impact}
+    <div id="store_valo"></div>`;
+}
+// Argent genere par les ENVOIS du magasin vers d'autres magasins (credit expediteur)
+async function loadStoreValo(store){
+  const box=document.getElementById('store_valo'); if(!box||!window.ValoStore) return;
+  let rows=[]; try{ rows=await window.ValoStore.all(); }catch(e){ return; }
+  const mine=(rows||[]).filter(r=>r.type==='interstore' && r.expediteur===store);
+  if(!mine.length) return;
+  const u=mine.reduce((s,r)=>s+(+r.cumul_units||0),0);
+  const ca=mine.reduce((s,r)=>s+(+r.cumul_ca||0),0);
+  const mg=mine.reduce((s,r)=>s+(+r.cumul_marge||0),0);
+  const byDest={}; mine.forEach(r=>{ const d=byDest[r.destinataire]=byDest[r.destinataire]||{ca:0,units:0}; d.ca+=+r.cumul_ca||0; d.units+=+r.cumul_units||0; });
+  const tops=Object.entries(byDest).sort((a,b)=>b[1].ca-a[1].ca).slice(0,4)
+    .map(([k,v])=>`<span class="vchip">${k} · ${fmtEur(v.ca)}</span>`).join('');
+  const card=(l,v,d)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div>${d?`<div class="delta good">${d}</div>`:''}</div>`;
+  box.innerHTML = `<h3 class="valo-h" style="margin-top:24px"><span class="ico">${icon('upload')}</span> L'argent que tes envois ont rapporté ailleurs</h3>
+    <div class="kpis">
+      ${card('CA généré', fmtEur(ca), u+' pièces vendues ailleurs')}
+      ${card('Marge générée', fmtEur(mg))}
+    </div>${tops?`<div class="vchips">${tops}</div>`:''}`;
 }
 
 function renderStore(){
@@ -1121,6 +1159,7 @@ function renderStore(){
   const ss=document.getElementById('storeSel'); if(ss) ss.onchange=e=>{ STORE=e.target.value; openDest=null; renderStore(); };
   if(stab==='expedier') bindExpedier(c);
   if(stab==='reassort') loadReassort(c, STORE);
+  if(stab==='stats') loadStoreValo(STORE);
   if(stab==='urgent') bindUrgent(c);
   if(PREVIEW){ const ba=document.getElementById('backAdmin'); if(ba) ba.onclick=()=>{PREVIEW=false;MODE='admin';render();}; }
 }
@@ -1244,6 +1283,58 @@ async function loadReassort(root, store){
 }
 // Hook par defaut (prototype/demo) : pas de reassort central hors site heberge.
 window.ReassortStore = window.ReassortStore || { async list(){ return []; } };
+
+// ============================================================
+//  VALORISATION — argent genere par les pieces deplacees (2 pistes)
+// ============================================================
+function valoSummary(rows){
+  const z=()=>({units:0,ca:0,marge:0});
+  const s={central:{...z(),par_dest:{}}, interstore:{...z(),par_exp:{},par_dest:{}}};
+  const add=(m,k,r)=>{ if(!k) return; (m[k]=m[k]||z()); m[k].units+=+r.cumul_units||0; m[k].ca+=+r.cumul_ca||0; m[k].marge+=+r.cumul_marge||0; };
+  (rows||[]).forEach(r=>{ const t=r.type; if(!s[t]) return;
+    s[t].units+=+r.cumul_units||0; s[t].ca+=+r.cumul_ca||0; s[t].marge+=+r.cumul_marge||0;
+    add(s[t].par_dest, r.destinataire, r); if(t==='interstore') add(s[t].par_exp, r.expediteur, r); });
+  return s;
+}
+function valoRows(map, key){
+  return Object.entries(map||{}).map(([k,v])=>({k, ...v})).sort((a,b)=>b[key]-a[key]);
+}
+function valoList(map){
+  const rows=valoRows(map,'marge').filter(r=>r.ca>0||r.units>0).slice(0,14);
+  if(!rows.length) return `<div class="empty">Rien pour le moment.</div>`;
+  return `<div class="cardcol">`+rows.map(r=>`<div class="vrow">
+      <span class="vmag">${r.k}</span>
+      <span class="vmeta">${r.units} pcs</span>
+      <span class="vca">${fmtEur(r.ca)}</span>
+      <span class="vmarge">marge ${fmtEur(r.marge)}</span></div>`).join('')+`</div>`;
+}
+function renderValo(){
+  return `<div class="note">Argent généré par les pièces déplacées — cumulé dans le temps, plafonné au nombre envoyé. Apparaît une fois que les ventes arrivent (≈ 2ᵉ génération).</div>
+    <div id="valo_body"><div class="empty">Chargement…</div></div>`;
+}
+async function loadValo(){
+  const box=document.getElementById('valo_body'); if(!box) return;
+  if(!window.ValoStore){ box.innerHTML=`<div class="empty">Disponible sur le site hébergé.</div>`; return; }
+  let rows=[]; try{ rows=await window.ValoStore.all(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  if(!rows.length){ box.innerHTML=`<div class="empty">Pas encore de valorisation — elle se remplit dès que les ventes des réassorts arrivent.</div>`; return; }
+  const s=valoSummary(rows);
+  const kpi=(l,v,d)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div>${d?`<div class="delta good">${d}</div>`:''}</div>`;
+  box.innerHTML = `
+    <h3 class="valo-h"><span class="ico">${icon('warehouse')}</span> Réassort central → magasins</h3>
+    <div class="kpis">
+      ${kpi('CA généré', fmtEur(s.central.ca), s.central.units+' pièces vendues')}
+      ${kpi('Marge générée', fmtEur(s.central.marge))}
+    </div>
+    <h3 class="valo-h"><span class="ico">${icon('shuffle')}</span> Transferts inter-magasins</h3>
+    <div class="kpis">
+      ${kpi('CA généré', fmtEur(s.interstore.ca), s.interstore.units+' pièces vendues')}
+      ${kpi('Marge générée', fmtEur(s.interstore.marge))}
+    </div>
+    <h3 class="valo-h"><span class="ico">${icon('upload')}</span> Généré par magasin expéditeur (leurs envois inter-magasins)</h3>
+    ${valoList(s.interstore.par_exp)}`;
+}
+// Hook par defaut (prototype/demo).
+window.ValoStore = window.ValoStore || { async all(){ return []; } };
 
 // ============================================================
 //  UTILISATEURS (back-office admin)

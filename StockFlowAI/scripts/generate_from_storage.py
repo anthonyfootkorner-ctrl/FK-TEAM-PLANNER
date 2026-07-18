@@ -30,6 +30,7 @@ from stockflow.app_service import build_params, run_analysis  # noqa: E402
 from stockflow.impact import compute_impact  # noqa: E402
 from stockflow.push_supabase import push, push_reassort_central, push_donors  # noqa: E402
 from stockflow.reassort_central import build_fastmag_import  # noqa: E402
+from stockflow import valorisation as valo  # noqa: E402
 
 REF_DIR = Path(__file__).resolve().parent / "reassort_ref"  # Listing mag + prix de gros
 
@@ -100,6 +101,73 @@ def _patch_run(run_id, fields: dict):
         f"{URL}/rest/v1/stockflow_runs?id=eq.{run_id}",
         headers={**_hdr(), "Content-Type": "application/json"},
         data=json.dumps(fields), timeout=30)
+
+
+def _valo_open():
+    """Cohortes de valorisation encore ouvertes (plafond non atteint)."""
+    out, frm = [], 0
+    while True:
+        r = requests.get(
+            f"{URL}/rest/v1/stockflow_valorisation?closed=eq.false"
+            f"&select=id,type,expediteur,destinataire,reference,sent_qty,run_date,"
+            f"cumul_units,cumul_ca,cumul_marge,last_date,closed&limit=1000&offset={frm}",
+            headers=_hdr(), timeout=60)
+        b = r.json() if r.status_code == 200 else []
+        out += b
+        if len(b) < 1000:
+            break
+        frm += 1000
+    return out
+
+
+def _valo_patch(rows):
+    """Met a jour les cohortes modifiees (une requete par lot d'id)."""
+    for row in rows:
+        rid = row.get("id")
+        if rid is None:
+            continue
+        body = {k: row[k] for k in ("cumul_units", "cumul_ca", "cumul_marge", "last_date", "closed") if k in row}
+        requests.patch(f"{URL}/rest/v1/stockflow_valorisation?id=eq.{rid}",
+                       headers={**_hdr(), "Content-Type": "application/json"},
+                       data=json.dumps(body), timeout=30)
+
+
+def _valo_close(ids):
+    for i in range(0, len(ids), 100):
+        chunk = ids[i:i + 100]
+        lst = ",".join(str(x) for x in chunk)
+        requests.patch(f"{URL}/rest/v1/stockflow_valorisation?id=in.({lst})",
+                       headers={**_hdr(), "Content-Type": "application/json"},
+                       data=json.dumps({"closed": True}), timeout=30)
+
+
+def _valo_insert(rows, chunk=500):
+    for i in range(0, len(rows), chunk):
+        requests.post(f"{URL}/rest/v1/stockflow_valorisation",
+                      headers={**_hdr(), "Content-Type": "application/json", "Prefer": "return=minimal"},
+                      data=json.dumps(rows[i:i + chunk]), timeout=60)
+
+
+def _valorisation_step(run_id, run_date, datasets, result):
+    """Valorisation cumulative : (1) on accumule les ventes de la semaine sur les
+    cohortes ouvertes des runs precedents ; (2) on cree les cohortes de CE run
+    (central + inter-magasins), en fermant celles de meme cle."""
+    try:
+        open_rows = _valo_open()
+        upd = valo.accumulate(open_rows, datasets.get("ventes_detail"), datasets.get("stocks"))
+        _valo_patch(upd)
+
+        transfers = []
+        t = result.transfers
+        if t is not None and not t.empty:
+            cols = [c for c in ("expediteur", "destinataire", "reference", "quantite") if c in t.columns]
+            transfers = t[cols].to_dict("records")
+        new = valo.build_new_cohorts(run_id, run_date, datasets.get("reassort_central"), transfers)
+        _valo_close(valo.cohorts_to_close(new, open_rows))
+        _valo_insert(new)
+        print(f"valorisation : {len(upd)} cohortes maj, {len(new)} nouvelles")
+    except Exception as exc:
+        print("valorisation ignoree :", exc)
 
 
 def _upload(path: str, data: bytes, content_type: str = "text/plain"):
@@ -191,6 +259,9 @@ def main() -> int:
 
     # reassort central : sortie A (base) + sortie B (import Fastmag dans Storage)
     _reassort_central_outputs(run_id, datasets, meta["runid"], central_p)
+
+    # valorisation cumulative (central + inter-magasins, credit expediteur)
+    _valorisation_step(run_id, today, datasets, result)
 
     # donneurs (surplus) : proposition de depannage sur les demandes urgentes
     try:
