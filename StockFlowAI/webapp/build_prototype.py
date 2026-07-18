@@ -768,6 +768,7 @@ function renderTransferts(){
       <option value="ok" ${F.etat==='ok'?'selected':''}>Validés</option><option value="no" ${F.etat==='no'?'selected':''}>Refusés</option>
     </select>
     <div class="spacer"></div>
+    <a id="xlsxdl" class="btn ghost ico-btn" style="text-decoration:none;display:none">${icon('chart')}Classeur Excel</a>
     <button class="btn ico-btn" id="exp">${icon('download')}Exporter les validés (CSV)</button>
   </div>
   <div class="revsum" id="revsum"></div>
@@ -888,6 +889,11 @@ function render(){
     c.querySelector('#boutique').onchange=e=>{F.boutique=e.target.value;render()};
     c.querySelector('#etat').onchange=e=>{F.etat=e.target.value;render()};
     c.querySelector('#exp').onclick=exportCSV;
+    // lien de telechargement du classeur Excel des transferts (si dispo)
+    if(window.ReassortStore && window.ReassortStore.transfertsExcelUrl){
+      window.ReassortStore.transfertsExcelUrl().then(u=>{ const a=document.getElementById('xlsxdl');
+        if(a&&u){ a.href=u; a.style.display=''; } }).catch(()=>{});
+    }
   }
   if(tab==='magasin'){ c.querySelector('#boutiqueM').onchange=e=>{F.boutique=e.target.value;render()}; }
 }
