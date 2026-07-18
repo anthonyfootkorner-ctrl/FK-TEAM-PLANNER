@@ -231,6 +231,20 @@ window.ReassortStore = {{
   }}
 }};
 
+// --- Donneurs : proposition de depannage sur une demande urgente ---
+// La table ne contient que la photo du run courant (surplus mobilisable).
+window.DonorStore = {{
+  async forRef(reference, taille){{
+    if(!reference) return [];
+    const {{data, error}} = await sb.from('stockflow_donors')
+      .select('magasin,taille,qte_don,couverture_j,motif')
+      .eq('reference', reference).limit(200);
+    if(error) throw error;
+    return (data||[]).map(d=>({{magasin:d.magasin, taille:d.taille, qte_don:d.qte_don,
+      couverture_j:d.couverture_j, motif:d.motif}}));
+  }}
+}};
+
 // --- Expeditions validees par les magasins ---
 window.ShipStore = {{
   async load(){{

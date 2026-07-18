@@ -390,6 +390,13 @@ tr.reviewed-no{opacity:.55}
 .tcard .dispo{font-size:13px;margin-bottom:7px;font-variant-numeric:tabular-nums}
 .tcard .dispo .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
 .tcard .motif{font-size:12.5px;color:var(--muted);margin-bottom:13px;line-height:1.4}
+.dsug{margin:10px 0 4px;padding:10px 12px;background:var(--green-bg);border:1px solid var(--line);border-radius:11px}
+.dsug-h{font-size:11.5px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.03em;margin-bottom:7px}
+.dsug-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;padding:3px 0}
+.dsug-mag{font-weight:700}
+.dsug-t{background:var(--chip);border-radius:6px;padding:1px 7px;font-weight:600}
+.dsug-q{color:var(--green);font-weight:600}
+.dsug-c{color:var(--muted)}
 .tcard .acts{display:flex;gap:10px}
 .tcard .acts button{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
   background:var(--card2);color:var(--text);font-family:var(--font-display);font-weight:700;
@@ -1088,8 +1095,33 @@ function demandeCard(r){
     <div class="flux">${r.reference}${r.taille?` <span style="color:var(--muted);font-weight:600">· ${r.taille}</span>`:''}</div>
     <div class="meta"><span><span class="k">Qté</span>${r.quantite||1}</span><span><span class="k">Le</span>${(r.created_at||'').slice(0,10)}</span></div>
     ${r.motif?`<div class="motif">${r.motif}</div>`:''}
+    ${pend?`<div class="donorsug" data-ref="${(r.reference||'').replace(/"/g,'&quot;')}" data-taille="${(r.taille||'').replace(/"/g,'&quot;')}" data-mag="${r.magasin||''}"></div>`:''}
     ${pend?`<div class="dact"><button class="val" data-dec="validee">✓ Valider</button><button class="ref" data-dec="refusee">✕ Refuser</button></div>`:''}
   </div>`;
+}
+// Proposition de magasin(s) depanneur(s) : surplus mobilisable sur la reference.
+function donorSugHTML(items, reqTaille){
+  if(!items || !items.length) return '';
+  const covTxt=c=>(c==null||c==='')?'':(c>=999?'stock dormant':(Math.round(c)+' j'));
+  const line=d=>`<div class="dsug-row"><span class="dsug-mag">🏬 ${d.magasin}</span>`
+    +`<span class="dsug-t">${d.taille}</span>`
+    +`<span class="dsug-q">${d.qte_don} dispo</span>`
+    +(covTxt(d.couverture_j)?`<span class="dsug-c">couv. ${covTxt(d.couverture_j)}</span>`:'')+`</div>`;
+  const exact=reqTaille? items.filter(d=>String(d.taille).toUpperCase()===String(reqTaille).toUpperCase()):[];
+  const autres=items.filter(d=>exact.indexOf(d)<0);
+  const head=exact.length?`Peut dépanner (taille ${reqTaille})`:(reqTaille?`Aucun surplus en ${reqTaille} — autres tailles dispo`:'Peut dépanner');
+  const shown=(exact.length?exact:autres).slice(0,3);
+  return `<div class="dsug"><div class="dsug-h">💡 ${head}</div>${shown.map(line).join('')}</div>`;
+}
+async function fillDonorSug(el){
+  if(!window.DonorStore) return;
+  const ref=el.dataset.ref, taille=el.dataset.taille, mag=el.dataset.mag;
+  if(!ref) return;
+  let items=[]; try{ items=await window.DonorStore.forRef(ref, taille); }catch(e){ return; }
+  items=(items||[]).filter(d=>d.magasin!==mag && (+d.qte_don||0)>0)
+    .sort((a,b)=>(+b.couverture_j||0)-(+a.couverture_j||0));
+  const html=donorSugHTML(items, taille);
+  if(html) el.innerHTML=html;
 }
 async function loadDemandes(){
   const box=document.getElementById('d_list'); if(!box) return;
@@ -1099,7 +1131,10 @@ async function loadDemandes(){
     + (reqs.length? reqs.map(demandeCard).join('') : `<div class="empty">Aucune demande.</div>`);
   box.querySelectorAll('[data-req]').forEach(el=>el.querySelectorAll('button[data-dec]').forEach(btn=>
     btn.onclick=async()=>{ btn.disabled=true; try{ await window.UrgentStore.decide(el.dataset.req, btn.dataset.dec);}catch(e){} loadDemandes(); }));
+  box.querySelectorAll('.donorsug').forEach(fillDonorSug);
 }
+// Hook par defaut (prototype/demo) : pas de proposition hors site heberge.
+window.DonorStore = window.DonorStore || { async forRef(){ return []; } };
 
 // ============================================================
 //  DIFFERENCES signalees par les magasins (cote admin)
