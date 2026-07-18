@@ -143,7 +143,7 @@ window.bootData = async function(){{
     N2ID[i+1]=r.id;
     const row=[i+1, r.priorite, r.score, r.marque, r.expediteur, r.destinataire, r.reference,
       r.taille, r.quantite, r.cov_dest_avant, r.cov_dest_apres, r.grille_avant, r.grille_apres,
-      r.dispo_finale, r.picking_prevu, r.motif];
+      r.dispo_finale, r.picking_prevu, r.motif, r.designation||''];
     ID2ROW[r.id]=row;
     return row;
   }});
@@ -353,7 +353,7 @@ window.UrgentStore = {{
 
 // COLS doit correspondre a l'ordre attendu par le rendu
 const COLS=["n","prio","score","marque","exp","dest","ref","taille","qte","covA","covB",
-  "gridA","gridB","dispoB","pick","motif"];
+  "gridA","gridB","dispoB","pick","motif","desig"];
 
 // --- Authentification ---
 async function enter(session){{

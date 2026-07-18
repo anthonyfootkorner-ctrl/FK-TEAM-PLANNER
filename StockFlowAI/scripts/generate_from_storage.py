@@ -375,6 +375,7 @@ def main() -> int:
         "perimetre": f"{n_stores} magasins" if n_stores else None,
         "cible": cible,
         "parametres": build_params(cible=cible).snapshot(),
+        "designation_map": datasets.get("designation_map", {}),
     }
     run_id = push(result, meta, url=URL, service_key=KEY)
 

@@ -68,6 +68,7 @@ def build_data(export_xlsx: Path, fiche_xlsx: Path | None, meta: dict) -> dict:
             str(r["Dispo destinataire finale (par taille)"]),
             _clean(r["Reassort Picking prevu"]),
             str(r["Motif du transfert"]),
+            "",  # designation (echantillon de demo : non renseignee)
         ])
 
     sim = x.parse("3-Simulation")
@@ -86,7 +87,7 @@ def build_data(export_xlsx: Path, fiche_xlsx: Path | None, meta: dict) -> dict:
     return {
         "meta": meta,
         "cols": ["n", "prio", "score", "marque", "exp", "dest", "ref", "taille",
-                 "qte", "covA", "covB", "gridA", "gridB", "dispoB", "pick", "motif"],
+                 "qte", "covA", "covB", "gridA", "gridB", "dispoB", "pick", "motif", "desig"],
         "transfers": transfers,
         "kpis": kpis,
         "flux": flux_rows,
@@ -230,6 +231,14 @@ body{font-family:var(--font-body);
 .prepline{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
 .prepinfo{flex:1;min-width:0;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .prepref{font-weight:700;font-size:15px}
+.prepdesig{font-size:12.5px;color:var(--muted);font-weight:500;flex:1 1 130px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prepgroup{margin-bottom:6px}
+.prepbrand{display:flex;align-items:baseline;gap:10px;font-family:var(--font-display);font-weight:800;
+  text-transform:uppercase;letter-spacing:.02em;font-size:13px;color:var(--orange);margin:16px 2px 8px}
+.prepgroup:first-child .prepbrand{margin-top:2px}
+.prepbrand-c{font-family:var(--font-body);font-weight:600;text-transform:none;letter-spacing:0;
+  font-size:11.5px;color:var(--muted)}
 .prepsize{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:.03em}
 .prepqty{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
 .prepacts{display:flex;gap:8px;flex-shrink:0}
@@ -974,21 +983,31 @@ function renderExpedier(){
 
 // Niveau 2 : le bon de prepa d'une destination (lignes minimalistes)
 function renderPrepSheet(dest){
-  const g=myOut().filter(r=>r[C.dest]===dest)
-    .sort((a,b)=> prioRank(a[C.prio])-prioRank(b[C.prio]) || (+b[C.score]||0)-(+a[C.score]||0));
+  const g=myOut().filter(r=>r[C.dest]===dest);
   const prep=g.filter(r=>reviews[r[C.n]]==='ok').length;
-  const lines=g.map(r=>{
+  // regroupement par MARQUE (pour préparer plus vite), puis priorité/score
+  const groups={};
+  g.forEach(r=>{ const m=(r[C.marque]||'—').trim()||'—'; (groups[m]=groups[m]||[]).push(r); });
+  const marks=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'fr'));
+  const lineHTML=r=>{
     const st=reviews[r[C.n]]; const cls=st==='ok'?'done':st==='diff'?'diff':'';
+    const desig=r[C.desig]?`<span class="prepdesig">${r[C.desig]}</span>`:'';
     return `<div class="prepline ${cls}" data-n="${r[C.n]}">
-      <div class="prepinfo"><span class="prepref">${r[C.ref]}</span><span class="prepsize">${r[C.taille]}</span><span class="prepqty">×${r[C.qte]}</span></div>
+      <div class="prepinfo"><span class="prepref">${r[C.ref]}</span>${desig}
+        <span class="prepsize">${r[C.taille]}</span><span class="prepqty">×${r[C.qte]}</span></div>
       <div class="prepacts">
         <button class="pok ${st==='ok'?'on':''}" data-a="ok" title="Préparé">✓</button>
         <button class="pdiff ${st==='diff'?'on':''}" data-a="diff" title="Signaler une différence">⚠</button>
       </div></div>`;
+  };
+  const blocks=marks.map(m=>{
+    const rows=groups[m].sort((a,b)=> prioRank(a[C.prio])-prioRank(b[C.prio]) || (+b[C.score]||0)-(+a[C.score]||0));
+    const pcs=rows.reduce((s,r)=>s+(+r[C.qte]||0),0);
+    return `<div class="prepgroup"><div class="prepbrand">${m}<span class="prepbrand-c">${rows.length} réf · ${pcs} pcs</span></div>${rows.map(lineHTML).join('')}</div>`;
   }).join('');
   return `<button class="prepback" id="prepBack">← Toutes les expéditions</button>
     <div class="prephead"><span class="prepdest">→ ${dest}</span><span class="prepcount">${prep}/${g.length} préparés</span></div>
-    <div class="preplist">${lines}</div>
+    <div class="preplist">${blocks}</div>
     <div id="prepfooter">${prepFooterHTML(dest, g)}</div>`;
 }
 
