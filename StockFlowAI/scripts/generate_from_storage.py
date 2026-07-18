@@ -312,7 +312,19 @@ def _reassort_central_outputs(run_id, datasets, run_label, central_path,
                     if xlsx_bytes:
                         atts.append((f"reassort_central_{run_label}.xlsx", xlsx_bytes, _XLSX))
                     if transferts_excel:
-                        atts.append((f"transferts_intermagasins_{run_label}.xlsx", transferts_excel, _XLSX))
+                        # transferts inter-magasins : a traiter APRES le reassort central
+                        note = ('<div style="margin-top:20px;padding:12px 16px;background:#FFF4E5;'
+                                'border-left:4px solid #E85528;font-family:Arial,sans-serif;'
+                                'font-size:13px;color:#333;border-radius:4px">'
+                                '&#128206; <b>Transferts inter-magasins</b> (classeur joint : '
+                                '<i>transferts_intermagasins</i>) &mdash; <b>pour traitement '
+                                'ult&eacute;rieur</b>, apr&egrave;s le r&eacute;assort central.</div>')
+                        if "</body>" in html:
+                            html = html.replace("</body>", note + "</body>")
+                        else:
+                            html = html + note
+                        atts.append((f"transferts_intermagasins_traitement_ulterieur_{run_label}.xlsx",
+                                     transferts_excel, _XLSX))
                     if fastmag_bytes:
                         atts.append(("IMPORT_FASTMAG.txt", fastmag_bytes, "text/plain"))
                     _send_mail(f"Reassort central — {run_label}", html, atts)
