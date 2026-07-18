@@ -148,14 +148,47 @@ def _valo_insert(rows, chunk=500):
                       data=json.dumps(rows[i:i + chunk]), timeout=60)
 
 
+def _valo_total_add(delta):
+    """Ajoute l'increment valorise de la semaine au total persistant (par piste)."""
+    for typ, d in delta.items():
+        if not (d["units"] or d["ca"] or d["marge"]):
+            continue
+        r = requests.get(f"{URL}/rest/v1/stockflow_valo_total?type=eq.{typ}"
+                         "&select=units,ca,marge", headers=_hdr(), timeout=30)
+        cur = (r.json() or [{}])[0] if r.status_code == 200 and r.json() else {}
+        body = {"type": typ,
+                "units": int((cur.get("units") or 0) + round(d["units"])),
+                "ca": round(float(cur.get("ca") or 0) + d["ca"], 2),
+                "marge": round(float(cur.get("marge") or 0) + d["marge"], 2)}
+        requests.post(f"{URL}/rest/v1/stockflow_valo_total",
+                      headers={**_hdr(), "Content-Type": "application/json",
+                               "Prefer": "resolution=merge-duplicates,return=minimal"},
+                      data=json.dumps(body), timeout=30)
+
+
 def _valorisation_step(run_id, run_date, datasets, result):
     """Valorisation cumulative : (1) on accumule les ventes de la semaine sur les
     cohortes ouvertes des runs precedents ; (2) on cree les cohortes de CE run
-    (central + inter-magasins), en fermant celles de meme cle."""
+    (central + inter-magasins), en fermant celles de meme cle. On ajoute aussi
+    l'increment de la semaine au total persistant « depuis le debut »."""
     try:
         open_rows = _valo_open()
         upd = valo.accumulate(open_rows, datasets.get("ventes_detail"), datasets.get("stocks"))
         _valo_patch(upd)
+
+        # increment de la semaine -> total persistant (survit a la purge des runs)
+        old = {r.get("id"): r for r in open_rows}
+        delta = {"central": {"units": 0, "ca": 0.0, "marge": 0.0},
+                 "interstore": {"units": 0, "ca": 0.0, "marge": 0.0}}
+        for r in upd:
+            o = old.get(r.get("id"))
+            t = r.get("type")
+            if not o or t not in delta:
+                continue
+            delta[t]["units"] += (r["cumul_units"] - float(o.get("cumul_units", 0)))
+            delta[t]["ca"] += (r["cumul_ca"] - float(o.get("cumul_ca", 0)))
+            delta[t]["marge"] += (r["cumul_marge"] - float(o.get("cumul_marge", 0)))
+        _valo_total_add(delta)
 
         transfers = []
         t = result.transfers

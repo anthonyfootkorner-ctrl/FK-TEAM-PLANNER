@@ -244,6 +244,13 @@ window.ValoStore = {{
       out = out.concat(data); if(data.length<1000) break; from += 1000;
     }}
     return out;
+  }},
+  // total « depuis le début » (accumulateur persistant, survit a la purge)
+  async total(){{
+    const {{data, error}} = await sb.from('stockflow_valo_total').select('type,units,ca,marge');
+    if(error) throw error;
+    const out={{}}; (data||[]).forEach(r=>{{ out[r.type]={{units:r.units, ca:r.ca, marge:r.marge}}; }});
+    return out;
   }}
 }};
 
