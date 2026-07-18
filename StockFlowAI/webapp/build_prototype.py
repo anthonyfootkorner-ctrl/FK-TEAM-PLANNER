@@ -435,6 +435,14 @@ tr.reviewed-no{opacity:.55}
 .vrow .vmarge{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;min-width:110px;text-align:right}
 .vchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .vchip{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:600}
+.valo-hero{background:linear-gradient(135deg,var(--orange-soft),transparent 70%),var(--card);
+  border:1px solid color-mix(in srgb,var(--orange) 30%,var(--line));border-radius:16px;padding:22px 24px;margin-bottom:6px}
+.valo-hero .vh-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+.valo-hero .vh-val{font-family:var(--font-display);font-weight:800;font-size:44px;line-height:1;letter-spacing:-.02em;
+  color:var(--orange);margin-top:8px;font-variant-numeric:tabular-nums}
+.valo-hero .vh-sub{font-size:13px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+.valo-hero .vh-sub b{color:var(--text)}
+.valo-h.vh-first{margin-top:20px}
 .tcard .acts{display:flex;gap:10px}
 .tcard .acts button{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
   background:var(--card2);color:var(--text);font-family:var(--font-display);font-weight:700;
@@ -1312,15 +1320,29 @@ function renderValo(){
   return `<div class="note">Argent généré par les pièces déplacées — cumulé dans le temps, plafonné au nombre envoyé. Apparaît une fois que les ventes arrivent (≈ 2ᵉ génération).</div>
     <div id="valo_body"><div class="empty">Chargement…</div></div>`;
 }
+function valoHero(tot){
+  if(!tot) return '';
+  const c=tot.central||{ca:0,marge:0}, i=tot.interstore||{ca:0,marge:0};
+  const ca=(+c.ca||0)+(+i.ca||0), mg=(+c.marge||0)+(+i.marge||0);
+  if(ca<=0 && mg<=0) return '';
+  return `<div class="valo-hero">
+      <div class="vh-label">Généré depuis le début</div>
+      <div class="vh-val">${fmtEur(ca)}</div>
+      <div class="vh-sub">dont marge <b>${fmtEur(mg)}</b> · central ${fmtEur(c.ca)} · inter-magasins ${fmtEur(i.ca)}</div>
+    </div>`;
+}
 async function loadValo(){
   const box=document.getElementById('valo_body'); if(!box) return;
   if(!window.ValoStore){ box.innerHTML=`<div class="empty">Disponible sur le site hébergé.</div>`; return; }
-  let rows=[]; try{ rows=await window.ValoStore.all(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
-  if(!rows.length){ box.innerHTML=`<div class="empty">Pas encore de valorisation — elle se remplit dès que les ventes des réassorts arrivent.</div>`; return; }
+  let rows=[], tot=null;
+  try{ rows=await window.ValoStore.all(); }catch(e){ box.innerHTML=`<div class="empty">Erreur : ${e.message||e}</div>`; return; }
+  try{ tot=window.ValoStore.total?await window.ValoStore.total():null; }catch(e){}
+  const hero=valoHero(tot);
+  if(!rows.length && !hero){ box.innerHTML=`<div class="empty">Pas encore de valorisation — elle se remplit dès que les ventes des réassorts arrivent.</div>`; return; }
   const s=valoSummary(rows);
   const kpi=(l,v,d)=>`<div class="kpi"><div class="label">${l}</div><div class="val">${v}</div>${d?`<div class="delta good">${d}</div>`:''}</div>`;
-  box.innerHTML = `
-    <h3 class="valo-h"><span class="ico">${icon('warehouse')}</span> Réassort central → magasins</h3>
+  box.innerHTML = hero + `
+    <h3 class="valo-h${hero?' vh-first':''}"><span class="ico">${icon('warehouse')}</span> Réassort central → magasins</h3>
     <div class="kpis">
       ${kpi('CA généré', fmtEur(s.central.ca), s.central.units+' pièces vendues')}
       ${kpi('Marge générée', fmtEur(s.central.marge))}
@@ -1334,7 +1356,7 @@ async function loadValo(){
     ${valoList(s.interstore.par_exp)}`;
 }
 // Hook par defaut (prototype/demo).
-window.ValoStore = window.ValoStore || { async all(){ return []; } };
+window.ValoStore = window.ValoStore || { async all(){ return []; }, async total(){ return null; } };
 
 // ============================================================
 //  UTILISATEURS (back-office admin)
