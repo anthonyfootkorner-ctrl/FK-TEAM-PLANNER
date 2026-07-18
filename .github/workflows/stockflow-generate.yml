@@ -29,4 +29,8 @@ jobs:
           OBJECTIF_PATH: ${{ github.event.client_payload.objectif }}
           CENTRAL_PATH: ${{ github.event.client_payload.central }}
           CIBLE: ${{ github.event.client_payload.cible }}
+          # E-mail recap du reassort central (optionnel) : mot de passe d'application Gmail
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
         run: python StockFlowAI/scripts/generate_from_storage.py

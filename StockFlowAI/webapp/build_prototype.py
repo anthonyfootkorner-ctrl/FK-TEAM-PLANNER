@@ -1282,10 +1282,13 @@ async function loadReassort(root, store){
   if(head){
     let dl='';
     if(!store && window.ReassortStore.fastmagUrl){
-      try{ const u=await window.ReassortStore.fastmagUrl(); if(u) dl=`<a class="btn" href="${u}" style="text-decoration:none">⬇️ Fichier d'import Fastmag</a>`; }catch(e){}
+      try{ const u=await window.ReassortStore.fastmagUrl(); if(u) dl+=`<a class="btn ico-btn" href="${u}" style="text-decoration:none">${icon('download')}Import Fastmag</a>`; }catch(e){}
+    }
+    if(!store && window.ReassortStore.excelUrl){
+      try{ const u=await window.ReassortStore.excelUrl(); if(u) dl+=`<a class="btn ghost ico-btn" href="${u}" style="text-decoration:none">${icon('chart')}Classeur Excel</a>`; }catch(e){}
     }
     head.innerHTML=`<div class="note"><b>${items.length}</b> ligne(s) · <b>${pieces}</b> pièces${store?'':` · ${nbBout} magasin(s)`}</div>`
-      +(dl?`<div style="margin:2px 0 14px">${dl}</div>`:'');
+      +(dl?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 14px">${dl}</div>`:'');
   }
   box.innerHTML=items.map(reassortCard).join('');
 }

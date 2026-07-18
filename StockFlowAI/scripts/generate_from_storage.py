@@ -29,7 +29,8 @@ import pandas as pd  # noqa: E402
 from stockflow.app_service import build_params, run_analysis  # noqa: E402
 from stockflow.impact import compute_impact  # noqa: E402
 from stockflow.push_supabase import push, push_reassort_central, push_donors  # noqa: E402
-from stockflow.reassort_central import build_fastmag_import  # noqa: E402
+from stockflow.reassort_central import (  # noqa: E402
+    build_fastmag_import, build_reassort_excel, build_reassort_email_html)
 from stockflow import valorisation as valo  # noqa: E402
 
 REF_DIR = Path(__file__).resolve().parent / "reassort_ref"  # Listing mag + prix de gros
@@ -211,6 +212,43 @@ def _upload(path: str, data: bytes, content_type: str = "text/plain"):
     return r.status_code in (200, 201)
 
 
+def _send_mail(subject, html, attachments):
+    """Envoie le mail recap via SMTP (mot de passe d'application Gmail par defaut).
+
+    Secrets attendus (variables d'environnement) : GMAIL_USER + GMAIL_APP_PASSWORD
+    (ou SMTP_USER/SMTP_PASS/SMTP_HOST/SMTP_PORT), MAIL_TO (defaut = expediteur).
+    Si non configure, on ignore proprement (le fichier reste dispo au telechargement).
+    """
+    import smtplib
+    import ssl
+    from email.message import EmailMessage
+
+    user = os.environ.get("GMAIL_USER") or os.environ.get("SMTP_USER")
+    pwd = os.environ.get("GMAIL_APP_PASSWORD") or os.environ.get("SMTP_PASS")
+    to = os.environ.get("MAIL_TO") or user
+    host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    if not (user and pwd and to):
+        print("e-mail non configure (GMAIL_USER / GMAIL_APP_PASSWORD / MAIL_TO) — envoi ignore")
+        return False
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = user
+    msg["To"] = ", ".join(a.strip() for a in str(to).split(",") if a.strip())
+    msg.set_content("Rapport de reassort central en piece jointe (voir la version HTML).")
+    msg.add_alternative(html, subtype="html")
+    for name, data, ctype in attachments:
+        maintype, _, subtype = ctype.partition("/")
+        msg.add_attachment(data, maintype=maintype or "application",
+                           subtype=subtype or "octet-stream", filename=name)
+    ctx = ssl.create_default_context()
+    with smtplib.SMTP_SSL(host, port, context=ctx, timeout=60) as s:
+        s.login(user, pwd)
+        s.send_message(msg)
+    print(f"e-mail recap envoye a {msg['To']}")
+    return True
+
+
 def _reassort_central_outputs(run_id, datasets, run_label, central_path):
     """Sortie A (lignes de reassort central en base) + sortie B (import Fastmag
     depose dans le Storage). Ne fait rien si le reassort central n'a pas tourne."""
@@ -239,15 +277,44 @@ def _reassort_central_outputs(run_id, datasets, run_label, central_path):
             out = tmpd / "IMPORT_FASTMAG.txt"
             nb, nbb, sans = build_fastmag_import(rc, out, tmpd,
                                                  run_date=datetime.datetime.now())
+            fastmag_bytes = None
             if nb > 0:
+                fastmag_bytes = out.read_bytes()
                 dest = f"exports/{run_label}/IMPORT_FASTMAG.txt"
-                if _upload(dest, out.read_bytes(), "text/plain; charset=latin1"):
+                if _upload(dest, fastmag_bytes, "text/plain; charset=latin1"):
                     _patch_run(run_id, {"fastmag_import": dest})
                     print(f"import Fastmag : {nb} lignes -> {dest} (sortie B)")
                 if sans:
                     print("boutiques sans numero Fastmag :", ", ".join(sans))
+
+            # Classeur Excel recap (comme l'outil historique) + e-mail
+            res = datasets.get("reassort_central_result")
+            xlsx_bytes = None
+            _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            try:
+                xlsx_path = tmpd / f"reassort_{run_label}.xlsx"
+                if build_reassort_excel(res, xlsx_path):
+                    xlsx_bytes = xlsx_path.read_bytes()
+                    dx = f"exports/{run_label}/reassort.xlsx"
+                    if _upload(dx, xlsx_bytes, _XLSX):
+                        _patch_run(run_id, {"reassort_excel": dx})
+                        print(f"classeur Excel : {dx}")
+            except Exception as exc:
+                print("classeur Excel ignore :", exc)
+
+            try:
+                html = build_reassort_email_html(res, run_date=datetime.datetime.now())
+                if html:
+                    atts = []
+                    if xlsx_bytes:
+                        atts.append((f"reassort_{run_label}.xlsx", xlsx_bytes, _XLSX))
+                    if fastmag_bytes:
+                        atts.append(("IMPORT_FASTMAG.txt", fastmag_bytes, "text/plain"))
+                    _send_mail(f"Reassort central — {run_label}", html, atts)
+            except Exception as exc:
+                print("e-mail recap ignore :", exc)
     except Exception as exc:
-        print("import Fastmag (B) ignore :", exc)
+        print("sorties reassort (B/Excel/mail) ignorees :", exc)
 
 
 def main() -> int:
