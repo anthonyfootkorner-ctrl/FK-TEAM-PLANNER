@@ -55,6 +55,12 @@ DEFAULTS: Dict[str, Any] = {
         "DEFAUT": ["S", "M", "L"],
     },
     "min_tailles_coeur_receveur": 2,    # au moins 2 tailles coeur apres reassort
+    # Protection grille cote EXPEDITEUR : un magasin garde au moins 1 de CHAQUE
+    # taille coeur qu'il possede pour une reference (il ne vide jamais une taille
+    # coeur). Exception : si la reference est TOTALEMENT morte chez lui (aucune
+    # vente, toutes tailles confondues), la protection saute et on peut la vider
+    # entierement (pas de stock mort piege). Web non concerne.
+    "protection_grille_expediteur": True,
     # Scoring (poids, section module 9). La somme est normalisee au calcul.
     "poids_scoring": {
         "gain_couverture_receveur": 20,

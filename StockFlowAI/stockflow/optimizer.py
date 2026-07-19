@@ -59,6 +59,8 @@ class Optimizer:
         self.max_iter = int(params.get("max_iterations", 5000))
         self.min_coeur = int(params.get("min_tailles_coeur_receveur", 2))
         self.qte_min = float(params.get("quantite_min_transfert", 1))
+        # protection grille expediteur : garder >=1 de chaque taille coeur
+        self.protection_grille_exp = bool(params.get("protection_grille_expediteur", True))
 
         self.grid = grid_index
         self.distance = distance
@@ -82,6 +84,14 @@ class Optimizer:
             self.is_web[str(row.magasin)] = bool(getattr(row, "is_web", False))
             self.ville[str(row.magasin)] = getattr(row, "ville", None)
             self.categorie[(str(row.reference), str(row.couleur))] = getattr(row, "categorie", None)
+
+        # ventes/jour cumulees par (magasin, reference, couleur) toutes tailles :
+        # sert a savoir si une reference est TOTALEMENT morte chez un magasin
+        # (aucune vente) -> dans ce cas la protection de grille expediteur saute.
+        self.ref_daily_total: Dict[Tuple[str, str, str], float] = {}
+        for (mag, ref, coul, _t), d in self.daily.items():
+            rk = (mag, ref, coul)
+            self.ref_daily_total[rk] = self.ref_daily_total.get(rk, 0.0) + d
 
         # besoins receveur (remaining mutable)
         self.needs = needs.reset_index(drop=True).copy()
@@ -129,13 +139,31 @@ class Optimizer:
 
     # --- helpers etat -------------------------------------------------------
     def _cessible(self, key: LineKey) -> float:
-        """Quantite cessible par le donneur en conservant sa couverture min."""
-        mag = key[0]
+        """Quantite cessible par le donneur en conservant sa couverture min.
+
+        Protection grille expediteur : un magasin physique garde au moins 1 unite
+        de CHAQUE taille coeur qu'il possede (il ne vide jamais une taille coeur).
+        Exception : si la reference est TOTALEMENT morte chez lui (aucune vente,
+        toutes tailles), la protection saute -> on peut la vider entierement.
+        Le web n'est jamais concerne (reserve strategique, regle propre)."""
+        mag, ref, coul, taille = key
         stock = self.stock.get(key, 0.0)
         daily = self.daily.get(key, 0.0)
-        cov_min = self.cov_min_web if self.is_web.get(mag) else self.cov_min_exp
+        is_web = self.is_web.get(mag)
+        cov_min = self.cov_min_web if is_web else self.cov_min_exp
         seuil = math.ceil(cov_min * daily) if daily > 0 else 0.0
-        return max(0.0, math.floor(stock - seuil))
+        cessible = max(0.0, math.floor(stock - seuil))
+
+        # La protection ne mord que si l'on s'appretait a VIDER la taille
+        # (cessible == stock, cas d'une taille coeur qui ne se vend pas ici).
+        if (self.protection_grille_exp and not is_web and stock >= 1
+                and cessible >= stock):
+            core = [str(s).upper() for s in self.grid.core_sizes(ref, coul)]
+            if core and str(taille).upper() in core:
+                ref_morte = self.ref_daily_total.get((mag, ref, coul), 0.0) <= 0
+                if not ref_morte:
+                    cessible = max(0.0, math.floor(stock - 1.0))
+        return cessible
 
     def _record_blocked(self, need_row, motif: str) -> None:
         key = (str(need_row.magasin), str(need_row.reference), str(need_row.couleur),
