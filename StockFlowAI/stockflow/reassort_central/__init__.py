@@ -29,6 +29,7 @@ StockFlow : le chainage joint donc proprement.
 from __future__ import annotations
 
 import io
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -63,6 +64,10 @@ class ReassortCentralResult:
     central_total: int = 0
     summary: Dict[str, Any] = field(default_factory=dict)
     message: str = ""
+    # frames au format agent, conserves pour la 2e passe (completion de grille
+    # apres l'inter-magasins) : stock boutiques+CENTRAL et ventes agregees.
+    stock_df: pd.DataFrame = field(default_factory=pd.DataFrame)
+    ventes_df: pd.DataFrame = field(default_factory=pd.DataFrame)
 
     @property
     def ok(self) -> bool:
@@ -288,7 +293,7 @@ def compute_reassort_central(
         taille_seule_exclus=taille_seule, top=top,
         reserve=reserve, target_days=target_days, sales_days=sd,
         sales_start=s0, sales_end=s1, central_total=reserve_total,
-        summary=summary,
+        summary=summary, stock_df=stock_df, ventes_df=ventes_df,
         message=(f"{summary['lignes']} lignes, {summary['pieces']} pieces vers "
                  f"{summary['boutiques']} boutiques."))
 
@@ -317,6 +322,104 @@ def apply_exclusions(res: "ReassortCentralResult", refs) -> "ReassortCentralResu
     res.message = (f"{res.summary['lignes']} lignes, {res.summary['pieces']} pieces vers "
                    f"{res.summary['boutiques']} boutiques.")
     return res
+
+
+def complete_grids_after_transfers(res: "ReassortCentralResult",
+                                   transfers: pd.DataFrame,
+                                   params: Optional[Parameters] = None) -> pd.DataFrame:
+    """2e passe du reassort central, APRES l'inter-magasins.
+
+    Le central retient (« courbe de tailles rompue ») les tailles qu'il ne peut
+    pas assembler seul en grille valide. Une fois l'inter-magasins passe, une
+    boutique peut avoir recu d'autres tailles : la taille retenue par le central
+    completerait alors une grille valide. On rejoue donc le filtre de grille du
+    central (memes regles) mais avec le stock boutique AUGMENTE des tailles
+    recues (reassort central pass 1 + transferts inter-magasins), en puisant
+    uniquement dans le stock CENTRAL restant. Retourne les lignes de reassort
+    central SUPPLEMENTAIRES (meme schema que ``proposed``)."""
+    empty = pd.DataFrame()
+    if res is None:
+        return empty
+    withheld = res.taille_seule_exclus
+    stock_df = res.stock_df
+    ventes_df = res.ventes_df
+    if (withheld is None or withheld.empty or stock_df is None or stock_df.empty
+            or "barcode" not in getattr(withheld, "columns", [])):
+        return empty
+    reserve = res.reserve
+
+    # 1) stock CENTRAL restant apres la 1re passe (total - deja propose)
+    reserve_total = (stock_df[stock_df["boutique"] == reserve]
+                     .groupby(["barcode", "taille"])["stock"].sum())
+    alloc = pd.Series(dtype=float)
+    if res.proposed is not None and not res.proposed.empty:
+        alloc = res.proposed.groupby(["barcode", "taille"])["qte_proposee"].sum()
+    rem: Dict = {}
+    for (bc, t), q in reserve_total.items():
+        rem[(str(bc), str(t))] = int(max(0, float(q) - float(alloc.get((bc, t), 0))))
+
+    # 2) stock boutique augmente : + reassort central pass 1 + transferts recus
+    adds = []
+    if res.proposed is not None and not res.proposed.empty:
+        for r in res.proposed.itertuples(index=False):
+            adds.append({"boutique": str(r.boutique), "barcode": str(r.barcode),
+                         "taille": str(r.taille), "stock": float(r.qte_proposee)})
+    if transfers is not None and not transfers.empty:
+        cols = set(transfers.columns)
+        for r in transfers.itertuples(index=False):
+            if {"destinataire", "reference", "taille", "quantite"} <= cols:
+                adds.append({"boutique": str(r.destinataire), "barcode": str(r.reference),
+                             "taille": str(r.taille), "stock": float(r.quantite)})
+    aug = stock_df[["boutique", "barcode", "taille", "stock"]].copy()
+    if adds:
+        aug = pd.concat([aug, pd.DataFrame(adds)], ignore_index=True)
+    aug = aug.groupby(["boutique", "barcode", "taille"], as_index=False)["stock"].sum()
+
+    # tailles deja couvertes (stock magasin + pass 1 + inter-magasins) : on ne
+    # renvoie jamais une taille deja servie a la boutique.
+    covered = {(str(r.boutique), str(r.barcode), str(r.taille))
+               for r in aug[aug["stock"] > 0].itertuples(index=False)}
+
+    # 3) allouer les tailles retenues depuis le CENTRAL restant, par priorite
+    def _pn(s):
+        m = re.search(r"P(\d)", str(s))
+        return int(m.group(1)) if m else 9
+    w = withheld.copy()
+    w["_pn"] = w["priorite"].apply(_pn) if "priorite" in w.columns else 9
+    w = w.sort_values("_pn")
+    keep_cols = [c for c in withheld.columns if c != "raison_exclusion"]
+    rows = []
+    # to_dict : itertuples mangle les colonnes a underscore (_is_core, ...)
+    for rec in w.to_dict("records"):
+        key = (str(rec["boutique"]), str(rec["barcode"]), str(rec["taille"]))
+        if key in covered:
+            continue
+        avail = rem.get((str(rec["barcode"]), str(rec["taille"])), 0)
+        give = min(int(rec.get("qte_proposee", 0) or 0), avail)
+        if give <= 0:
+            continue
+        rem[(str(rec["barcode"]), str(rec["taille"]))] = avail - give
+        d = {c: rec.get(c) for c in keep_cols}
+        d["qte_proposee"] = give
+        rows.append(d)
+    if not rows:
+        return empty
+    candidates = pd.DataFrame(rows)
+
+    # 4) rejouer le filtre de grille du central avec le stock augmente : ne
+    #    survivent que les tailles qui forment desormais une grille valide.
+    clean, _excl = _ag._filter_tailles_isolees(
+        candidates, aug, ventes_df, reserve=reserve, reserve_pool=rem)
+    if clean is None or clean.empty:
+        return empty
+    mask = [(str(r.boutique), str(r.barcode), str(r.taille)) not in covered
+            for r in clean.itertuples(index=False)]
+    clean = clean[pd.Series(mask, index=clean.index)].copy()
+    if clean.empty:
+        return empty
+    clean["priorite"] = "P4 - 2e passe"
+    clean["commentaire"] = "2e passe : grille completee apres inter-magasins"
+    return clean.reset_index(drop=True)
 
 
 def proposed_to_picking(proposed: pd.DataFrame) -> pd.DataFrame:
