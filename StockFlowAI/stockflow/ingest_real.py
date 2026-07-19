@@ -293,14 +293,16 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
     # l'affichage et le REGROUPEMENT par marque des bons de prepa magasin.
     marque_map: Dict[tuple, str] = {}
     for df in (stocks, v):
-        if df is None or df.empty or "reference" not in df or "marque" not in df:
+        if df is None or getattr(df, "empty", True):
             continue
-        coul = df["couleur"] if "couleur" in df else pd.Series([""] * len(df))
-        for ref, c, mq in zip(df["reference"].astype(str), coul.astype(str),
-                              df["marque"].astype(str)):
-            mq = mq.strip()
+        if "reference" not in df.columns or "marque" not in df.columns:
+            continue
+        coul = df["couleur"] if "couleur" in df.columns else pd.Series([""] * len(df))
+        # pandas 3 : astype(str) conserve NaN en float -> on stringifie a la main.
+        for ref, c, mq in zip(df["reference"], coul, df["marque"]):
+            mq = str(mq).strip()
             if mq and mq.lower() != "nan":
-                marque_map.setdefault((ref, c), mq)
+                marque_map.setdefault((str(ref), str(c)), mq)
 
     return {
         "stocks": stocks,
