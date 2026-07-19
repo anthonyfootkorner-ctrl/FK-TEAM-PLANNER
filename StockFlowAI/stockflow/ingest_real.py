@@ -289,6 +289,19 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
         for ref, des in zip(d["ref"], d["d"]):
             designation_map.setdefault(str(ref), des)
 
+    # carte (reference, couleur) -> marque : portee sur chaque transfert pour
+    # l'affichage et le REGROUPEMENT par marque des bons de prepa magasin.
+    marque_map: Dict[tuple, str] = {}
+    for df in (stocks, v):
+        if df is None or df.empty or "reference" not in df or "marque" not in df:
+            continue
+        coul = df["couleur"] if "couleur" in df else pd.Series([""] * len(df))
+        for ref, c, mq in zip(df["reference"].astype(str), coul.astype(str),
+                              df["marque"].astype(str)):
+            mq = mq.strip()
+            if mq and mq.lower() != "nan":
+                marque_map.setdefault((ref, c), mq)
+
     return {
         "stocks": stocks,
         "ventes": sales_out,
@@ -297,4 +310,5 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
         "magasins": stores,
         "historique": pd.DataFrame(),
         "designation_map": designation_map,
+        "marque_map": marque_map,
     }
