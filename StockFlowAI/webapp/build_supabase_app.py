@@ -364,7 +364,7 @@ async function enter(session){{
 }}
 
 // --- Generation : envoi au relais -> calcul sur GitHub -> attente du nouveau run ---
-window.doGenerate = async function({{stock, ventes, reassort, objectif, central, cible}}){{
+window.doGenerate = async function({{stock, ventes, reassort, objectif, central, exclusions, cible}}){{
   if(!BACKEND_URL) throw new Error("Backend non configure (BACKEND_URL vide).");
   const fd = new FormData();
   fd.append('stock', stock);
@@ -372,6 +372,7 @@ window.doGenerate = async function({{stock, ventes, reassort, objectif, central,
   if(reassort) fd.append('reassort', reassort);
   if(objectif) fd.append('objectif', objectif);
   if(central) fd.append('central', central);
+  if(exclusions) fd.append('exclusions', exclusions);
   fd.append('cible', String(cible));
   const baseId = RUN ? RUN.id : null;
   const tok = await freshToken();

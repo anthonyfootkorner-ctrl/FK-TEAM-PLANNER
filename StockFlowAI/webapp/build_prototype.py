@@ -1471,6 +1471,7 @@ function renderGenerer(){
       <div class="ufield"><label>Stock CENTRAL — optionnel (réassort central)</label><input type="file" id="g_central" accept=".xls,.xlsx,.csv,.txt"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">Active le réassort central : CENTRAL → magasins d'abord, puis son résultat alimente le picking des transferts inter-magasins (A + B).</div></div>
       <div class="ufield"><label>Réassort Picking — optionnel</label><input type="file" id="g_reassort" accept=".xlsx,.csv"></div>
       <div class="ufield"><label>Objectifs — optionnel</label><input type="file" id="g_objectif" accept=".csv,.xlsx"></div>
+      <div class="ufield"><label>Références à exclure — optionnel</label><input type="file" id="g_exclusions" accept=".csv,.xlsx,.xls,.txt"><div style="font-size:11.5px;color:var(--muted);margin-top:4px">Une référence (BarCode V2, ex. <code>0200NZ-010</code>) par ligne, ou une colonne « Référence ». Ces produits ne bougent nulle part : ni réassort central, ni transfert inter-magasins, ni Fastmag. Indiquer un modèle seul (<code>0200NZ</code>) exclut toutes ses couleurs.</div></div>
       <div class="ufield"><label>Cible de couverture receveur (jours)</label><input type="number" id="g_cible" value="21" min="1" style="max-width:120px"></div>
       <button class="btn" id="g_run" style="margin-top:6px">⚙️ Générer les transferts</button>
       <div id="g_status" style="margin-top:14px;font-size:13px;color:var(--muted);min-height:18px"></div>
@@ -1506,7 +1507,8 @@ function bindGenerer(root){
       const res=await window.doGenerate({stock, ventes,
         reassort:root.querySelector('#g_reassort').files[0],
         objectif:root.querySelector('#g_objectif').files[0],
-        central:root.querySelector('#g_central').files[0], cible});
+        central:root.querySelector('#g_central').files[0],
+        exclusions:root.querySelector('#g_exclusions').files[0], cible});
       window.__genStep('gagne');
       genHint(`✅ ${res.nb_transferts} transferts générés${res.perimetre?' · '+res.perimetre:''}`);
       setTimeout(()=>location.reload(), 1800);

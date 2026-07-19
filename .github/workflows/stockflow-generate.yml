@@ -28,6 +28,7 @@ jobs:
           REASSORT_PATH: ${{ github.event.client_payload.reassort }}
           OBJECTIF_PATH: ${{ github.event.client_payload.objectif }}
           CENTRAL_PATH: ${{ github.event.client_payload.central }}
+          EXCLUSIONS_PATH: ${{ github.event.client_payload.exclusions }}
           CIBLE: ${{ github.event.client_payload.cible }}
           # E-mail recap du reassort central (optionnel) : mot de passe d'application Gmail
           GMAIL_USER: ${{ secrets.GMAIL_USER }}

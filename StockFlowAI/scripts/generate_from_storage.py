@@ -341,6 +341,7 @@ def main() -> int:
     reassort_p = os.environ.get("REASSORT_PATH") or None
     objectif_p = os.environ.get("OBJECTIF_PATH") or None
     central_p = os.environ.get("CENTRAL_PATH") or None
+    exclusions_p = os.environ.get("EXCLUSIONS_PATH") or None
     cible = int(os.environ.get("CIBLE", "21"))
 
     stock = _dl(stock_p)
@@ -349,13 +350,25 @@ def main() -> int:
     objectif = _dl(objectif_p)
     central = _dl(central_p)
 
+    # references a exclure de TOUT le flux (central + inter-magasins + Fastmag)
+    exclude_refs = []
+    try:
+        from stockflow.exclusions import parse_exclusions
+        exclude_refs = parse_exclusions(_dl(exclusions_p))
+        if exclude_refs:
+            print(f"references exclues : {len(exclude_refs)} ({', '.join(exclude_refs[:8])}"
+                  f"{'…' if len(exclude_refs) > 8 else ''})")
+    except Exception as exc:
+        print("liste d'exclusions ignoree :", exc)
+
     today = pd.Timestamp(datetime.date.today())
     # classeur des transferts inter-magasins ecrit par la pipeline (export_path)
     _workdir = tempfile.mkdtemp()
     transferts_xlsx = Path(_workdir) / "transferts.xlsx"
     result, datasets = run_analysis(
         stock=stock, ventes=ventes, reassort=reassort, objectif=objectif,
-        central_stock=central, params=build_params(cible=cible), today=today,
+        central_stock=central,
+        params=build_params(cible=cible, exclude_refs=exclude_refs), today=today,
         export_path=transferts_xlsx,
     )
     if getattr(result, "blocked", False):
@@ -374,7 +387,8 @@ def main() -> int:
         "date_execution": str(today.date()),
         "perimetre": f"{n_stores} magasins" if n_stores else None,
         "cible": cible,
-        "parametres": build_params(cible=cible).snapshot(),
+        "parametres": build_params(cible=cible, exclude_refs=exclude_refs).snapshot(),
+        "marque_map": datasets.get("marque_map", {}),
         "designation_map": datasets.get("designation_map", {}),
     }
     run_id = push(result, meta, url=URL, service_key=KEY)
@@ -417,7 +431,7 @@ def main() -> int:
         except Exception as exc:
             print("impact ignore :", exc)
 
-    for p in (stock_p, ventes_p, reassort_p, objectif_p, central_p):
+    for p in (stock_p, ventes_p, reassort_p, objectif_p, central_p, exclusions_p):
         _rm(p)
     shutil.rmtree(_workdir, ignore_errors=True)
 

@@ -108,6 +108,21 @@ def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores
         stores = _drop(stores, "code_magasin")
         journal["magasins_inactifs_retires"] = ", ".join(sorted(inactifs))
 
+    # References exclues (liste chargee par l'utilisateur) : retirees ENTIEREMENT
+    # du jeu de donnees -> ni reassort central, ni transfert inter-magasins, ni
+    # Fastmag. Correspondance reference exacte OU modele (partie avant le tiret).
+    from .exclusions import excluded_mask, to_set
+    excl_ref = to_set(params.get("exclusions_reference", []))
+    if excl_ref:
+        def _drop_ref(df):
+            if df is not None and not df.empty and "reference" in df.columns:
+                return df[~excluded_mask(df["reference"], excl_ref)].copy()
+            return df
+        stocks = _drop_ref(stocks)
+        sales = _drop_ref(sales)
+        picking = _drop_ref(picking)
+        journal["references_exclues"] = ", ".join(sorted(excl_ref))
+
     report = qc.QualityReport()
     stocks = qc.check_stocks(stocks, report)
     sales = qc.check_sales(sales, report)
