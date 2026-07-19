@@ -65,6 +65,18 @@ def detect_receivers(df: pd.DataFrame, index: GridIndex, params: Parameters,
         physiques.groupby(["magasin", "reference", "couleur"])["moyenne_quotidienne"]
         .sum()
     )
+    # Tailles deja reapprovisionnees par le reassort CENTRAL (stock en transit) :
+    # on les considere PRESENTES pour la grille -> on ne re-declenche pas un
+    # transfert inter-magasins « ameliore la grille » sur une taille que le
+    # central amene deja (evite le double approvisionnement).
+    transit_sizes: dict = {}
+    if "stock_transit" in physiques.columns:
+        _tt = physiques[pd.to_numeric(physiques["stock_transit"], errors="coerce").fillna(0.0) > 0]
+        for r in _tt.itertuples(index=False):
+            transit_sizes.setdefault(
+                (str(r.magasin), str(r.reference), str(r.couleur)), set()
+            ).add(str(r.taille).upper())
+
     seen = set()
     for row in physiques.itertuples(index=False):
         key = (str(row.magasin), str(row.reference), str(row.couleur))
@@ -75,10 +87,12 @@ def detect_receivers(df: pd.DataFrame, index: GridIndex, params: Parameters,
             continue  # reference sans vente dans ce magasin -> pas de completion
         state = index.state(*key)
         core = [c.upper() for c in index.core_sizes(str(row.reference), str(row.couleur))]
-        present = {t.upper() for t in state.tailles_dispo}
+        # present = deja en rayon OU en transit depuis le central
+        present = {t.upper() for t in state.tailles_dispo} | transit_sizes.get(key, set())
         manquantes = [c for c in core if c not in present]
+        nb_coeur_eff = sum(1 for c in core if c in present)
         # ne proposer que si completer permet d'atteindre le minimum de tailles coeur
-        if manquantes and state.nb_coeur < int(params.get("min_tailles_coeur_receveur", 2)):
+        if manquantes and nb_coeur_eff < int(params.get("min_tailles_coeur_receveur", 2)):
             for taille in manquantes:
                 besoins.append(_need_row(row, taille=taille, qte=2.0,
                                          type_besoin="grille",
