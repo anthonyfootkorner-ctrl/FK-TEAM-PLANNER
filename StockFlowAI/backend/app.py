@@ -191,6 +191,7 @@ async def generer(
     reassort: UploadFile | None = File(None),
     objectif: UploadFile | None = File(None),
     central: UploadFile | None = File(None),
+    exclusions: UploadFile | None = File(None),
     cible: int = Form(21),
     authorization: str | None = Header(None),
 ):
@@ -202,7 +203,7 @@ async def generer(
     _ensure_bucket()
     prefix = "runs/" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     payload = {"cible": int(cible), "bucket": BUCKET,
-               "reassort": None, "objectif": None, "central": None}
+               "reassort": None, "objectif": None, "central": None, "exclusions": None}
 
     _upload(f"{prefix}/stock", await stock.read(), stock.content_type)
     payload["stock"] = f"{prefix}/stock"
@@ -217,6 +218,9 @@ async def generer(
     if central is not None:
         _upload(f"{prefix}/central", await central.read(), central.content_type)
         payload["central"] = f"{prefix}/central"
+    if exclusions is not None:
+        _upload(f"{prefix}/exclusions", await exclusions.read(), exclusions.content_type)
+        payload["exclusions"] = f"{prefix}/exclusions"
 
     gh = requests.post(
         f"https://api.github.com/repos/{GH_REPO}/dispatches",

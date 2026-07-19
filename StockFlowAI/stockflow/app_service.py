@@ -16,7 +16,7 @@ import pandas as pd
 from .parameters import Parameters
 from .pipeline import run_pipeline, PipelineResult
 from .ingest_real import load_real_dataset
-from .reassort_central import compute_reassort_central, proposed_to_picking
+from .reassort_central import compute_reassort_central, proposed_to_picking, apply_exclusions
 
 
 def _buffer(src):
@@ -45,7 +45,8 @@ def _buffer(src):
 
 
 def build_params(*, cible=21, min_expediteur=30, min_web=14, nb_max_destinations=4,
-                 seuil_score=70, base: Optional[Parameters] = None) -> Parameters:
+                 seuil_score=70, exclude_refs=None,
+                 base: Optional[Parameters] = None) -> Parameters:
     """Construit un jeu de parametres a partir des reglages de l'interface.
 
     Regles metier (validees) :
@@ -53,6 +54,8 @@ def build_params(*, cible=21, min_expediteur=30, min_web=14, nb_max_destinations
       transferts inter-magasins ET au reassort central (meme cible partout).
     * ``min_expediteur`` = couverture que l'EXPEDITEUR conserve apres envoi
       (jours) : il ne cede que le surplus au-dela de cette reserve.
+    * ``exclude_refs`` = references a exclure de TOUT le flux (central +
+      inter-magasins + Fastmag). Liste de codes (BarCode V2) ou de modeles.
     """
     p = base or Parameters()
     p.set("couverture_cible_magasin", int(cible))
@@ -61,6 +64,8 @@ def build_params(*, cible=21, min_expediteur=30, min_web=14, nb_max_destinations
     p.set("couverture_min_web", int(min_web))
     p.set("nb_max_destinations", int(nb_max_destinations))
     p.set("seuil_score_minimum", int(seuil_score))
+    if exclude_refs is not None:
+        p.set("exclusions_reference", list(exclude_refs))
     return p
 
 
@@ -93,6 +98,9 @@ def run_analysis(*, stock, ventes, reassort=None, objectif=None,
             stock=stock_buf(), ventes=ventes_buf(), central_stock=central_buf(),
             params=params,
         )
+        # references exclues : retirees aussi du reassort central (et donc du
+        # picking + Fastmag). Le pipeline inter-magasins les filtre de son cote.
+        apply_exclusions(reassort_central_res, params.get("exclusions_reference", []))
         picking_override = proposed_to_picking(reassort_central_res.proposed)
 
     datasets = load_real_dataset(stock_buf(), ventes_buf(), objectif,

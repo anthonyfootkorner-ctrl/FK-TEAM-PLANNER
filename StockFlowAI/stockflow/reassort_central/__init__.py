@@ -293,6 +293,32 @@ def compute_reassort_central(
                  f"{summary['boutiques']} boutiques."))
 
 
+def apply_exclusions(res: "ReassortCentralResult", refs) -> "ReassortCentralResult":
+    """Retire du reassort central les references exclues (liste utilisateur).
+
+    Correspondance sur la reference (= ``barcode_reference`` du BarCode V2) exacte
+    OU sur le modele (partie avant le tiret). Met a jour ``proposed`` et les
+    compteurs du ``summary`` pour que l'Excel et l'e-mail recap restent justes."""
+    from ..exclusions import excluded_mask, to_set
+    exset = to_set(refs)
+    if not exset or res is None or res.proposed is None or res.proposed.empty:
+        return res
+    prop = res.proposed
+    ref = barcode_reference(prop["barcode"])
+    keep = ~excluded_mask(ref, exset)
+    res.proposed = prop[keep].copy()
+    total_qte = int(res.proposed["qte_proposee"].sum()) if not res.proposed.empty else 0
+    res.summary = dict(res.summary or {})
+    res.summary["lignes"] = int(len(res.proposed))
+    res.summary["pieces"] = total_qte
+    res.summary["boutiques"] = (int(res.proposed["boutique"].nunique())
+                                if not res.proposed.empty else 0)
+    res.summary["references_exclues"] = int(sum(~keep))
+    res.message = (f"{res.summary['lignes']} lignes, {res.summary['pieces']} pieces vers "
+                   f"{res.summary['boutiques']} boutiques.")
+    return res
+
+
 def proposed_to_picking(proposed: pd.DataFrame) -> pd.DataFrame:
     """Convertit la sortie du reassort central en *picking* StockFlow (stock en
     transit vers la boutique destinataire).
