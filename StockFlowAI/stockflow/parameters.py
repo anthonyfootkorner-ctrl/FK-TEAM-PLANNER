@@ -31,6 +31,10 @@ DEFAULTS: Dict[str, Any] = {
     "couverture_min_web": 30,           # reserve strategique protegee (web donneur)
     "couverture_cible_web": None,       # seuil couverture web receveur (None = meme que magasins)
     "couverture_cible_central": 21,     # cible (jours) du reassort CENTRAL -> boutiques
+    # 2e passe du reassort central : apres l'inter-magasins, relacher les tailles
+    # retenues par le central (courbe rompue) qui completent desormais une grille
+    # valide grace aux transferts recus (True = active).
+    "reassort_central_2e_passe": True,
     # Logistique
     "nb_max_destinations": 4,           # destinations / expediteur / semaine
     # Periodes d'analyse (jours)

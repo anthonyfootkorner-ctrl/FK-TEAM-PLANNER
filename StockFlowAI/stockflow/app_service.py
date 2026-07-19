@@ -16,7 +16,9 @@ import pandas as pd
 from .parameters import Parameters
 from .pipeline import run_pipeline, PipelineResult
 from .ingest_real import load_real_dataset
-from .reassort_central import compute_reassort_central, proposed_to_picking, apply_exclusions
+from .reassort_central import (
+    compute_reassort_central, proposed_to_picking, apply_exclusions,
+    complete_grids_after_transfers)
 
 
 def _buffer(src):
@@ -116,4 +118,27 @@ def run_analysis(*, stock, ventes, reassort=None, objectif=None,
 
     result = run_pipeline(preloaded=datasets, params=params,
                           today=today, export_path=export_path)
+
+    # 2e passe du reassort central : apres l'inter-magasins, on relache les
+    # tailles que le central avait retenues (courbe rompue) et qui completent
+    # desormais une grille valide grace aux transferts recus. Ces lignes central
+    # supplementaires s'ajoutent au reassort central (Fastmag / Excel / e-mail).
+    if (reassort_central_res is not None
+            and bool(params.get("reassort_central_2e_passe", True))):
+        try:
+            extra = complete_grids_after_transfers(
+                reassort_central_res, getattr(result, "transfers", None), params)
+        except Exception:
+            extra = None
+        if extra is not None and not extra.empty:
+            reassort_central_res.proposed = pd.concat(
+                [reassort_central_res.proposed, extra], ignore_index=True)
+            s = dict(reassort_central_res.summary or {})
+            s["lignes"] = int(len(reassort_central_res.proposed))
+            s["pieces"] = int(reassort_central_res.proposed["qte_proposee"].sum())
+            s["boutiques"] = int(reassort_central_res.proposed["boutique"].nunique())
+            s["lignes_2e_passe"] = int(len(extra))
+            reassort_central_res.summary = s
+            datasets["reassort_central"] = reassort_central_res.proposed
+
     return result, datasets
