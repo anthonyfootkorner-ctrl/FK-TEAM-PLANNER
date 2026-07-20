@@ -59,6 +59,12 @@ DEFAULTS: Dict[str, Any] = {
         "DEFAUT": ["S", "M", "L"],
     },
     "min_tailles_coeur_receveur": 2,    # au moins 2 tailles coeur apres reassort
+    # Grille receveur inter-magasins : un magasin ne recoit une reference que si,
+    # au final (rayon + recu), il a au moins ce nombre de tailles coeur presentes.
+    # Evite d'expedier une taille isolee. Si le reseau ne peut pas atteindre ce
+    # minimum, on n'envoie RIEN sur cette reference a ce magasin. 0 = desactive.
+    # Le web (reserve en ligne) n'est pas concerne.
+    "min_grille_receveur_intershop": 3,
     # Protection grille cote EXPEDITEUR : un magasin garde au moins 1 de CHAQUE
     # taille coeur qu'il possede pour une reference (il ne vide jamais une taille
     # coeur). Exception : si la reference est TOTALEMENT morte chez lui (aucune
