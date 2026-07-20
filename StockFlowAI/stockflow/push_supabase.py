@@ -16,7 +16,36 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Dict, List, Optional, Tuple
+
+
+def _post_rows(url: str, headers: Dict, rows: List[Dict], timeout: int):
+    """POST resilient : si la table n'a pas une colonne envoyee (PostgREST
+    PGRST204 « Could not find the 'X' column »), on retire cette colonne de
+    toutes les lignes et on reessaie — au lieu de faire echouer tout le run.
+    Evite qu'une migration SQL oubliee (ex. `designation`) bloque tout."""
+    import requests
+    attempt = [dict(r) for r in rows]
+    last = None
+    for _ in range(8):
+        last = requests.post(url, headers=headers, data=json.dumps(attempt), timeout=timeout)
+        if last.status_code < 400:
+            return last
+        try:
+            body = last.json()
+            msg = f"{body.get('message', '')} {body.get('details', '')} {body.get('hint', '')}"
+        except Exception:
+            msg = last.text or ""
+        m = re.search(r"'([A-Za-z0-9_]+)' column", msg)
+        col = m.group(1) if m else None
+        if not col or not attempt or col not in attempt[0]:
+            last.raise_for_status()
+            return last
+        print(f"colonne '{col}' absente de la table (SQL non applique ?) -> ignoree, on continue")
+        attempt = [{k: v for k, v in r.items() if k != col} for r in attempt]
+    last.raise_for_status()
+    return last
 
 # NB : pandas n'est importe que par build_payload/dry_run (cote moteur). Le
 # chemin "pousser un payload JSON deja calcule" (GitHub Action) ne depend que
@@ -88,16 +117,12 @@ def push_payload(run: Dict, transfers: List[Dict], *, url: Optional[str] = None,
         "Content-Type": "application/json",
         "Prefer": "return=representation",
     }
-    resp = requests.post(f"{base}/stockflow_runs", headers=headers,
-                         data=json.dumps(run), timeout=30)
-    resp.raise_for_status()
+    resp = _post_rows(f"{base}/stockflow_runs", headers, [run], timeout=30)
     run_id = resp.json()[0]["id"]
     for i in range(0, len(transfers), chunk):
         batch = [{**row, "run_id": run_id} for row in transfers[i:i + chunk]]
-        r = requests.post(f"{base}/stockflow_transfers",
-                          headers={**headers, "Prefer": "return=minimal"},
-                          data=json.dumps(batch), timeout=60)
-        r.raise_for_status()
+        _post_rows(f"{base}/stockflow_transfers",
+                   {**headers, "Prefer": "return=minimal"}, batch, timeout=60)
     return run_id
 
 
