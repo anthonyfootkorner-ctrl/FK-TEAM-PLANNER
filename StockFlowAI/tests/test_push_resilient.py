@@ -57,6 +57,16 @@ def test_post_rows_retire_colonne_absente(monkeypatch):
     assert all("reference" in r for r in calls[-1])         # le reste conservé
 
 
+def test_clean_neutralise_nan_inf():
+    rows = [{"a": float("nan"), "b": "x", "c": 3},
+            {"a": float("inf"), "b": float("-inf"), "c": None}]
+    out = ps._clean(rows)
+    assert out[0]["a"] is None and out[0]["b"] == "x" and out[0]["c"] == 3
+    assert out[1]["a"] is None and out[1]["b"] is None
+    # et le résultat est sérialisable en JSON strict (comme l'exige Supabase)
+    json.dumps(out, allow_nan=False)
+
+
 def test_post_rows_erreur_non_colonne_leve(monkeypatch):
     """Une vraie erreur (pas une colonne manquante) doit toujours remonter."""
     def fake_post(url, headers=None, data=None, timeout=None):

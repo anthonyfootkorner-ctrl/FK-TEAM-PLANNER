@@ -283,11 +283,15 @@ def load_real_dataset(stock_csv, sales_csv, objectif_csv=None,
                     if str(c).strip().lower() in _DESIG_COLS), None)
         if not col:
             continue
-        d = pd.DataFrame({"ref": list(refser.values),
-                          "d": raw[col].astype(str).str.strip().values})
-        d = d[(d["d"] != "") & (d["d"].str.lower() != "nan")]
-        for ref, des in zip(d["ref"], d["d"]):
-            designation_map.setdefault(str(ref), des)
+        # pandas 3 : astype(str) conserve les NaN (float) -> on stringifie a la
+        # main et on ignore les vides/nan, sinon un NaN se glisse dans la carte.
+        for ref, des in zip(refser.values, raw[col].values):
+            if des is None:
+                continue
+            s = str(des).strip()
+            if not s or s.lower() == "nan":
+                continue
+            designation_map.setdefault(str(ref), s)
 
     # carte (reference, couleur) -> marque : portee sur chaque transfert pour
     # l'affichage et le REGROUPEMENT par marque des bons de prepa magasin.
