@@ -64,6 +64,9 @@ def _lyon_xs(datasets):
 def _run(deuxieme_passe):
     p = build_params(cible=14, seuil_score=50)
     p.set("reassort_central_2e_passe", deuxieme_passe)
+    # ce test cible la 2e passe : on desactive la regle grille receveur qui,
+    # sinon, annulerait le transfert isole du L vers LYON (S+L = 2 tailles coeur).
+    p.set("min_grille_receveur_intershop", 0)
     res, ds = run_analysis(stock=_b(_stock_csv()), ventes=_b(_ventes_csv()),
                            central_stock=_central_tsv(), params=p,
                            today=pd.Timestamp("2026-07-13"))

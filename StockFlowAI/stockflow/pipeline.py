@@ -42,6 +42,40 @@ from .parameters import Parameters
 logger = logging.getLogger("stockflow")
 
 
+def _enforce_receiver_core_grid(transfers, base, grid_index, params, web_codes):
+    """Anti-taille isolee : un magasin ne garde ses transferts sur une reference
+    que si, au final (stock rayon + tailles recues), il atteint au moins
+    ``min_grille_receveur_intershop`` tailles coeur. Sinon on annule TOUS ses
+    transferts inter-magasins sur cette reference (pas de taille isolee). Le web
+    est exempte. Les references dont la categorie a moins de tailles coeur que le
+    minimum ne sont pas concernees (impossible a satisfaire)."""
+    if transfers is None or transfers.empty:
+        return transfers
+    min_core = int(params.get("min_grille_receveur_intershop", 0) or 0)
+    if min_core <= 0:
+        return transfers
+    web = {str(c).upper() for c in (web_codes or [])}
+    # tailles coeur presentes en rayon par (magasin, reference, couleur)
+    present: Dict = {}
+    if base is not None and not base.empty and "stock_actuel" in base.columns:
+        b = base[base["stock_actuel"] > 0]
+        for row in b.itertuples(index=False):
+            key = (str(row.magasin), str(row.reference), str(row.couleur))
+            present.setdefault(key, set()).add(str(row.taille).upper())
+    keep = []
+    for (dest, ref, coul), grp in transfers.groupby(["destinataire", "reference", "couleur"]):
+        if str(dest).upper() in web:
+            keep.extend(grp.index); continue
+        core = {str(s).upper() for s in grid_index.core_sizes(str(ref), str(coul))}
+        if len(core) < min_core:               # produit sans assez de tailles coeur : hors regle
+            keep.extend(grp.index); continue
+        recu = {str(t).upper() for t in grp["taille"]}
+        final_core = (present.get((str(dest), str(ref), str(coul)), set()) | recu) & core
+        if len(final_core) >= min_core:
+            keep.extend(grp.index)
+    return transfers.loc[keep].reset_index(drop=True) if len(keep) < len(transfers) else transfers
+
+
 @dataclass
 class PipelineResult:
     export_path: Optional[Path] = None
@@ -185,6 +219,13 @@ def run_pipeline(*, stocks_path=None, sales_path=None, picking_path=None, stores
     journal["mode_optimisation"] = "rapide" if fast else "iteratif"
     # disponibilite par taille chez le destinataire (avant / apres)
     result.transfers = exports.enrich_dispo(result.transfers, base, result.stock_final)
+    # anti-taille isolee : le receveur doit atteindre N tailles coeur, sinon rien
+    n_avant = 0 if result.transfers is None else len(result.transfers)
+    result.transfers = _enforce_receiver_core_grid(
+        result.transfers, base, grid_index, params, web_codes)
+    n_apres = 0 if result.transfers is None else len(result.transfers)
+    if n_apres < n_avant:
+        journal["transferts_annules_grille_receveur"] = n_avant - n_apres
     journal["nb_iterations"] = result.iterations
     journal["nb_transferts_retenus"] = 0 if result.transfers is None else len(result.transfers)
 
