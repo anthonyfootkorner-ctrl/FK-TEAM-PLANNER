@@ -201,10 +201,12 @@ class Optimizer:
         if (rec, donor_mag) in self.pairs_open or (rec, donor_mag) in self.hist_pairs:
             self._record_blocked(need_row, "Anti-transfert croise (paire inverse existante)")
             return None
-        # limite 4 destinations
+        # limite de destinations par expediteur — le WEB en est exempte : c'est
+        # une reserve centrale, il peut alimenter TOUS les magasins.
         used = self.dest_used.get(donor_mag, set())
         deja_ouverte = rec in used
-        if not deja_ouverte and len(used) >= self.nb_max_dest:
+        if (not deja_ouverte and len(used) >= self.nb_max_dest
+                and not self.is_web.get(donor_mag, False)):
             self._record_blocked(need_row, f"Donneur {donor_mag} : limite de {self.nb_max_dest} destinations atteinte")
             return None
 
