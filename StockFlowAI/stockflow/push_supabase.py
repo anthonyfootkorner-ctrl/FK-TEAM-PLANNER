@@ -15,9 +15,26 @@ versionner. Utiliser uniquement cote serveur / script d'execution.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from typing import Dict, List, Optional, Tuple
+
+
+def _clean(rows: List[Dict]) -> List[Dict]:
+    """Remplace les NaN / Infinity (float) par None : json.dumps les sérialise
+    sinon en NaN/Infinity, non conformes JSON -> Supabase renvoie 400. Ces
+    valeurs proviennent typiquement d'une carte (désignation/marque) où pandas 3
+    conserve un NaN. On neutralise tout, quelle que soit la source."""
+    out = []
+    for r in rows:
+        clean = {}
+        for k, v in r.items():
+            if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                v = None
+            clean[k] = v
+        out.append(clean)
+    return out
 
 
 def _post_rows(url: str, headers: Dict, rows: List[Dict], timeout: int):
@@ -26,7 +43,7 @@ def _post_rows(url: str, headers: Dict, rows: List[Dict], timeout: int):
     toutes les lignes et on reessaie — au lieu de faire echouer tout le run.
     Evite qu'une migration SQL oubliee (ex. `designation`) bloque tout."""
     import requests
-    attempt = [dict(r) for r in rows]
+    attempt = _clean([dict(r) for r in rows])
     last = None
     for _ in range(8):
         last = requests.post(url, headers=headers, data=json.dumps(attempt), timeout=timeout)
@@ -40,6 +57,9 @@ def _post_rows(url: str, headers: Dict, rows: List[Dict], timeout: int):
         m = re.search(r"'([A-Za-z0-9_]+)' column", msg)
         col = m.group(1) if m else None
         if not col or not attempt or col not in attempt[0]:
+            # erreur non liee a une colonne manquante : on log le corps exact
+            # (message PostgREST) avant de remonter, pour diagnostiquer vite.
+            print(f"Supabase {last.status_code} sur {url} -> {(last.text or '')[:400]}")
             last.raise_for_status()
             return last
         print(f"colonne '{col}' absente de la table (SQL non applique ?) -> ignoree, on continue")
