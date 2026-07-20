@@ -46,7 +46,7 @@ def _buffer(src):
     return _factory
 
 
-def build_params(*, cible=21, min_expediteur=30, min_web=14, nb_max_destinations=4,
+def build_params(*, cible=21, min_expediteur=30, min_web=30, nb_max_destinations=4,
                  seuil_score=70, exclude_refs=None,
                  base: Optional[Parameters] = None) -> Parameters:
     """Construit un jeu de parametres a partir des reglages de l'interface.

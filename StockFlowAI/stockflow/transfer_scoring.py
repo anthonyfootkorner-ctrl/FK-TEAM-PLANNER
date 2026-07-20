@@ -64,6 +64,8 @@ class Candidate:
     stock_rec_apres: float = 0.0
     besoin_residuel: float = 0.0
     picking_prevu: float = 0.0
+    # receveur = web (canal en ligne, plus gros CA -> priorise via un bonus)
+    is_web_rec: bool = False
 
 
 class TransferScorer:
@@ -74,6 +76,9 @@ class TransferScorer:
         self.cible = float(params.get("couverture_cible_magasin", 30))
         self.dist_max = float(params.get("distance_max_km", 800))
         self.bonus_flagship = float(params.get("bonus_flagship", 5))
+        # bonus additif quand le receveur est le WEB (canal en ligne = plus gros
+        # CA) : il capte le surplus avant que les magasins ne l'epuisent.
+        self.bonus_web_receveur = float(params.get("bonus_web_receveur", 0))
 
     # -- composantes 0-1 -----------------------------------------------------
     def _components(self, c: Candidate) -> Dict[str, float]:
@@ -149,6 +154,9 @@ class TransferScorer:
         # bonus flagship additif borne
         if c.flagship_rec:
             score += self.bonus_flagship
+        # bonus receveur WEB : prioriser le rechargement du canal en ligne
+        if c.is_web_rec:
+            score += self.bonus_web_receveur
         score = max(0.0, min(100.0, score))
         return ScoredTransfer(candidate=c, score=round(score, 1),
                               priorite=classer_score(score),
@@ -164,6 +172,8 @@ class TransferScorer:
             raisons.append("reference du Top 30 magasin")
         if c.tendance_rec == "hausse":
             raisons.append("ventes en acceleration")
+        if c.is_web_rec:
+            raisons.append("recharge le web (canal en ligne prioritaire)")
         if c.is_web_don:
             raisons.append("puise dans la reserve Web")
         elif comp["reduction_surstock_donneur"] > 0:

@@ -259,7 +259,7 @@ class Optimizer:
         return Candidate(
             expediteur=donor_mag, destinataire=rec, reference=ref, couleur=coul,
             taille=taille, qte=qte,
-            is_web_don=don_is_web,
+            is_web_don=don_is_web, is_web_rec=bool(self.is_web.get(rec, False)),
             cov_don_avant=cov_don_avant, cov_don_apres=cov_don_apres, daily_don=daily_don,
             grid_don_avant=gs_don_avant.label(), grid_don_apres=gs_don_apres.label(),
             grid_don_valide_apres=gs_don_apres.valide,
