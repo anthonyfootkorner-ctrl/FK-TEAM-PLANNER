@@ -90,6 +90,12 @@ DEFAULTS: Dict[str, Any] = {
     },
     # Bonus flagship (points ajoutes au score, borne pour eviter le favoritisme)
     "bonus_flagship": 5,
+    # Bonus receveur WEB (points ajoutes au score) : le web = canal en ligne, plus
+    # gros porteur de CA -> on priorise son rechargement pour qu'il capte le surplus
+    # avant que les magasins physiques ne l'epuisent. 8 recharge fortement le web
+    # (x26 sur donnees reelles) sans trop ponctionner les magasins (-9%) ; monter
+    # a 10-15 priorise davantage le web au prix des magasins (-19 a -29%).
+    "bonus_web_receveur": 8,
     # Distance
     "poids_distance": 8,
     "distance_defaut_km": 150,          # 2 villes differentes sans matrice fournie
